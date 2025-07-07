@@ -7,12 +7,12 @@ export async function middleware(request: NextRequest) {
 
   const url = request.nextUrl.pathname;
   const protectedRoutes = [
-    '/',
-    '/dashboard',
-    '/usuarios',
+    '/', 
+    '/dashboard', 
+    '/usuarios', 
     '/usuarios/dashboard',
     '/usuarios/settings',
-    '/coa',
+    '/coa', 
     '/novedades',
     '/novedades/registrar',
     '/novedades/historial',
