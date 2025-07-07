@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { encrypt } from '@/lib/encryption';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';;
 import { RowDataPacket, ResultSetHeader } from 'mysql2'; // Añadimos ResultSetHeader
 
 interface SolicitudRow extends RowDataPacket {
