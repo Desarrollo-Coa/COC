@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from "react";
-import MainSidebar from '../../components/main-sidebar';
-import Skeleton from '../../components/ui/skeleton';
+import MainSidebar from '@/components/main-sidebar';
+import Skeleton from '@/components/ui/skeleton';
 import { useAuth } from "@/hooks/useAuth";
 import { BusinessList } from "@/components/business-list";
 
