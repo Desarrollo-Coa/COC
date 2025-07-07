@@ -16,6 +16,8 @@ interface UserRow extends RowDataPacket {
   role_name: string;
 }
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const token = req.cookies.get('token')?.value;
