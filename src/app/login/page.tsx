@@ -109,7 +109,9 @@ export default function LoginPage() {
         </div>
         
         <div className="relative z-10 max-w-md mx-auto text-center space-y-6 p-8">
-          <h2 className="text-2xl font-bold">Tablero de Control Central Barranquilla</h2>
+          <h2 className="text-2xl font-bold">
+            {process.env.NEXT_PUBLIC_DASHBOARD_TITLE || "TABLERO DE CONTROL"}
+          </h2>
           <p className="text-lg text-white/90">
             Sistema de gestión y control de operaciones
           </p>
