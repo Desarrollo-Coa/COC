@@ -1,4 +1,3 @@
-
 ## Instalación
 
 1. **Clona el repositorio:**
@@ -21,8 +20,8 @@
      DB_HOST=localhost
      DB_USER=tu_usuario
      DB_PASSWORD=tu_contraseña
-     DB_NAME=op_central_bq
-     NEXT_PUBLIC_DASHBOARD_TITLE="TABLERO DE CONTROL CENTRAL BARRANQUILLA"
+     DB_NAME=coc_costa
+     NEXT_PUBLIC_DASHBOARD_TITLE="COC - CENTRAL DE OPERACIONES COSTA"
      ```
 
 4. **Inicia la aplicación:**
