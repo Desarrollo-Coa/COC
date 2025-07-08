@@ -21,7 +21,8 @@ interface Negocio {
 export default function UnidadesNegocioPage() {
   const [unidades, setUnidades] = useState<UnidadNegocio[]>([]);
   const [negocios, setNegocios] = useState<Negocio[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedNegocio, setSelectedNegocio] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<{ id_unidad?: number; nombre_unidad: string; id_negocio: string }>({ nombre_unidad: "", id_negocio: "" });
@@ -29,15 +30,22 @@ export default function UnidadesNegocioPage() {
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; id_unidad?: number }>({ open: false });
 
   useEffect(() => {
-    fetchUnidades();
     fetchNegocios();
   }, []);
 
-  const fetchUnidades = async () => {
+  useEffect(() => {
+    if (selectedNegocio) {
+      fetchUnidades(selectedNegocio);
+    } else {
+      setUnidades([]);
+    }
+  }, [selectedNegocio]);
+
+  const fetchUnidades = async (idNegocio: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/settings/unidades-negocio");
+      const res = await fetch(`/api/settings/unidades-negocio?id_negocio=${idNegocio}`);
       if (!res.ok) throw new Error("No se pudieron obtener las unidades de negocio");
       const data = await res.json();
       setUnidades(data);
@@ -75,7 +83,7 @@ export default function UnidadesNegocioPage() {
       setIsDialogOpen(false);
       setFormData({ nombre_unidad: "", id_negocio: "" });
       setIsEditing(false);
-      fetchUnidades();
+      if (selectedNegocio) fetchUnidades(selectedNegocio);
     } catch (err: any) {
       setError(err.message || "Error desconocido");
     }
@@ -93,7 +101,7 @@ export default function UnidadesNegocioPage() {
       const res = await fetch(`/api/settings/unidades-negocio?idUnidad=${deleteDialog.id_unidad}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al eliminar");
-      fetchUnidades();
+      if (selectedNegocio) fetchUnidades(selectedNegocio);
       setDeleteDialog({ open: false });
     } catch (err: any) {
       setError(err.message || "Error desconocido");
@@ -109,8 +117,21 @@ export default function UnidadesNegocioPage() {
         </div>
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
           <div className="container mx-auto px-6 py-8">
-            <div className="mb-4 flex justify-between items-center">
-              <Button onClick={() => { setIsDialogOpen(true); setIsEditing(false); setFormData({ nombre_unidad: "", id_negocio: "" }); }}>Agregar Unidad</Button>
+            <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="w-full sm:w-1/2">
+                <Label>Filtrar por Negocio</Label>
+                <Select value={selectedNegocio} onValueChange={v => setSelectedNegocio(v)}>
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Seleccione un negocio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {negocios.map(n => (
+                      <SelectItem key={n.id_negocio} value={n.id_negocio.toString()}>{n.nombre_negocio}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={() => { setIsDialogOpen(true); setIsEditing(false); setFormData({ nombre_unidad: "", id_negocio: selectedNegocio }); }} disabled={!selectedNegocio}>Agregar Unidad</Button>
             </div>
             {error && <div className="bg-red-100 text-red-700 p-4 rounded mb-4 text-center">{error}</div>}
             {isLoading ? (
@@ -123,29 +144,32 @@ export default function UnidadesNegocioPage() {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : selectedNegocio && (
               <div className="bg-white rounded-lg shadow">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>ID</TableHead>
                       <TableHead>Nombre</TableHead>
-                      <TableHead>ID Negocio</TableHead>
+                      <TableHead>Negocio</TableHead>
                       <TableHead>Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {unidades.map((unidad) => (
-                      <TableRow key={unidad.id_unidad}>
-                        <TableCell>{unidad.id_unidad}</TableCell>
-                        <TableCell>{unidad.nombre_unidad}</TableCell>
-                        <TableCell>{unidad.id_negocio}</TableCell>
-                        <TableCell>
-                          <Button variant="outline" size="sm" onClick={() => handleEdit(unidad)}>Editar</Button>
-                          <Button variant="destructive" size="sm" className="ml-2" onClick={() => setDeleteDialog({ open: true, id_unidad: unidad.id_unidad })}>Eliminar</Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {unidades.map((unidad) => {
+                      const negocio = negocios.find(n => n.id_negocio === unidad.id_negocio);
+                      return (
+                        <TableRow key={unidad.id_unidad}>
+                          <TableCell>{unidad.id_unidad}</TableCell>
+                          <TableCell>{unidad.nombre_unidad}</TableCell>
+                          <TableCell>{negocio ? negocio.nombre_negocio : unidad.id_negocio}</TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm" onClick={() => handleEdit(unidad)}>Editar</Button>
+                            <Button variant="destructive" size="sm" className="ml-2" onClick={() => setDeleteDialog({ open: true, id_unidad: unidad.id_unidad })}>Eliminar</Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -171,7 +195,7 @@ export default function UnidadesNegocioPage() {
             {!isEditing && (
               <div>
                 <Label>Negocio</Label>
-                <Select value={formData.id_negocio} onValueChange={v => setFormData(f => ({ ...f, id_negocio: v }))} required>
+                <Select value={formData.id_negocio} onValueChange={v => setFormData(f => ({ ...f, id_negocio: v }))} required disabled={!!selectedNegocio}>
                   <SelectTrigger>
                     <SelectValue placeholder="Seleccione un negocio" />
                   </SelectTrigger>

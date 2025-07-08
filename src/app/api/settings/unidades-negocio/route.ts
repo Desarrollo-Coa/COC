@@ -2,12 +2,19 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { RowDataPacket } from 'mysql2';
 
-// GET: Listar todas las unidades de negocio
-export async function GET() {
+// GET: Listar todas las unidades de negocio (con filtro opcional por id_negocio)
+export async function GET(request: Request) {
   try {
-    const [rows] = await pool.query(
-      'SELECT id_unidad, nombre_unidad, id_negocio FROM unidades_negocio ORDER BY nombre_unidad'
-    );
+    const { searchParams } = new URL(request.url);
+    const idNegocio = searchParams.get('id_negocio');
+    let query = 'SELECT id_unidad, nombre_unidad, id_negocio FROM unidades_negocio';
+    let params: any[] = [];
+    if (idNegocio) {
+      query += ' WHERE id_negocio = ?';
+      params.push(idNegocio);
+    }
+    query += ' ORDER BY nombre_unidad';
+    const [rows] = await pool.query(query, params);
     return NextResponse.json(rows);
   } catch (error) {
     console.error('Error al obtener unidades de negocio:', error);
