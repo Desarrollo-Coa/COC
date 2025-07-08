@@ -596,22 +596,53 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
     await cargarCumplidos();
   }, [pendingChanges, saveBatch, cargarCumplidos]);
 
-  const buscarColaboradores = useCallback(async (texto: string) => {
+  // Cargar todos los colaboradores de 500 en 500 al montar el componente
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAllColaboradores = async () => {
+      let all: any[] = [];
+      let offset = 0;
+      const limit = 500;
+      let keepGoing = true;
+      while (keepGoing) {
+        const res = await fetch(`/api/cumplidos/colaboradores?limit=${limit}&offset=${offset}`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          all = all.concat(data);
+          if (data.length < limit) {
+            keepGoing = false;
+          } else {
+            offset += limit;
+          }
+        } else {
+          keepGoing = false;
+        }
+      }
+      if (isMounted) setColaboradores(all);
+    };
+    fetchAllColaboradores();
+    return () => { isMounted = false; };
+  }, []);
+
+  // Buscar en el frontend (en memoria)
+  const buscarColaboradores = useCallback((texto: string) => {
     if (texto.length < 2) {
       setSearchResults([]);
       return;
     }
     setSearching(true);
-    try {
-      const res = await fetch(`/api/settings/colaboradores?search=${encodeURIComponent(texto)}&limit=20`);
-      const data = await res.json();
-      setSearchResults(data);
-    } catch (e) {
-      setSearchResults([]);
-    } finally {
-      setSearching(false);
-    }
-  }, []);
+    const lower = texto.toLowerCase();
+    const results = colaboradores.filter(c =>
+      (c.nombre && c.nombre.toLowerCase().includes(lower)) ||
+      (c.apellido && c.apellido.toLowerCase().includes(lower)) ||
+      (c.placa && c.placa.toLowerCase().includes(lower)) ||
+      (c.cedula && c.cedula.toLowerCase().includes(lower)) ||
+      (`${c.nombre} ${c.apellido}`.toLowerCase().includes(lower)) ||
+      (`${c.apellido} ${c.nombre}`.toLowerCase().includes(lower))
+    );
+    setSearchResults(results.slice(0, 20)); // máximo 20 sugerencias
+    setSearching(false);
+  }, [colaboradores]);
 
   useEffect(() => {
     cargarPuestos();
