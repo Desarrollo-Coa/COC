@@ -193,3 +193,29 @@ CREATE TABLE configuracion_reportes_comunicacion (
     FOREIGN KEY (id_negocio) REFERENCES negocios(id_negocio),
     UNIQUE KEY unique_fecha_negocio (fecha_inicial, id_negocio)
 );
+
+-- Tabla de novedades
+CREATE TABLE novedades (
+    id_novedad INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    id_puesto INT NOT NULL,
+    consecutivo INT NOT NULL,
+    fecha_hora_novedad DATETIME NOT NULL,
+    descripcion TEXT,
+    gestion TEXT,
+    evento_critico BOOLEAN DEFAULT FALSE,
+    fecha_hora_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (consecutivo),
+    FOREIGN KEY (id_usuario) REFERENCES users(id),
+    FOREIGN KEY (id_puesto) REFERENCES puestos(id_puesto)
+);
+
+-- Tabla de imágenes de novedades
+CREATE TABLE imagenes_novedades (
+    id_imagen INT AUTO_INCREMENT PRIMARY KEY,
+    id_novedad INT NOT NULL,
+    url_imagen VARCHAR(255) NOT NULL,
+    nombre_archivo VARCHAR(255) NOT NULL,
+    fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_novedad) REFERENCES novedades(id_novedad) ON DELETE CASCADE
+);
