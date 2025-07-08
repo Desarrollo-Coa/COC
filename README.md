@@ -1,9 +1,13 @@
+# COC (Central de Operaciones Costa)
+
+Sistema de gestión y control operativo para la Central de Operaciones Costa.
+
 ## Instalación
 
 1. **Clona el repositorio:**
    ```bash
-   git clone https://github.com/Desarrollo-Coa/op-central-bq.git
-   cd op-central-bq
+   git clone https://github.com/Desarrollo-Coa/coc-central-operaciones-costa.git
+   cd coc-central-operaciones-costa
    ```
 
 2. **Instala las dependencias:**
