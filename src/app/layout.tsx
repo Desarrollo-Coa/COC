@@ -10,8 +10,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Central Ops BQ",
-  description: "Plataforma de gestión operativa para empresas",
+  title: "Central Op",
+  description: "Plataforma de gestión operativa",
 };
 
 export default function RootLayout({ children }: { children: any }) {
