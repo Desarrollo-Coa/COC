@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -34,6 +34,8 @@ interface Colaborador {
   placa: string;
   nombre: string;
   apellido: string;
+  nombres?: string;
+  apellidos?: string;
   activo: boolean;
   foto_url?: string;
   cedula?: string;
@@ -41,7 +43,6 @@ interface Colaborador {
 
 export default function ColaboradoresPage() {
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
-  const [colaboradoresFiltrados, setColaboradoresFiltrados] = useState<Colaborador[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -49,6 +50,9 @@ export default function ColaboradoresPage() {
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [total, setTotal] = useState(0);
 
   const [formData, setFormData] = useState<Colaborador>({
     placa: "",
@@ -58,37 +62,36 @@ export default function ColaboradoresPage() {
     foto_url: "",
   });
 
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  const [pendingSearch, setPendingSearch] = useState<string>("");
+
   useEffect(() => {
     fetchColaboradores();
-  }, []);
+    // eslint-disable-next-line
+  }, [page, pageSize, searchTerm]);
 
   useEffect(() => {
-    filtrarColaboradores();
-  }, [searchTerm, colaboradores]);
-
-  const filtrarColaboradores = () => {
-    let filtered = [...colaboradores];
-
-    // Filtrar por término de búsqueda
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (col) =>
-          col.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          col.apellido.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          col.placa.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setColaboradoresFiltrados(filtered);
-  };
+    setPendingSearch(searchTerm);
+  }, []);
 
   const fetchColaboradores = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch("/api/settings/colaboradores");
-      const data = await response.json();
+      let url = `/api/settings/colaboradores?limit=${pageSize}&offset=${(page - 1) * pageSize}`;
+      if (searchTerm) {
+        url += `&search=${encodeURIComponent(searchTerm)}`;
+      }
+      const response = await fetch(url);
+      let result = await response.json();
+      let data = result.data || [];
+      setTotal(result.total || 0);
+      // Normalizar los datos para que siempre tengan 'nombre' y 'apellido'
+      data = data.map((col: any) => ({
+        ...col,
+        nombre: col.nombre || col.nombres || "",
+        apellido: col.apellido || col.apellidos || "",
+      }));
       setColaboradores(data);
-      setColaboradoresFiltrados(data);
     } catch (error) {
       console.error("Error al obtener colaboradores:", error);
       toast({
@@ -99,6 +102,22 @@ export default function ColaboradoresPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Cambia el valor del input, pero no busca inmediatamente
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPendingSearch(e.target.value);
+    setPage(1);
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+      setSearchTerm(e.target.value);
+    }, 1000);
+  };
+
+  // Si pierde el foco, busca inmediatamente
+  const handleSearchBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    setSearchTerm(e.target.value);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -278,8 +297,9 @@ export default function ColaboradoresPage() {
           <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
           <Input
             placeholder="Buscar colaborador..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={pendingSearch}
+            onChange={handleSearchChange}
+            onBlur={handleSearchBlur}
             className="pl-8 bg-white border-gray-300 focus-visible:ring-blue-500"
           />
         </div>
@@ -313,14 +333,14 @@ export default function ColaboradoresPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : colaboradoresFiltrados.length === 0 ? (
+              ) : colaboradores.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-4 text-gray-500">
                     No se encontraron colaboradores
                   </TableCell>
                 </TableRow>
               ) : (
-                colaboradoresFiltrados.map((colaborador) => (
+                colaboradores.map((colaborador) => (
                   <TableRow 
                     key={colaborador.placa}
                     className="border-b hover:bg-gray-50 transition-colors"
@@ -331,7 +351,7 @@ export default function ColaboradoresPage() {
                           {colaborador.foto_url ? (
                             <img
                               src={colaborador.foto_url}
-                              alt={`${colaborador.nombre} ${colaborador.apellido}`}
+                              alt={`${colaborador.nombre || colaborador.nombres} ${colaborador.apellido || colaborador.apellidos}`}
                               className="w-full h-full object-cover"
                             />
                           ) : (
@@ -343,8 +363,12 @@ export default function ColaboradoresPage() {
                         {colaborador.placa}
                       </div>
                     </TableCell>
-                    <TableCell className="py-3 px-4">{colaborador.nombre}</TableCell>
-                    <TableCell className="py-3 px-4">{colaborador.apellido}</TableCell>
+                    <TableCell className="py-3 px-4">
+                      {colaborador.nombre || colaborador.nombres}
+                    </TableCell>
+                    <TableCell className="py-3 px-4">
+                      {colaborador.apellido || colaborador.apellidos}
+                    </TableCell>
                     <TableCell className="py-3 px-4">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

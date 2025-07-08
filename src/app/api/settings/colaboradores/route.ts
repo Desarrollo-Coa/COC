@@ -53,18 +53,35 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search');
     const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
 
     let query = "SELECT id, nombre, apellido, cedula, placa, activo, foto_url, fecha_creacion, fecha_actualizacion FROM colaboradores";
+    let countQuery = "SELECT COUNT(*) as total FROM colaboradores";
     let params: any[] = [];
+    let countParams: any[] = [];
     if (search) {
-      query += " WHERE nombre LIKE ? OR apellido LIKE ? OR placa LIKE ?";
-      params = [`%${search}%`, `%${search}%`, `%${search}%`];
+      query += ` WHERE nombre LIKE ? OR apellido LIKE ? OR placa LIKE ? OR cedula LIKE ? OR CONCAT(nombre, ' ', apellido) LIKE ? OR CONCAT(apellido, ' ', nombre) LIKE ?`;
+      countQuery += ` WHERE nombre LIKE ? OR apellido LIKE ? OR placa LIKE ? OR cedula LIKE ? OR CONCAT(nombre, ' ', apellido) LIKE ? OR CONCAT(apellido, ' ', nombre) LIKE ?`;
+      params = [
+        `%${search}%`, // nombre
+        `%${search}%`, // apellido
+        `%${search}%`, // placa
+        `%${search}%`, // cedula
+        `%${search}%`, // nombre + apellido
+        `%${search}%`  // apellido + nombre
+      ];
+      countParams = [...params];
     }
-    query += " ORDER BY nombre, apellido LIMIT ?";
-    params.push(limit);
+    query += " ORDER BY nombre, apellido LIMIT ? OFFSET ?";
+    params.push(limit, offset);
 
     const [colaboradores] = await pool.query(query, params);
-    return NextResponse.json(colaboradores);
+    const [countResult] = await pool.query(countQuery, countParams);
+    let total = 0;
+    if (Array.isArray(countResult) && (countResult as any[]).length > 0) {
+      total = (countResult as any[])[0].total || 0;
+    }
+    return NextResponse.json({ data: colaboradores, total });
   } catch (error) {
     console.error("Error al obtener colaboradores:", error);
     return NextResponse.json(
