@@ -81,9 +81,7 @@ CREATE TABLE user_sessions (
   last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-
-INSERT INTO user_sessions (id, user_id, last_activity) VALUES
-(1, 3, '2025-07-02 20:16:19');
+ 
 
 -- Tabla de relación usuarios-módulos
 CREATE TABLE usuarios_modulos (
