@@ -202,6 +202,13 @@ CREATE TABLE tipos_reporte (
     nombre_tipo_reporte VARCHAR(100) NOT NULL UNIQUE
 );
 
+-- Inserts de tipos de reporte
+INSERT INTO tipos_reporte (nombre_tipo_reporte) VALUES 
+('SEGURIDAD FISICA'),
+('ASEGURAMIENTO DE LA OPERACION'),
+('SEGURIDAD ELECTRONICA'),
+('INCUMPLIMIENTO A LOS PROCEDIMIENTOS PR');
+
 -- Tipos de Evento
 CREATE TABLE tipos_evento (
     id_tipo_evento INT AUTO_INCREMENT PRIMARY KEY,
@@ -211,6 +218,16 @@ CREATE TABLE tipos_evento (
     UNIQUE KEY unique_tipo_evento (nombre_tipo_evento, id_tipo_reporte)
 );
 
+-- Inserts de tipos de evento
+INSERT INTO tipos_evento (nombre_tipo_evento, id_tipo_reporte) VALUES 
+('PERTURBACION DE PREDIOS', 1),
+('INFRAESTRUCTURA', 1),
+('ELEMENTOS SIN ASEGURAR', 1),
+('FALLAS ELÉCTRICAS', 2),
+('LOGISTICA', 2),
+('PODA', 2),
+('EXTERNOS', 3),
+('INTERNOS', 3);
 
 
 -- Tabla de novedades
