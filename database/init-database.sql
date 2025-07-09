@@ -1,4 +1,10 @@
 -- Eliminar tablas si existen (en orden inverso de dependencias)
+DROP TABLE IF EXISTS destinatarios_envio;
+DROP TABLE IF EXISTS historial_envios;
+DROP TABLE IF EXISTS imagenes_novedades;
+DROP TABLE IF EXISTS novedades;
+DROP TABLE IF EXISTS tipos_evento;
+DROP TABLE IF EXISTS tipos_reporte;
 DROP TABLE IF EXISTS configuracion_reportes_comunicacion;
 DROP TABLE IF EXISTS reporte_comunicacion;
 DROP TABLE IF EXISTS notas_cumplidos;
@@ -267,4 +273,16 @@ CREATE TABLE historial_envios (
     mensaje_error TEXT,
     FOREIGN KEY (id_novedad) REFERENCES novedades(id_novedad),
     FOREIGN KEY (operador_id) REFERENCES users(id)
+);
+
+-- Tabla para Destinatarios de Envío (abierta para cualquier cliente)
+CREATE TABLE destinatarios_envio (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_historial INT NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    nombre VARCHAR(255) NOT NULL,
+    estado ENUM('enviado', 'error') NOT NULL,
+    error TEXT,
+    fecha_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_historial) REFERENCES historial_envios(id_envio) ON DELETE CASCADE
 );
