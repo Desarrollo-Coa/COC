@@ -295,3 +295,18 @@ CREATE TABLE destinatarios (
     activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+-- Tabla para Asignaciones de Destinatarios
+CREATE TABLE asignaciones_destinatarios (
+    id_asignacion INT AUTO_INCREMENT PRIMARY KEY,
+    id_tipo_evento INT NOT NULL,
+    id_puesto INT NOT NULL,
+    id_unidad INT NOT NULL,
+    id_destinatario INT NOT NULL,
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_tipo_evento) REFERENCES tipos_evento(id_tipo_evento),
+    FOREIGN KEY (id_puesto) REFERENCES puestos(id_puesto),
+    FOREIGN KEY (id_unidad) REFERENCES unidades_negocio(id_unidad),
+    FOREIGN KEY (id_destinatario) REFERENCES destinatarios(id_destinatario),
+    UNIQUE KEY unique_asignacion (id_tipo_evento, id_puesto, id_unidad, id_destinatario)
+);
