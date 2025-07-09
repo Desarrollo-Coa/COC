@@ -5,7 +5,7 @@ import nodemailer from 'nodemailer'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { getTokenFromRequest, verifyToken } from '@/lib/auth'
-import { generateStatsChartCementos } from '@/utils/canvasServiceCementos'
+import { generateStatsChart } from '@/utils/canvasService.ts'
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',

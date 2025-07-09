@@ -1,4 +1,4 @@
-export async function generateStatsChartCementos(
+export async function generateStatsChart(
   estadisticas: any[],
   tipoNovedad: string,
   sede: string,
@@ -25,7 +25,7 @@ export async function generateStatsChartCementos(
     const data = await response.json();
     return data.image;
   } catch (error) {
-    console.error('Error llamando al servicio de Canvas para Cementos:', error);
+    console.error('Error llamando al servicio de Canvas:', error);
     throw error;
   }
 } 
