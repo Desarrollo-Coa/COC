@@ -194,6 +194,25 @@ CREATE TABLE configuracion_reportes_comunicacion (
     UNIQUE KEY unique_fecha_negocio (fecha_inicial, id_negocio)
 );
 
+
+
+-- Tipos de Reporte
+CREATE TABLE tipos_reporte (
+    id_tipo_reporte INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_tipo_reporte VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- Tipos de Evento
+CREATE TABLE tipos_evento (
+    id_tipo_evento INT AUTO_INCREMENT PRIMARY KEY,
+    nombre_tipo_evento VARCHAR(100) NOT NULL,
+    id_tipo_reporte INT NOT NULL,
+    FOREIGN KEY (id_tipo_reporte) REFERENCES tipos_reporte(id_tipo_reporte),
+    UNIQUE KEY unique_tipo_evento (nombre_tipo_evento, id_tipo_reporte)
+);
+
+
+
 -- Tabla de novedades
 CREATE TABLE novedades (
     id_novedad INT AUTO_INCREMENT PRIMARY KEY,
@@ -201,15 +220,16 @@ CREATE TABLE novedades (
     id_puesto INT NOT NULL,
     consecutivo INT NOT NULL,
     fecha_hora_novedad DATETIME NOT NULL,
+    id_tipo_evento INT NOT NULL,
     descripcion TEXT,
     gestion TEXT,
     evento_critico BOOLEAN DEFAULT FALSE,
     fecha_hora_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (consecutivo),
     FOREIGN KEY (id_usuario) REFERENCES users(id),
-    FOREIGN KEY (id_puesto) REFERENCES puestos(id_puesto)
+    FOREIGN KEY (id_puesto) REFERENCES puestos(id_puesto),
+    FOREIGN KEY (id_tipo_evento) REFERENCES tipos_evento(id_tipo_evento)
 );
-
 -- Tabla de imágenes de novedades
 CREATE TABLE imagenes_novedades (
     id_imagen INT AUTO_INCREMENT PRIMARY KEY,
