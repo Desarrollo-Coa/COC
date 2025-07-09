@@ -286,3 +286,12 @@ CREATE TABLE destinatarios_envio (
     fecha_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_historial) REFERENCES historial_envios(id_envio) ON DELETE CASCADE
 );
+
+-- Tabla para Destinatarios
+CREATE TABLE destinatarios (
+    id_destinatario INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    nombre VARCHAR(255) NOT NULL,
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
