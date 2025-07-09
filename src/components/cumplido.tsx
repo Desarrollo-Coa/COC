@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,Al
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import ReactDOM from 'react-dom';
 
 interface CumplidoNegocioTableProps {
   negocioId: number;
@@ -81,6 +82,29 @@ interface PendingChange {
   nocturno?: number | null;
 }
 
+// Componente para renderizar el dropdown en un portal
+function AutocompletePortal({ children, inputRef }: { children: React.ReactNode, inputRef: React.RefObject<HTMLInputElement> }) {
+  const [style, setStyle] = useState<React.CSSProperties>({});
+  useEffect(() => {
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setStyle({
+        position: 'fixed',
+        left: rect.left,
+        top: rect.bottom,
+        width: rect.width,
+        zIndex: 9999,
+      });
+    }
+  }, [inputRef.current]);
+  return ReactDOM.createPortal(
+    <div style={style} className="bg-white border max-h-40 overflow-y-auto shadow-lg">
+      {children}
+    </div>,
+    document.body
+  );
+}
+
 export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegocioTableProps) {
   const [date, setDate] = useState<DateState>({
     anio: new Date().getFullYear().toString(),
@@ -112,6 +136,7 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const { toast } = useToast();
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Memoized arrays for select options
   const anios = useMemo(
@@ -848,9 +873,10 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
                                   placeholder="Buscar colaborador..."
                                   onFocus={() => setAutocompleteOpen(`${puesto.id_puesto}-diurno`)}
                                   onBlur={() => setTimeout(() => setAutocompleteOpen(null), 150)}
+                                  ref={el => { inputRefs.current[`${puesto.id_puesto}-diurno`] = el; }}
                                 />
-                                {colaboradorSearch[`${puesto.id_puesto}-diurno`] && autocompleteOpen === `${puesto.id_puesto}-diurno` && (
-                                  <div className="fixed z-50 bg-white border w-[250px] max-h-40 overflow-y-auto shadow-lg" style={{ top: 'auto', left: 'auto' }}>
+                                {colaboradorSearch[`${puesto.id_puesto}-diurno`] && autocompleteOpen === `${puesto.id_puesto}-diurno` && inputRefs.current[`${puesto.id_puesto}-diurno`] && (
+                                  <AutocompletePortal inputRef={{ current: inputRefs.current[`${puesto.id_puesto}-diurno`] }}>
                                     {searching ? (
                                       <div className="px-3 py-2">
                                         <Skeleton className="h-6 w-full mb-2" />
@@ -872,7 +898,7 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
                                         <div className="px-3 py-2 text-gray-400">Sin resultados</div>
                                       )
                                     )}
-                                  </div>
+                                  </AutocompletePortal>
                                 )}
                               </div>
                             </TableCell>
@@ -897,9 +923,10 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
                                   placeholder="Buscar colaborador..."
                                   onFocus={() => setAutocompleteOpen(`${puesto.id_puesto}-nocturno`)}
                                   onBlur={() => setTimeout(() => setAutocompleteOpen(null), 150)}
+                                  ref={el => { inputRefs.current[`${puesto.id_puesto}-nocturno`] = el; }}
                                 />
-                                {colaboradorSearch[`${puesto.id_puesto}-nocturno`] && autocompleteOpen === `${puesto.id_puesto}-nocturno` && (
-                                  <div className="fixed z-50 bg-white border w-[250px] max-h-40 overflow-y-auto shadow-lg" style={{ top: 'auto', left: 'auto' }}>
+                                {colaboradorSearch[`${puesto.id_puesto}-nocturno`] && autocompleteOpen === `${puesto.id_puesto}-nocturno` && inputRefs.current[`${puesto.id_puesto}-nocturno`] && (
+                                  <AutocompletePortal inputRef={{ current: inputRefs.current[`${puesto.id_puesto}-nocturno`] }}>
                                     {searching ? (
                                       <div className="px-3 py-2">
                                         <Skeleton className="h-6 w-full mb-2" />
@@ -921,7 +948,7 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
                                         <div className="px-3 py-2 text-gray-400">Sin resultados</div>
                                       )
                                     )}
-                                  </div>
+                                  </AutocompletePortal>
                                 )}
                               </div>
                             </TableCell>
