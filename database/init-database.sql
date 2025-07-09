@@ -256,3 +256,15 @@ CREATE TABLE imagenes_novedades (
     fecha_subida DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_novedad) REFERENCES novedades(id_novedad) ON DELETE CASCADE
 );
+-- Tabla para Historial de Envíos
+CREATE TABLE historial_envios (
+    id_envio INT AUTO_INCREMENT PRIMARY KEY,
+    id_novedad INT NOT NULL,
+    fecha_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    operador_id INT NOT NULL,
+    destinatarios JSON NOT NULL,
+    estado ENUM('enviado', 'error') NOT NULL,
+    mensaje_error TEXT,
+    FOREIGN KEY (id_novedad) REFERENCES novedades(id_novedad),
+    FOREIGN KEY (operador_id) REFERENCES users(id)
+);
