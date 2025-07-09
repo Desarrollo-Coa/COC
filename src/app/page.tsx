@@ -35,7 +35,7 @@ export default function Home() {
       title: "Novedades",
       description: "Registro de incidencias",
       icon: <Bell className="h-6 w-6 text-muted-foreground" />,
-      image: "/img/modulos/novedades/LOGO-RENOA-GRUPO-ARGOS.jpeg",
+      image: "/img/modulos/novedades/LOGO-RENOA.jpeg",
       link: "/novedades",
     },
   ];
