@@ -164,25 +164,29 @@ export default function NegociosPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {negocios.map((negocio) => (
-            <Card key={negocio.id_negocio} className="h-28 flex flex-row items-center gap-4 px-6">
+            <Card key={negocio.id_negocio} className="h-28 flex flex-row items-center gap-4 px-6 w-full">
               <div className="flex items-center justify-center rounded-full h-10 w-10 bg-green-100">
-                <Building2 className="h-5 w-5 text-green-600" />
+                <span className="font-bold text-green-700 text-sm">{negocio.id_negocio}</span>
               </div>
-              <div className="flex flex-col flex-1">
-                <CardTitle className="text-base font-semibold text-gray-900 text-left">
-                  {negocio.nombre_negocio}
-                </CardTitle>
+              <div className="flex flex-col flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base font-semibold text-gray-900 text-left flex-1 min-w-0">
+                    <span className="truncate w-full" title={negocio.nombre_negocio}>
+                      {negocio.nombre_negocio}
+                    </span>
+                  </CardTitle>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Button size="icon" variant="outline" onClick={() => { setNegocioEditando(negocio); setNuevoNombre(negocio.nombre_negocio); setEditDialogOpen(true); }} title="Editar">
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant="destructive" onClick={() => { setNegocioAEliminar(negocio); setDeleteDialogOpen(true); }} title="Eliminar">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
                 <p className="text-xs text-gray-500 mt-1">
                   {negocio.activo ? "Activo" : "Inactivo"} &middot; Creado: {new Date(negocio.fecha_creacion).toLocaleDateString()}
                 </p>
-              </div>
-              <div className="flex gap-2">
-                <Button size="icon" variant="outline" onClick={() => { setNegocioEditando(negocio); setNuevoNombre(negocio.nombre_negocio); setEditDialogOpen(true); }} title="Editar">
-                  <Pencil className="w-4 h-4" />
-                </Button>
-                <Button size="icon" variant="destructive" onClick={() => { setNegocioAEliminar(negocio); setDeleteDialogOpen(true); }} title="Eliminar">
-                  <Trash2 className="w-4 h-4" />
-                </Button>
               </div>
             </Card>
           ))}
@@ -229,7 +233,7 @@ export default function NegociosPage() {
       </Dialog>
       {/* Diálogo de error visible para relaciones */}
       <Dialog open={errorModalOpen} onOpenChange={setErrorModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>No se puede eliminar el negocio</DialogTitle>
           </DialogHeader>

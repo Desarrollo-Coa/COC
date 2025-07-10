@@ -25,7 +25,7 @@ export async function GET(request: Request) {
         s.nombre_sede as sede,
         GROUP_CONCAT(i.url_imagen) as archivos
       FROM novedades_cementos_argos n
-      JOIN Tipos_Evento te ON n.id_tipo_evento = te.id_tipo_evento
+      JOIN tipos_evento te ON n.id_tipo_evento = te.id_tipo_evento
       JOIN Sedes s ON n.id_sede = s.id_sede
       JOIN Tipos_Negocio tn ON n.id_tipo_negocio = tn.id_tipo_negocio
       JOIN zonas_cementos_argos z ON s.id_zona = z.id_zona

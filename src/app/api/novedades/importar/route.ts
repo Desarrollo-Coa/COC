@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
       // Buscar id_tipo_evento
       const [tipoEventoRows]: any = await pool.query(
-        'SELECT id_tipo_evento FROM Tipos_Evento WHERE nombre_tipo_evento = ? AND id_tipo_reporte = ? LIMIT 1',
+        'SELECT id_tipo_evento FROM tipos_evento WHERE nombre_tipo_evento = ? AND id_tipo_reporte = ? LIMIT 1',
         [tipoEvento, id_tipo_reporte]
       )
       if (!tipoEventoRows.length) {

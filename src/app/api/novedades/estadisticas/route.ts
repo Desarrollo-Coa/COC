@@ -56,7 +56,7 @@ export async function GET(request: Request) {
           FROM novedades_cementos_argos n
           JOIN Sedes s ON n.id_sede = s.id_sede
           JOIN zonas_cementos_argos z ON s.id_zona = z.id_zona
-          JOIN Tipos_Evento te ON n.id_tipo_evento = te.id_tipo_evento
+          JOIN tipos_evento te ON n.id_tipo_evento = te.id_tipo_evento
           WHERE z.nombre_zona = ?
           GROUP BY te.nombre_tipo_evento
           ORDER BY cantidad DESC

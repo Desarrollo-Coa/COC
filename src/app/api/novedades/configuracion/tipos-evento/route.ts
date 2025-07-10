@@ -8,7 +8,7 @@ export async function GET() {
         te.id_tipo_evento as id,
         te.nombre_tipo_evento as nombre,
         te.id_tipo_reporte
-      FROM Tipos_Evento te
+      FROM tipos_evento te
       ORDER BY id_tipo_evento ASC`
     )
 
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     const { nombre_tipo_evento, id_tipo_reporte } = data
 
     const [result] = await pool.query(
-      "INSERT INTO Tipos_Evento (nombre_tipo_evento, id_tipo_reporte) VALUES (?, ?)",
+      "INSERT INTO tipos_evento (nombre_tipo_evento, id_tipo_reporte) VALUES (?, ?)",
       [nombre_tipo_evento, id_tipo_reporte]
     )
 

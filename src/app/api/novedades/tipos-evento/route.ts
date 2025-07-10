@@ -6,7 +6,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const tipoReporteId = searchParams.get("tipoReporteId")
 
-    let query = "SELECT * FROM Tipos_Evento"
+    let query = "SELECT * FROM tipos_evento"
     const params: any[] = []
 
     // Si se proporciona un tipo de reporte, filtrar los eventos relacionados

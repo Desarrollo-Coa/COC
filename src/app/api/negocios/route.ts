@@ -6,7 +6,7 @@ import type { ResultSetHeader } from "mysql2";
 export async function GET() {
   try {
     const [rows] = await pool.query(
-      `SELECT id_negocio, nombre_negocio, activo, fecha_creacion, fecha_actualizacion FROM negocios ORDER BY nombre_negocio`
+      `SELECT id_negocio, nombre_negocio, activo, fecha_creacion, fecha_actualizacion FROM negocios ORDER BY id_negocio ASC`
     );
     return NextResponse.json(rows, { status: 200 });
   } catch (error) {

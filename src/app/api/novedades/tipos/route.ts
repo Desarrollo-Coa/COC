@@ -8,7 +8,7 @@ export async function GET() {
       SELECT 
         id_tipo_evento as id_tipo_novedad,
         nombre_tipo_evento as nombre_novedad
-      FROM Tipos_Evento
+      FROM tipos_evento
       ORDER BY nombre_tipo_evento ASC
     `
 

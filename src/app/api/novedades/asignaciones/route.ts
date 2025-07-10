@@ -20,7 +20,7 @@ export async function GET() {
         a.activo
       FROM asignaciones_destinatarios_cementos_argos a
       INNER JOIN destinatarios_cementos_argos d ON a.id_destinatario = d.id_destinatario
-      INNER JOIN Tipos_Evento te ON a.id_tipo_novedad = te.id_tipo_evento
+      INNER JOIN tipos_evento te ON a.id_tipo_novedad = te.id_tipo_evento
       INNER JOIN Sedes s ON a.id_sede = s.id_sede
       INNER JOIN unidades_negocio_cementos_argos un ON a.id_unidad_negocio = un.id_unidad
       WHERE a.activo = true

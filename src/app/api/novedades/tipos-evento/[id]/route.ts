@@ -18,7 +18,7 @@ export async function GET(
         id_tipo_evento,
         nombre_tipo_evento,
         id_tipo_reporte
-      FROM Tipos_Evento
+      FROM tipos_evento
       WHERE id_tipo_reporte = ?
       ORDER BY nombre_tipo_evento ASC
     `
