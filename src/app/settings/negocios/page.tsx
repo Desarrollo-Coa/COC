@@ -7,7 +7,7 @@ import { Plus, Building2, Pencil, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import Skeleton from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface Negocio {
   id_negocio: number;
@@ -23,7 +23,6 @@ export default function NegociosPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [nombreNegocio, setNombreNegocio] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [negocioEditando, setNegocioEditando] = useState<Negocio | null>(null);
   const [nuevoNombre, setNuevoNombre] = useState("");
@@ -62,12 +61,12 @@ export default function NegociosPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al crear negocio");
-      toast({ title: "Negocio creado", description: `Se creó el negocio: ${data.negocio.nombre_negocio}` });
+      toast.success(`Se creó el negocio: ${data.negocio.nombre_negocio}`);
       setNombreNegocio("");
       setIsDialogOpen(false);
       fetchNegocios();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast.error(err.message);
     }
   };
 
@@ -80,19 +79,18 @@ export default function NegociosPage() {
       const data = await res.json();
       if (!res.ok) {
         if (res.status === 409) {
-          setErrorModalMsg("No puedes eliminar este negocio porque tiene unidades, puestos o novedades asociadas. Elimina o reasigna esos datos antes de intentar borrar el negocio.");
-          setErrorModalOpen(true);
+          toast.error("No puedes eliminar este negocio porque tiene unidades, puestos o novedades asociadas. Elimina o reasigna esos datos antes de intentar borrar el negocio.");
         } else {
-          toast({ title: "Error", description: data.error || "No se pudo eliminar el negocio", variant: "destructive" });
+          toast.error(data.error || "No se pudo eliminar el negocio");
         }
         return;
       }
-      toast({ title: "Negocio eliminado", description: `Se eliminó el negocio: ${negocioAEliminar.nombre_negocio}` });
+      toast.success(`Se eliminó el negocio: ${negocioAEliminar.nombre_negocio}`);
       setDeleteDialogOpen(false);
       setNegocioAEliminar(null);
       fetchNegocios();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast.error(err.message);
     }
   };
 
@@ -107,13 +105,13 @@ export default function NegociosPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "No se pudo editar el negocio");
-      toast({ title: "Negocio actualizado", description: `Nuevo nombre: ${data.negocio.nombre_negocio}` });
+      toast.success(`Nuevo nombre: ${data.negocio.nombre_negocio}`);
       setEditDialogOpen(false);
       setNegocioEditando(null);
       setNuevoNombre("");
       fetchNegocios();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast.error(err.message);
     }
   };
 
@@ -227,20 +225,6 @@ export default function NegociosPage() {
             </Button>
             <Button type="button" variant="destructive" onClick={handleDelete}>
               Eliminar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      {/* Diálogo de error visible para relaciones */}
-      <Dialog open={errorModalOpen} onOpenChange={setErrorModalOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>No se puede eliminar el negocio</DialogTitle>
-          </DialogHeader>
-          <p>{errorModalMsg}</p>
-          <div className="flex justify-end mt-4">
-            <Button type="button" onClick={() => setErrorModalOpen(false)}>
-              Cerrar
             </Button>
           </div>
         </DialogContent>
