@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from '@/hooks/useAuth'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -78,10 +78,10 @@ interface EventosPorPuesto {
     2024: number[]
     2025: number[]
   }
-  // sede: string // Eliminado porque no existe en el modelo de datos
 }
 
 const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+
 
 export default function EstadisticasPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -139,21 +139,6 @@ export default function EstadisticasPage() {
     if (año === año1) resumenPorNegocio[evento.unidad_negocio].año1++
     if (año === año2) resumenPorNegocio[evento.unidad_negocio].año2++
   })
-  const dataNegocio = {
-    labels: Object.keys(resumenPorNegocio),
-    datasets: [
-      {
-        label: `Año ${año1}`,
-        data: Object.values(resumenPorNegocio).map(n => n.año1),
-        backgroundColor: 'orange'
-      },
-      {
-        label: `Año ${año2}`,
-        data: Object.values(resumenPorNegocio).map(n => n.año2),
-        backgroundColor: 'red'
-      }
-    ]
-  }
 
   const resumenPorTipo: { [tipo: string]: { año1: number, año2: number } } = {}
   eventos.forEach(evento => {
@@ -409,14 +394,7 @@ export default function EstadisticasPage() {
     console.log('Conteo eventos:', conteoEventos); // Debugging
     setEventosDetalle(conteoEventos);
   };
-
-  const cambiarNegocio = (negocio: string) => {
-    setNegocioSeleccionado({ id: negocios.find(n => n.nombre_negocio === negocio)?.id_negocio || 0, nombre: negocio })
-    setMesSeleccionado(null)
-    setPuestoSeleccionado(null)
-    setEventosDetalle({})
-    setEventosPorPuestoDetalle({})
-  }
+ 
 
   const mostrarEventosPorPuesto = (puesto: string, año: number) => {
     if (año === 2024 && eventosPorPuesto.find(p => p.puesto === puesto)?.[2024] === 0) return

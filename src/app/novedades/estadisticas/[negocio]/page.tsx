@@ -48,7 +48,6 @@ interface Evento {
   puesto: string
   unidad_negocio: string
   archivos: { url_archivo: string }[]
-  sede: string
 }
 
 interface Negocio {
@@ -79,31 +78,31 @@ interface EventosPorPuesto {
     2024: number[]
     2025: number[]
   }
-  sede: string
 }
 
 const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
 
+
 export default function EstadisticasPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const params = useParams()
+  const params = useParams() // <-- AÑADIDO: obtener parámetros de la URL
   const [negocios, setNegocios] = useState<Negocio[]>([])
   const [puestos, setPuestos] = useState<Puesto[]>([])
-  const [negocioSeleccionado, setNegocioSeleccionado] = useState<{id: number, nombre: string} | null>(null)
+  const [negocioSeleccionado, setNegocioSeleccionado] = useState<{ id: number, nombre: string } | null>(null)
   const [loading, setLoading] = useState(false)
   const [eventos, setEventos] = useState<Evento[]>([])
   const [eventosPuesto, setEventosPuesto] = useState<Evento[]>([])
   const [eventosPorMes, setEventosPorMes] = useState<EventosPorMes>({})
   const [eventosPorPuesto, setEventosPorPuesto] = useState<EventosPorPuesto[]>([])
-  const [eventosDetalle, setEventosDetalle] = useState<{[key: string]: { cantidad: number, ids: number[] }}>({})
-  const [mesSeleccionado, setMesSeleccionado] = useState<{mes: string, año: number} | null>(null)
-  const [puestoSeleccionado, setPuestoSeleccionado] = useState<{puesto: string, año: number} | null>(null)
+  const [eventosDetalle, setEventosDetalle] = useState<{ [key: string]: { cantidad: number, ids: number[] } }>({})
+  const [mesSeleccionado, setMesSeleccionado] = useState<{ mes: string, año: number } | null>(null)
+  const [puestoSeleccionado, setPuestoSeleccionado] = useState<{ puesto: string, año: number } | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [eventosSeleccionados, setEventosSeleccionados] = useState<Evento[]>([])
   const [vistaActual, setVistaActual] = useState<'generales' | 'comparativa' | 'puestos'>('generales')
   const { toast } = useToast()
-  const [eventosPorPuestoDetalle, setEventosPorPuestoDetalle] = useState<{[key: string]: { cantidad: number, ids: number[] }}>({})
+  const [eventosPorPuestoDetalle, setEventosPorPuestoDetalle] = useState<{ [key: string]: { cantidad: number, ids: number[] } }>({})
   const [resumenSedes, setResumenSedes] = useState<any[]>([])
   const [tipoGraficoComparativa, setTipoGraficoComparativa] = useState<'comparativa' | 'tendencia'>('comparativa');
   const [tipoGraficoSedes, setTipoGraficoSedes] = useState<'comparativa' | 'tendencia'>('tendencia');
@@ -115,8 +114,14 @@ export default function EstadisticasPage() {
   const [año2, setAño2] = useState<number>(currentYear - 1)
 
   // 1. Agrega nuevos estados:
-  const [unidades, setUnidades] = useState<{id_unidad_negocio: number, nombre_unidad_negocio: string}[]>([]);
-  const [unidadSeleccionada, setUnidadSeleccionada] = useState<{id: number, nombre: string} | null>(null);
+  const [unidades, setUnidades] = useState<{ id_unidad_negocio: number, nombre_unidad_negocio: string }[]>([]);
+  const [unidadSeleccionada, setUnidadSeleccionada] = useState<{ id: number, nombre: string } | null>(null);
+
+  // NUEVO: Estados para los datos de reportes-puesto
+  const [porPuesto, setPorPuesto] = useState<any[]>([]);
+  const [porMes, setPorMes] = useState<any[]>([]);
+  const [porTipo, setPorTipo] = useState<any[]>([]);
+  const [totales, setTotales] = useState<any[]>([]);
 
   // Obtener años únicos de los eventos
   const añosDisponibles = Array.from(new Set(eventos.map(e => {
@@ -135,21 +140,6 @@ export default function EstadisticasPage() {
     if (año === año1) resumenPorNegocio[evento.unidad_negocio].año1++
     if (año === año2) resumenPorNegocio[evento.unidad_negocio].año2++
   })
-  const dataNegocio = {
-    labels: Object.keys(resumenPorNegocio),
-    datasets: [
-      {
-        label: `Año ${año1}`,
-        data: Object.values(resumenPorNegocio).map(n => n.año1),
-        backgroundColor: 'orange'
-      },
-      {
-        label: `Año ${año2}`,
-        data: Object.values(resumenPorNegocio).map(n => n.año2),
-        backgroundColor: 'red'
-      }
-    ]
-  }
 
   const resumenPorTipo: { [tipo: string]: { año1: number, año2: number } } = {}
   eventos.forEach(evento => {
@@ -189,27 +179,20 @@ export default function EstadisticasPage() {
         const response = await fetch('/api/novedades/negocios')
         if (!response.ok) throw new Error('Error al cargar negocios')
         const data = await response.json()
-        
-        // Filtrar negocios basado en el parámetro de la URL
-        let negociosFiltrados = data
-        if (params.negocio) {
-          const idsNegocios = params.negocio.toString().split('-').map(id => parseInt(id.trim()))
-          negociosFiltrados = data.filter((negocio: Negocio) => idsNegocios.includes(negocio.id_negocio))
+        // --- NUEVO: Filtrar negocios por IDs de la URL ---
+        let negociosFiltrados = data;
+        const idsNegocio: number[] = params.negocio
+          ? String(params.negocio).split('-').map((id: string) => Number(id)).filter((id: number) => !isNaN(id))
+          : [];
+        if (idsNegocio.length > 0) {
+          negociosFiltrados = data.filter((n: any) => idsNegocio.includes(n.id_negocio));
         }
-        
         setNegocios(negociosFiltrados)
         if (negociosFiltrados.length > 0) {
-          setNegocioSeleccionado({id: negociosFiltrados[0].id_negocio, nombre: negociosFiltrados[0].nombre_negocio})
-        } else if (params.negocio) {
-          // Si se especificaron IDs pero no se encontraron negocios
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: `No se encontraron negocios con los IDs especificados: ${params.negocio}`
-          })
+          setNegocioSeleccionado({ id: negociosFiltrados[0].id_negocio, nombre: negociosFiltrados[0].nombre_negocio })
         }
       } catch (error) {
-        console.error('Error al cargar negocios:', error)
+        // Error al cargar negocios
         toast({
           variant: "destructive",
           title: "Error",
@@ -217,7 +200,6 @@ export default function EstadisticasPage() {
         })
       }
     }
-
     fetchNegocios()
   }, [toast, params.negocio])
 
@@ -231,7 +213,7 @@ export default function EstadisticasPage() {
         const data = await response.json();
         setUnidades(data);
         if (data.length > 0) {
-          setUnidadSeleccionada({id: data[0].id_unidad_negocio, nombre: data[0].nombre_unidad_negocio});
+          setUnidadSeleccionada({ id: data[0].id_unidad_negocio, nombre: data[0].nombre_unidad_negocio });
         } else {
           setUnidadSeleccionada(null);
         }
@@ -253,7 +235,7 @@ export default function EstadisticasPage() {
         const data = await response.json();
         setPuestos(data);
         if (data.length > 0) {
-          setPuestoSeleccionado({puesto: data[0].nombre_puesto, año: currentYear});
+          setPuestoSeleccionado({ puesto: data[0].nombre_puesto, año: currentYear });
         } else {
           setPuestoSeleccionado(null);
         }
@@ -267,104 +249,99 @@ export default function EstadisticasPage() {
 
   // Modifica cargarEventos para requerir los tres valores:
   const cargarEventos = async () => {
-    if (!negocioSeleccionado || !unidadSeleccionada || !puestoSeleccionado) return;
-    setLoading(true)
+    if (!negocioSeleccionado) return;
+    setLoading(true);
     try {
-      // Cargar eventos filtrando por negocio, unidad y puesto
-      const resEventos = await fetch(`/api/novedades/eventos?id_negocio=${negocioSeleccionado.id}`);
-      if (!resEventos.ok) throw new Error('Error al cargar eventos');
-      const dataEventos = await resEventos.json();
-      // Filtra los eventos por unidad y puesto seleccionados
-      const eventosFiltrados = dataEventos.filter((e: any) =>
-        e.unidad_negocio === unidadSeleccionada.nombre &&
-        e.puesto === puestoSeleccionado.puesto
-      );
-      setEventos(eventosFiltrados);
+      // Cargar datos de reportes-puesto
+      const res = await fetch(`/api/novedades/reportes-puesto?id_negocio=${negocioSeleccionado.id}`);
+      if (!res.ok) throw new Error('Error al cargar reportes por puesto');
+      const data = await res.json();
+      setPorPuesto(data.porPuesto || []);
+      setPorMes(data.porMes || []);
+      setPorTipo(data.porTipo || []);
+      setTotales(data.totales || []);
+      setResumenSedes(data.porPuesto || []);
 
-      // Cargar resumen por puesto y año SOLO para la vista de plantas
-      const resResumen = await fetch(`/api/novedades/reportes-puesto?id_negocio=${negocioSeleccionado.id}&resumen=1`);
-      if (!resResumen.ok) throw new Error('Error al cargar resumen por puesto');
-      const dataResumen = await resResumen.json();
-      setResumenSedes(dataResumen.filter((r: any) => r.puesto === puestoSeleccionado.puesto));
-
-      // Cargar eventos por puesto (detalle, para modales)
-      const resPuestos = await fetch(`/api/novedades/reportes-puesto?id_negocio=${negocioSeleccionado.id}`);
-      if (!resPuestos.ok) throw new Error('Error al cargar eventos por puesto');
-      const dataPuestos = await resPuestos.json();
-      setEventosPuesto(dataPuestos.filter((e: any) => e.puesto === puestoSeleccionado.puesto));
-
-      procesarEventos(eventosFiltrados, dataPuestos.filter((e: any) => e.puesto === puestoSeleccionado.puesto));
+      // Asumiendo que el endpoint devuelve los eventos detallados en data.eventos
+      if (data.eventos) {
+        setEventos(data.eventos);
+        procesarEventos(data.eventos, data.eventos); // Procesar eventos para actualizar eventosPorMes
+      } else {
+        // Alternativa: Fetch eventos desde otro endpoint
+        const eventosRes = await fetch(`/api/novedades/eventos?id_negocio=${negocioSeleccionado.id}`);
+        if (!eventosRes.ok) throw new Error('Error al cargar eventos');
+        const eventosData = await eventosRes.json();
+        setEventos(eventosData);
+        procesarEventos(eventosData, eventosData);
+      }
     } catch (error) {
-      console.error('Error al cargar eventos:', error)
       toast({
         variant: "destructive",
         title: "Error",
-        description: "No se pudieron cargar los eventos"
-      })
-      setEventos([])
-      setEventosPuesto([])
-      setResumenSedes([])
-      procesarEventos([], [])
+        description: "No se pudieron cargar los reportes por puesto o eventos"
+      });
+      setPorPuesto([]);
+      setPorMes([]);
+      setPorTipo([]);
+      setTotales([]);
+      setResumenSedes([]);
+      setEventos([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
 
   const procesarEventos = (eventos: Evento[], eventosPuesto: Evento[]) => {
-    console.log('Total de eventos recibidos:', eventos.length)
-    console.log('Total de eventos por puesto recibidos:', eventosPuesto.length)
-    
-    const conteos: EventosPorMes = {}
+    console.log('Eventos recibidos:', eventos); // Debugging
+
+    const conteos: EventosPorMes = {};
     negocios.forEach(negocio => {
       conteos[negocio.nombre_negocio] = {
         2024: Array(12).fill(0),
         2025: Array(12).fill(0)
-      }
-    })
+      };
+    });
 
-    const conteosPorPuesto: { [key: string]: EventosPorPuesto } = {}
+    const conteosPorPuesto: { [key: string]: EventosPorPuesto } = {};
 
     // Procesar eventos para la vista comparativa
     eventos.forEach(evento => {
       if (!evento.fecha_novedad) {
-        console.log('Evento sin fecha:', evento)
-        return
+        console.warn('Evento sin fecha_novedad:', evento); // Debugging
+        return;
       }
 
-      const [año, mes, dia] = evento.fecha_novedad.split('T')[0].split('-').map(Number)
-      
+      const [año, mes, dia] = evento.fecha_novedad.split('T')[0].split('-').map(Number);
       if (!año || !mes || !dia) {
-        console.log('Fecha inválida:', evento.fecha_novedad)
-        return
+        console.warn('Fecha inválida en evento:', evento); // Debugging
+        return;
       }
 
       if (año === 2024 || año === 2025) {
-        const negocio = evento.unidad_negocio
-        const mesIndex = mes - 1
+        const negocio = evento.unidad_negocio;
+        const mesIndex = mes - 1;
         if (conteos[negocio]) {
-          conteos[negocio][año][mesIndex]++
+          conteos[negocio][año][mesIndex]++;
         }
       }
-    })
+    });
 
     // Procesar eventos por puesto
     eventosPuesto.forEach(evento => {
       if (!evento.fecha_novedad) {
-        console.log('Evento sin fecha:', evento)
-        return
+        console.warn('Evento puesto sin fecha_novedad:', evento); // Debugging
+        return;
       }
 
-      const [año, mes, dia] = evento.fecha_novedad.split('T')[0].split('-').map(Number)
-      
+      const [año, mes, dia] = evento.fecha_novedad.split('T')[0].split('-').map(Number);
       if (!año || !mes || !dia) {
-        console.log('Fecha inválida:', evento.fecha_novedad)
-        return
+        console.warn('Fecha inválida en evento puesto:', evento); // Debugging
+        return;
       }
 
       if (año === 2024 || año === 2025) {
-        const negocio = evento.unidad_negocio
-        
-        // Procesar eventos por puesto solo si corresponde al negocio seleccionado
+        const negocio = evento.unidad_negocio;
         if (negocio === negocioSeleccionado?.nombre) {
           if (!conteosPorPuesto[evento.puesto]) {
             conteosPorPuesto[evento.puesto] = {
@@ -374,70 +351,72 @@ export default function EstadisticasPage() {
               ids: {
                 2024: [],
                 2025: []
-              },
-              sede: evento.sede
-            }
+              }
+            };
           }
-          conteosPorPuesto[evento.puesto][año]++
-          conteosPorPuesto[evento.puesto].ids[año].push(evento.id_novedad)
+          conteosPorPuesto[evento.puesto][año]++;
+          conteosPorPuesto[evento.puesto].ids[año].push(evento.id_novedad);
         }
       }
-    })
+    });
 
-    setEventosPorMes(conteos)
-    setEventosPorPuesto(Object.values(conteosPorPuesto))
-  }
+    console.log('Conteos por mes:', conteos); // Debugging
+    console.log('Conteos por puesto:', conteosPorPuesto); // Debugging
+    setEventosPorMes(conteos);
+    setEventosPorPuesto(Object.values(conteosPorPuesto));
+  };
 
   const mostrarDetallesEventos = (mes: string, año: number) => {
-    setMesSeleccionado({mes, año})
-    
+    setMesSeleccionado({ mes, año });
+  
+    // Verificar si eventos contiene datos
+    if (!eventos.length) {
+      console.warn('No hay eventos en el estado eventos');
+      setEventosDetalle({});
+      return;
+    }
+  
+    const mesIndex = meses.indexOf(mes) + 1;
     const eventosDelMes = eventos.filter(evento => {
       if (!evento.fecha_novedad) return false;
-      
-      const [eventoAño, eventoMes] = evento.fecha_novedad.split('T')[0].split('-').map(Number)
-      const negocioEvento = evento.unidad_negocio
-      
-      const mesIndex = eventoMes - 1
-      
-      return eventoAño === año && 
-             meses[mesIndex] === mes &&
-             negocioEvento === negocioSeleccionado?.nombre
-    })
-
-    const conteoEventos: { [key: string]: { cantidad: number, ids: number[] } } = {}
+      const [eventoAño, eventoMes] = evento.fecha_novedad.split('T')[0].split('-').map(Number);
+      const negocioEvento = evento.unidad_negocio;
+      return (
+        eventoAño === año &&
+        eventoMes === mesIndex &&
+        negocioEvento === negocioSeleccionado?.nombre
+      );
+    });
+  
+    const conteoEventos: { [key: string]: { cantidad: number, ids: number[] } } = {};
     eventosDelMes.forEach(evento => {
-      const key = `${evento.tipo_novedad}`
+      const key = `${evento.tipo_novedad}`;
       if (!conteoEventos[key]) {
-        conteoEventos[key] = { cantidad: 0, ids: [] }
+        conteoEventos[key] = { cantidad: 0, ids: [] };
       }
-      conteoEventos[key].cantidad++
-      conteoEventos[key].ids.push(evento.id_novedad)
-    })
-
-    setEventosDetalle(conteoEventos)
-  }
-
-  const cambiarNegocio = (negocio: string) => {
-    setNegocioSeleccionado({id: negocios.find(n => n.nombre_negocio === negocio)?.id_negocio || 0, nombre: negocio})
-    setMesSeleccionado(null)
-    setPuestoSeleccionado(null)
-    setEventosDetalle({})
-    setEventosPorPuestoDetalle({})
-  }
+      conteoEventos[key].cantidad++;
+      conteoEventos[key].ids.push(evento.id_novedad);
+    });
+  
+    console.log('Eventos del mes:', eventosDelMes); // Debugging
+    console.log('Conteo eventos:', conteoEventos); // Debugging
+    setEventosDetalle(conteoEventos);
+  };
+ 
 
   const mostrarEventosPorPuesto = (puesto: string, año: number) => {
     if (año === 2024 && eventosPorPuesto.find(p => p.puesto === puesto)?.[2024] === 0) return
     if (año === 2025 && eventosPorPuesto.find(p => p.puesto === puesto)?.[2025] === 0) return
 
-    setPuestoSeleccionado({puesto, año})
-    
+    setPuestoSeleccionado({ puesto, año })
+
     // Filtrar eventos por puesto y año
     const eventosDelPuesto = eventos.filter(evento => {
       if (!evento.fecha_novedad) return false;
       const [eventoAño] = evento.fecha_novedad.split('T')[0].split('-').map(Number)
       return evento.puesto === puesto && eventoAño === año
     })
-    
+
     // Agrupar eventos por tipo
     const conteoEventos: { [key: string]: { cantidad: number, ids: number[] } } = {}
     eventosDelPuesto.forEach(evento => {
@@ -461,39 +440,46 @@ export default function EstadisticasPage() {
     }
   }, [negocioSeleccionado])
 
-  // Modifica el useEffect para cargar eventos solo si los tres están seleccionados:
+  // Modifica el useEffect para cargar eventos solo si hay negocio seleccionado:
   useEffect(() => {
-    if (negocioSeleccionado && unidadSeleccionada && puestoSeleccionado) {
-      setEventosPorMes(prev => ({
-        ...prev,
-        [negocioSeleccionado.nombre]: {
-          2024: Array(12).fill(0),
-          2025: Array(12).fill(0)
-        }
-      }))
+    if (negocioSeleccionado) {
       cargarEventos();
     }
-  }, [negocioSeleccionado, unidadSeleccionada, puestoSeleccionado]);
+  }, [negocioSeleccionado]);
 
+  // --- DATOS PARA TABLAS Y GRÁFICOS ---
+  // Para la tabla de comparativa de eventos por mes
   const chartData = {
     labels: meses,
     datasets: [
       {
         label: 'Eventos 2024',
-        data: (eventosPorMes[negocioSeleccionado?.nombre ?? '']?.[2024] || Array(12).fill(0)),
+        data: meses.map((_, i) => {
+          const found = porMes.find((m: any) => m.anio === 2024 && m.mes === i + 1);
+          return found ? found.cantidad : 0;
+        }),
         backgroundColor: 'darkblue',
         borderColor: 'darkblue',
         borderWidth: 1
       },
       {
         label: 'Eventos 2025',
-        data: (eventosPorMes[negocioSeleccionado?.nombre ?? '']?.[2025] || Array(12).fill(0)),
+        data: meses.map((_, i) => {
+          const found = porMes.find((m: any) => m.anio === 2025 && m.mes === i + 1);
+          return found ? found.cantidad : 0;
+        }),
         backgroundColor: 'lightgreen',
         borderColor: 'lightgreen',
         borderWidth: 1
       }
     ]
   }
+
+  // Para la tabla de eventos por puestos
+  const puestosLabels = puestos.map(p => p.nombre_puesto);
+  // Si no hay puestos cargados, usar los del backend
+  const puestosFromBackend = Array.from(new Set((porPuesto || []).map((p: any) => p.puesto)));
+  const puestosLabelsFinal = puestosLabels.length > 0 ? puestosLabels : puestosFromBackend;
 
   const chartOptions = {
     responsive: true,
@@ -513,7 +499,7 @@ export default function EstadisticasPage() {
             size: 9
           }
         },
-        suggestedMax: function(context: any) {
+        suggestedMax: function (context: any) {
           const max = context.chart.data.datasets.reduce((max: number, dataset: any) => {
             return Math.max(max, Math.max(...dataset.data));
           }, 0);
@@ -541,7 +527,7 @@ export default function EstadisticasPage() {
     plugins: {
       tooltip: {
         callbacks: {
-          label: function(context: any) {
+          label: function (context: any) {
             return `${context.dataset.label}: ${context.raw}`
           }
         },
@@ -581,17 +567,16 @@ export default function EstadisticasPage() {
 
   const mostrarEventosSeleccionados = (tipo: string) => {
     if (!mesSeleccionado || !eventosDetalle[tipo]) return
-    
-    const eventosDelTipo = eventos.filter(evento => 
+
+    const eventosDelTipo = eventos.filter(evento =>
       eventosDetalle[tipo].ids.includes(evento.id_novedad)
     )
-    
+
     setEventosSeleccionados(eventosDelTipo)
     setShowModal(true)
   }
 
-  // 1. Obtener lista de sedes únicas para el eje X
-  const puestosLabels = puestos.map(p => p.nombre_puesto);
+  // 1. Obtener lista de puestos para el eje X (ya definido como puestosLabelsFinal)
 
   const scrollTabs = (dir: 'left' | 'right') => {
     const el = scrollTabsRef.current;
@@ -602,6 +587,39 @@ export default function EstadisticasPage() {
     } else {
       el.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
+  };
+
+  // --- Buscador de negocios ---
+  const [busquedaNegocio, setBusquedaNegocio] = useState('');
+  const [sugerenciasNegocio, setSugerenciasNegocio] = useState<Negocio[]>([]);
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+  // refs para cada tab de negocio
+  const negocioTabRefs = useRef<{ [id: number]: HTMLSpanElement | null }>({});
+
+  useEffect(() => {
+    if (busquedaNegocio.trim() === '') {
+      setSugerenciasNegocio([]);
+      setMostrarSugerencias(false);
+      return;
+    }
+    const sugerencias = negocios.filter(n =>
+      n.nombre_negocio.toLowerCase().includes(busquedaNegocio.toLowerCase())
+    );
+    setSugerenciasNegocio(sugerencias);
+    setMostrarSugerencias(sugerencias.length > 0);
+  }, [busquedaNegocio, negocios]);
+
+  const seleccionarNegocioBusqueda = (negocio: Negocio) => {
+    setNegocioSeleccionado({ id: negocio.id_negocio, nombre: negocio.nombre_negocio });
+    setBusquedaNegocio('');
+    setMostrarSugerencias(false);
+    // Centrar el tab seleccionado si existe
+    setTimeout(() => {
+      const tabEl = negocioTabRefs.current[negocio.id_negocio];
+      if (tabEl) {
+        tabEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }, 100);
   };
 
   if (authLoading) {
@@ -616,27 +634,6 @@ export default function EstadisticasPage() {
     return null
   }
 
-  if (negocios.length === 0) {
-    return (
-      <div className="container mx-auto h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-700 mb-4">No hay negocios disponibles</h2>
-          {params.negocio && (
-            <p className="text-gray-600 mb-4">
-              No se encontraron negocios con los IDs especificados: {params.negocio}
-            </p>
-          )}
-          <button
-            onClick={() => router.push('/novedades/estadisticas')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Ver todos los negocios
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="container mx-auto h-screen">
       <div className="flex flex-col lg:flex-row gap-6 h-full">
@@ -645,25 +642,22 @@ export default function EstadisticasPage() {
           <h2 className="text-lg font-bold mb-4">Vistas</h2>
           <div className="flex lg:flex-col gap-2 lg:space-y-2">
             <button
-              className={`flex-1 lg:w-full text-center lg:text-left px-4 py-2 rounded ${
-                vistaActual === 'generales' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
-              }`}
+              className={`flex-1 lg:w-full text-center lg:text-left px-4 py-2 rounded ${vistaActual === 'generales' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+                }`}
               onClick={() => setVistaActual('generales')}
             >
               Estadísticas Generales
             </button>
             <button
-              className={`flex-1 lg:w-full text-center lg:text-left px-4 py-2 rounded ${
-                vistaActual === 'comparativa' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
-              }`}
+              className={`flex-1 lg:w-full text-center lg:text-left px-4 py-2 rounded ${vistaActual === 'comparativa' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+                }`}
               onClick={() => setVistaActual('comparativa')}
             >
               Comparativa de Eventos
             </button>
             <button
-              className={`flex-1 lg:w-full text-center lg:text-left px-4 py-2 rounded ${
-                vistaActual === 'puestos' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
-              }`}
+              className={`flex-1 lg:w-full text-center lg:text-left px-4 py-2 rounded ${vistaActual === 'puestos' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+                }`}
               onClick={() => setVistaActual('puestos')}
             >
               Eventos por Puestos
@@ -674,9 +668,36 @@ export default function EstadisticasPage() {
         {/* Contenido principal */}
         <div className="flex-1 h-full pt-4 lg:pt-8">
           {/* Cabecera con tabs de negocios y datos seleccionados en una sola línea, scroll horizontal y flechas */}
-          <div className="header mb-4">
-            <div className="flex items-center justify-between">
+          <div className="header mb-4 flex items-center justify-between">
             <div className="flex items-center w-full">
+              {/* Buscador de negocios */}
+              <div className="relative mr-2 min-w-[180px] max-w-[260px]">
+                <input
+                  type="text"
+                  className="border border-gray-300 rounded px-2 py-1 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  placeholder="Buscar negocio..."
+                  value={busquedaNegocio}
+                  onChange={e => setBusquedaNegocio(e.target.value)}
+                  onFocus={() => setMostrarSugerencias(sugerenciasNegocio.length > 0)}
+                  onBlur={() => setTimeout(() => setMostrarSugerencias(false), 120)}
+                />
+                {mostrarSugerencias && (
+                  <ul className="absolute z-10 bg-white border border-gray-200 rounded shadow w-full mt-1 max-h-48 overflow-y-auto">
+                    {sugerenciasNegocio.map(n => (
+                      <li
+                        key={n.id_negocio}
+                        className="px-3 py-2 cursor-pointer hover:bg-blue-100 text-sm"
+                        onMouseDown={() => seleccionarNegocioBusqueda(n)}
+                      >
+                        {n.nombre_negocio}
+                      </li>
+                    ))}
+                    {sugerenciasNegocio.length === 0 && (
+                      <li className="px-3 py-2 text-gray-400 text-sm">Sin resultados</li>
+                    )}
+                  </ul>
+                )}
+              </div>
               <button
                 className="px-2 py-1 text-xl font-bold text-gray-500 hover:text-blue-600 focus:outline-none"
                 onClick={() => scrollTabs('left')}
@@ -693,8 +714,9 @@ export default function EstadisticasPage() {
                 {negocios.map((negocio, index) => (
                   <Fragment key={negocio.id_negocio}>
                     <span
+                      ref={el => { negocioTabRefs.current[negocio.id_negocio] = el; }}
                       className={`cursor-pointer px-2 lg:px-4 font-bold whitespace-nowrap ${negocioSeleccionado?.id === negocio.id_negocio ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
-                      onClick={() => setNegocioSeleccionado({id: negocio.id_negocio, nombre: negocio.nombre_negocio})}
+                      onClick={() => setNegocioSeleccionado({ id: negocio.id_negocio, nombre: negocio.nombre_negocio })}
                     >
                       {negocio.nombre_negocio}
                     </span>
@@ -703,7 +725,7 @@ export default function EstadisticasPage() {
                     )}
                   </Fragment>
                 ))}
-            </div>
+              </div>
               <button
                 className="px-2 py-1 text-xl font-bold text-gray-500 hover:text-blue-600 focus:outline-none"
                 onClick={() => scrollTabs('right')}
@@ -715,12 +737,11 @@ export default function EstadisticasPage() {
             </div>
             <div className="flex items-center gap-4 ml-4">
               {/* Eliminado: Unidad y Puesto seleccionados */}
-              </div>
             </div>
           </div>
           <hr />
           {vistaActual === 'generales' && negocioSeleccionado?.id && (
-            <EstadisticasGeneralesPage 
+            <EstadisticasGeneralesPage
               id_negocio={negocioSeleccionado.id}
               id_unidad={unidadSeleccionada?.id}
               id_puesto={puestoSeleccionado?.puesto ? puestos.find(p => p.nombre_puesto === puestoSeleccionado.puesto)?.id_puesto : undefined}
@@ -760,43 +781,46 @@ export default function EstadisticasPage() {
                       ))}
                     </div>
                   ) : (
-            <table className="border border-black text-sm w-full">
-              <thead className="sticky top-0">
-                <tr>
-                  <th className="bg-[rgb(28,28,28)] text-white p-1 border border-black text-xs w-16">Mes</th>
-                  <th className="bg-[rgb(28,28,28)] text-white p-1 border border-black text-xs w-14">2024</th>
-                  <th className="bg-[rgb(28,28,28)] text-white p-1 border border-black text-xs w-14">2025</th>
-                </tr>
-              </thead>
-              <tbody>
-                {meses.map((mes, index) => (
-                  <tr key={mes}>
-                    <td className="border border-black p-1 text-center text-xs">{mes}</td>
-                    <td 
-                      className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${mesSeleccionado?.mes === mes && mesSeleccionado?.año === 2024 ? 'bg-blue-100' : ''}`}
-                      onClick={() => mostrarDetallesEventos(mes, 2024)}
-                    >
-                      {(eventosPorMes[negocioSeleccionado?.nombre ?? '']?.[2024]?.[index] || 0)}
-                    </td>
-                    <td 
-                      className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${mesSeleccionado?.mes === mes && mesSeleccionado?.año === 2025 ? 'bg-blue-100' : ''}`}
-                      onClick={() => mostrarDetallesEventos(mes, 2025)}
-                    >
-                      {(eventosPorMes[negocioSeleccionado?.nombre ?? '']?.[2025]?.[index] || 0)}
-                    </td>
-                  </tr>
-                ))}
-                <tr>
-                  <td className="border border-black p-1 text-center font-bold text-xs">Total</td>
-                  <td className="border border-black p-1 text-center font-bold text-xs">
-                    {(eventosPorMes[negocioSeleccionado?.nombre ?? '']?.[2024] || []).reduce((a: number, b: number) => a + b, 0)}
-                  </td>
-                  <td className="border border-black p-1 text-center font-bold text-xs">
-                    {(eventosPorMes[negocioSeleccionado?.nombre ?? '']?.[2025] || []).reduce((a: number, b: number) => a + b, 0)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                    <table className="border border-black text-sm w-full">
+                      <thead className="sticky top-0">
+                        <tr>
+                          <th className="bg-[rgb(28,28,28)] text-white p-1 border border-black text-xs w-16">Mes</th>
+                          <th className="bg-[rgb(28,28,28)] text-white p-1 border border-black text-xs w-14">2024</th>
+                          <th className="bg-[rgb(28,28,28)] text-white p-1 border border-black text-xs w-14">2025</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {meses.map((mes, index) => (
+                          <tr key={mes}>
+                            <td className="border border-black p-1 text-center text-xs">{mes}</td>
+                            <td
+                              className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${mesSeleccionado?.mes === mes && mesSeleccionado?.año === 2024 ? 'bg-blue-100' : ''
+                                }`}
+                              onClick={() => mostrarDetallesEventos(mes, 2024)}
+                            >
+                              {porMes.find(m => m.anio === 2024 && m.mes === index + 1)?.cantidad || 0}
+                            </td>
+                            <td
+                              className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${mesSeleccionado?.mes === mes && mesSeleccionado?.año === 2025 ? 'bg-blue-100' : ''
+                                }`}
+                              onClick={() => mostrarDetallesEventos(mes, 2025)}
+                            >
+                              {porMes.find(m => m.anio === 2025 && m.mes === index + 1)?.cantidad || 0}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr>
+                          <td className="border border-black p-1 text-center font-bold text-xs">Total</td>
+                          <td className="border border-black p-1 text-center font-bold text-xs">
+                            {porMes.filter(m => m.anio === 2024).reduce((sum, m) => sum + m.cantidad, 0)}
+                          </td>
+
+                          <td className="border border-black p-1 text-center font-bold text-xs">
+                            {porMes.filter(m => m.anio === 2025).reduce((sum, m) => sum + m.cantidad, 0)}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   )}
                 </div>
 
@@ -804,75 +828,75 @@ export default function EstadisticasPage() {
                   {loading ? (
                     <div className="h-full bg-gray-200 animate-pulse rounded"></div>
                   ) : tipoGraficoComparativa === 'comparativa' ? (
-            <Bar data={chartData} options={chartOptions} />
+                    <Bar data={chartData} options={chartOptions} />
                   ) : (
-            <Line 
-              data={{
-                labels: meses,
-                datasets: [
-                  {
-                    label: 'Eventos 2024',
-                    data: resumenSedes.filter(r => r.anio === 2024).map(r => r.cantidad),
-                    borderColor: 'darkblue',
-                    backgroundColor: 'darkblue',
-                    tension: 0.1,
-                    fill: false
-                  },
-                  {
-                    label: 'Eventos 2025',
-                    data: resumenSedes.filter(r => r.anio === 2025).map(r => r.cantidad),
-                    borderColor: 'lightgreen',
-                    backgroundColor: 'lightgreen',
-                    tension: 0.1,
-                    fill: false
-                  }
-                ]
-              }}
-              options={chartOptions}
-            />
+                    <Line
+                      data={{
+                        labels: meses,
+                        datasets: [
+                          {
+                            label: 'Eventos 2024',
+                            data: porMes.filter(m => m.anio === 2024).map(m => m.cantidad),
+                            borderColor: 'darkblue',
+                            backgroundColor: 'darkblue',
+                            tension: 0.1,
+                            fill: false
+                          },
+                          {
+                            label: 'Eventos 2025',
+                            data: porMes.filter(m => m.anio === 2025).map(m => m.cantidad),
+                            borderColor: 'lightgreen',
+                            backgroundColor: 'lightgreen',
+                            tension: 0.1,
+                            fill: false
+                          }
+                        ]
+                      }}
+                      options={chartOptions}
+                    />
                   )}
                 </div>
 
                 <div className="content-list border border-gray-200 rounded-lg p-3 lg:col-span-4 h-[300px] lg:h-[200px] sticky top-4">
-            <h3 className="text-lg font-bold mb-2">
-              Detalles de Eventos
-              {mesSeleccionado && (
-                <span className="text-sm font-normal ml-2 text-gray-600">
-                  ({mesSeleccionado.mes} {mesSeleccionado.año} - {negocioSeleccionado?.nombre})
-                </span>
-              )}
-            </h3>
+                  <h3 className="text-lg font-bold mb-2">
+                    Detalles de Eventos
+                    {mesSeleccionado && (
+                      <span className="text-sm font-normal ml-2 text-gray-600">
+                        ({mesSeleccionado.mes} {mesSeleccionado.año} - {negocioSeleccionado?.nombre})
+                      </span>
+                    )}
+                  </h3>
                   <div className="h-[calc(100%-3rem)] overflow-y-auto">
-              {loading ? (
+                    {loading ? (
                       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {Array.from({ length: 6 }).map((_, i) => (
                           <div key={i} className="h-24 bg-gray-200 animate-pulse rounded"></div>
                         ))}
+                      </div>
+                    ) : Object.keys(eventosDetalle).length > 0 ? (
+                      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {Object.entries(eventosDetalle).map(([tipo, data]) => (
+                          <Card key={tipo} className="cursor-pointer hover:bg-gray-100" onClick={() => mostrarEventosSeleccionados(tipo)}>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                              <CardTitle className="text-sm font-medium">{tipo}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="text-2xl font-bold">{data.cantidad}</div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center text-gray-500 py-4">
+                        {mesSeleccionado
+                          ? "No hay eventos para el período seleccionado"
+                          : "Seleccione un mes para ver detalles de eventos"}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              ) : Object.keys(eventosDetalle).length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {Object.entries(eventosDetalle).map(([tipo, data]) => (
-                    <Card key={tipo} className="cursor-pointer hover:bg-gray-100" onClick={() => mostrarEventosSeleccionados(tipo)}>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{tipo}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">{data.cantidad}</div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-gray-500 py-4">
-                  {mesSeleccionado 
-                    ? "No hay eventos para el período seleccionado" 
-                    : "Seleccione un mes para ver detalles de eventos"}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </Card>
+              </div>
+            </Card>
           )}
           {vistaActual === 'puestos' && (
             <Card className="p-4 lg:p-6 mt-4 h-[calc(100%-6rem)]">
@@ -919,18 +943,18 @@ export default function EstadisticasPage() {
                       <tbody>
                         {puestos.map((puesto) => {
                           // Buscar los totales por puesto y año en resumenSedes
-                          const total2024 = resumenSedes.find(r => r.puesto === puesto.nombre_puesto && r.anio === 2024)?.cantidad || 0
-                          const total2025 = resumenSedes.find(r => r.puesto === puesto.nombre_puesto && r.anio === 2025)?.cantidad || 0
+                          const total2024 = porPuesto.find(r => r.puesto === puesto.nombre_puesto && r.anio === 2024)?.cantidad || 0
+                          const total2025 = porPuesto.find(r => r.puesto === puesto.nombre_puesto && r.anio === 2025)?.cantidad || 0
                           return (
                             <tr key={puesto.id_puesto}>
                               <td className="border border-black p-1 text-xs">{puesto.nombre_puesto}</td>
-                              <td 
+                              <td
                                 className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${puestoSeleccionado?.puesto === puesto.nombre_puesto && puestoSeleccionado?.año === 2024 ? 'bg-blue-100' : ''}`}
                                 onClick={() => { mostrarEventosPorPuesto(puesto.nombre_puesto, 2024); setShowModal(true); }}
                               >
                                 {total2024}
                               </td>
-                              <td 
+                              <td
                                 className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${puestoSeleccionado?.puesto === puesto.nombre_puesto && puestoSeleccionado?.año === 2025 ? 'bg-blue-100' : ''}`}
                                 onClick={() => { mostrarEventosPorPuesto(puesto.nombre_puesto, 2025); setShowModal(true); }}
                               >
@@ -942,10 +966,10 @@ export default function EstadisticasPage() {
                         <tr>
                           <td className="border border-black p-1 text-center font-bold text-xs">Total</td>
                           <td className="border border-black p-1 text-center font-bold text-xs">
-                            {resumenSedes.filter(r => r.anio === 2024).reduce((sum, r) => sum + r.cantidad, 0)}
+                            {porPuesto.filter(r => r.anio === 2024).reduce((sum, r) => sum + r.cantidad, 0)}
                           </td>
                           <td className="border border-black p-1 text-center font-bold text-xs">
-                            {resumenSedes.filter(r => r.anio === 2025).reduce((sum, r) => sum + r.cantidad, 0)}
+                            {porPuesto.filter(r => r.anio === 2025).reduce((sum, r) => sum + r.cantidad, 0)}
                           </td>
                         </tr>
                       </tbody>
@@ -960,13 +984,13 @@ export default function EstadisticasPage() {
                       {loading ? (
                         <div className="h-full bg-gray-200 animate-pulse rounded"></div>
                       ) : tipoGraficoSedes === 'tendencia' ? (
-                        <Line 
+                        <Line
                           data={{
-                            labels: puestosLabels,
+                            labels: puestosLabelsFinal,
                             datasets: [
                               {
                                 label: 'Eventos 2024',
-                                data: puestosLabels.map(puesto => resumenSedes.find(r => r.puesto === puesto && r.anio === 2024)?.cantidad || 0),
+                                data: puestosLabelsFinal.map(puesto => porPuesto.find(r => r.puesto === puesto && r.anio === 2024)?.cantidad || 0),
                                 borderColor: 'darkblue',
                                 backgroundColor: 'darkblue',
                                 tension: 0.1,
@@ -974,7 +998,7 @@ export default function EstadisticasPage() {
                               },
                               {
                                 label: 'Eventos 2025',
-                                data: puestosLabels.map(puesto => resumenSedes.find(r => r.puesto === puesto && r.anio === 2025)?.cantidad || 0),
+                                data: puestosLabelsFinal.map(puesto => porPuesto.find(r => r.puesto === puesto && r.anio === 2025)?.cantidad || 0),
                                 borderColor: 'lightgreen',
                                 backgroundColor: 'lightgreen',
                                 tension: 0.1,
@@ -985,20 +1009,20 @@ export default function EstadisticasPage() {
                           options={chartOptions}
                         />
                       ) : (
-                        <Bar 
+                        <Bar
                           data={{
-                            labels: puestosLabels,
+                            labels: puestosLabelsFinal,
                             datasets: [
                               {
                                 label: 'Eventos 2024',
-                                data: puestosLabels.map(puesto => resumenSedes.find(r => r.puesto === puesto && r.anio === 2024)?.cantidad || 0),
+                                data: puestosLabelsFinal.map(puesto => porPuesto.find(r => r.puesto === puesto && r.anio === 2024)?.cantidad || 0),
                                 backgroundColor: 'darkblue',
                                 borderColor: 'darkblue',
                                 borderWidth: 1,
                               },
                               {
                                 label: 'Eventos 2025',
-                                data: puestosLabels.map(puesto => resumenSedes.find(r => r.puesto === puesto && r.anio === 2025)?.cantidad || 0),
+                                data: puestosLabelsFinal.map(puesto => porPuesto.find(r => r.puesto === puesto && r.anio === 2025)?.cantidad || 0),
                                 backgroundColor: 'lightgreen',
                                 borderColor: 'lightgreen',
                                 borderWidth: 1,
@@ -1021,7 +1045,7 @@ export default function EstadisticasPage() {
         <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {vistaActual === 'comparativa' 
+              {vistaActual === 'comparativa'
                 ? `Eventos - ${mesSeleccionado?.mes} ${mesSeleccionado?.año}`
                 : `Eventos del Puesto - ${puestoSeleccionado?.puesto} (${puestoSeleccionado?.año})`}
             </DialogTitle>
@@ -1034,7 +1058,7 @@ export default function EstadisticasPage() {
                     {(evento.puesto || '??')} - {evento.tipo_novedad}
                   </h2>
                   <p className="text-sm text-gray-600 mb-4">Consecutivo: {evento.consecutivo}</p>
-                  
+
                   {evento.archivos && evento.archivos.length > 0 && (
                     <div className="mb-6">
                       <div className="flex gap-4 overflow-x-auto pb-4">
