@@ -68,13 +68,6 @@ export default function NovedadesAside() {
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-gray-600 hover:text-gray-900"
-                  onClick={() => router.push('/novedades/configuracion/unidades-negocio')}
-                >
-                  Unidades de Negocio
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-gray-600 hover:text-gray-900"
                   onClick={() => router.push('/novedades/configuracion/tipos-reporte')}
                 >
                   Tipos de Reporte
@@ -85,41 +78,6 @@ export default function NovedadesAside() {
                   onClick={() => router.push('/novedades/configuracion/tipos-evento')}
                 >
                   Tipos de Evento
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-gray-600 hover:text-gray-900"
-                  onClick={() => router.push('/novedades/configuracion/tipos-negocio')}
-                >
-                  Tipos de Unidad de Negocio
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-gray-600 hover:text-gray-900"
-                  onClick={() => router.push('/novedades/configuracion/sedes')}
-                >
-                  Sedes
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-gray-600 hover:text-gray-900"
-                  onClick={() => router.push('/novedades/configuracion/departamentos')}
-                >
-                  Departamentos
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-gray-600 hover:text-gray-900"
-                  onClick={() => router.push('/novedades/configuracion/municipios')}
-                >
-                  Municipios
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-gray-600 hover:text-gray-900"
-                  onClick={() => router.push('/novedades/configuracion/zonas')}
-                >
-                  Zonas
                 </Button>
               </div>
             )}
