@@ -588,6 +588,39 @@ export default function EstadisticasPage() {
     }
   };
 
+  // --- Buscador de negocios ---
+  const [busquedaNegocio, setBusquedaNegocio] = useState('');
+  const [sugerenciasNegocio, setSugerenciasNegocio] = useState<Negocio[]>([]);
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false);
+  // refs para cada tab de negocio
+  const negocioTabRefs = useRef<{ [id: number]: HTMLSpanElement | null }>({});
+
+  useEffect(() => {
+    if (busquedaNegocio.trim() === '') {
+      setSugerenciasNegocio([]);
+      setMostrarSugerencias(false);
+      return;
+    }
+    const sugerencias = negocios.filter(n =>
+      n.nombre_negocio.toLowerCase().includes(busquedaNegocio.toLowerCase())
+    );
+    setSugerenciasNegocio(sugerencias);
+    setMostrarSugerencias(sugerencias.length > 0);
+  }, [busquedaNegocio, negocios]);
+
+  const seleccionarNegocioBusqueda = (negocio: Negocio) => {
+    setNegocioSeleccionado({ id: negocio.id_negocio, nombre: negocio.nombre_negocio });
+    setBusquedaNegocio('');
+    setMostrarSugerencias(false);
+    // Centrar el tab seleccionado si existe
+    setTimeout(() => {
+      const tabEl = negocioTabRefs.current[negocio.id_negocio];
+      if (tabEl) {
+        tabEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }, 100);
+  };
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -639,6 +672,34 @@ export default function EstadisticasPage() {
           {/* Cabecera con tabs de negocios y datos seleccionados en una sola línea, scroll horizontal y flechas */}
           <div className="header mb-4 flex items-center justify-between">
             <div className="flex items-center w-full">
+              {/* Buscador de negocios */}
+              <div className="relative mr-2 min-w-[180px] max-w-[260px]">
+                <input
+                  type="text"
+                  className="border border-gray-300 rounded px-2 py-1 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  placeholder="Buscar negocio..."
+                  value={busquedaNegocio}
+                  onChange={e => setBusquedaNegocio(e.target.value)}
+                  onFocus={() => setMostrarSugerencias(sugerenciasNegocio.length > 0)}
+                  onBlur={() => setTimeout(() => setMostrarSugerencias(false), 120)}
+                />
+                {mostrarSugerencias && (
+                  <ul className="absolute z-10 bg-white border border-gray-200 rounded shadow w-full mt-1 max-h-48 overflow-y-auto">
+                    {sugerenciasNegocio.map(n => (
+                      <li
+                        key={n.id_negocio}
+                        className="px-3 py-2 cursor-pointer hover:bg-blue-100 text-sm"
+                        onMouseDown={() => seleccionarNegocioBusqueda(n)}
+                      >
+                        {n.nombre_negocio}
+                      </li>
+                    ))}
+                    {sugerenciasNegocio.length === 0 && (
+                      <li className="px-3 py-2 text-gray-400 text-sm">Sin resultados</li>
+                    )}
+                  </ul>
+                )}
+              </div>
               <button
                 className="px-2 py-1 text-xl font-bold text-gray-500 hover:text-blue-600 focus:outline-none"
                 onClick={() => scrollTabs('left')}
@@ -655,6 +716,7 @@ export default function EstadisticasPage() {
                 {negocios.map((negocio, index) => (
                   <Fragment key={negocio.id_negocio}>
                     <span
+                      ref={el => { negocioTabRefs.current[negocio.id_negocio] = el; }}
                       className={`cursor-pointer px-2 lg:px-4 font-bold whitespace-nowrap ${negocioSeleccionado?.id === negocio.id_negocio ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
                       onClick={() => setNegocioSeleccionado({id: negocio.id_negocio, nombre: negocio.nombre_negocio})}
                     >
