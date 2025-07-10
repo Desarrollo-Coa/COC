@@ -254,6 +254,13 @@ export default function EstadisticasPage() {
       setPorTipo(data.porTipo || []);
       setTotales(data.totales || []);
       setResumenSedes(data.porPuesto || []);
+      
+      // Debug: Imprimir información de puestos
+      console.log('=== DEBUG FRONTEND ===');
+      console.log('Total de registros porPuesto:', (data.porPuesto || []).length);
+      console.log('Puestos únicos:', Array.from(new Set((data.porPuesto || []).map((p: any) => p.puesto))));
+      console.log('Estructura debug del backend:', data.estructuraDebug);
+      console.log('=== FIN DEBUG FRONTEND ===');
 
       // Asumiendo que el endpoint devuelve los eventos detallados en data.eventos
       if (data.eventos) {
@@ -403,8 +410,9 @@ export default function EstadisticasPage() {
  
 
   const mostrarEventosPorPuesto = (puesto: string, año: number) => {
-    if (año === 2024 && eventosPorPuesto.find(p => p.puesto === puesto)?.[2024] === 0) return
-    if (año === 2025 && eventosPorPuesto.find(p => p.puesto === puesto)?.[2025] === 0) return
+    // Verificar si hay eventos para este puesto y año usando los datos del backend
+    const puestoData = porPuesto.find((r: any) => r.puesto === puesto && r.anio === año);
+    if (!puestoData || puestoData.cantidad === 0) return;
 
     setPuestoSeleccionado({ puesto, año })
 
@@ -473,11 +481,8 @@ export default function EstadisticasPage() {
     ]
   }
 
-  // Para la tabla de eventos por puestos
-  const puestosLabels = puestos.map(p => p.nombre_puesto);
-  // Si no hay puestos cargados, usar los del backend
-  const puestosFromBackend = Array.from(new Set((porPuesto || []).map((p: any) => p.puesto)));
-  const puestosLabelsFinal = puestosLabels.length > 0 ? puestosLabels : puestosFromBackend;
+  // Para la tabla de eventos por puestos - usar siempre los datos del backend
+  const puestosLabelsFinal = Array.from(new Set((porPuesto || []).map((p: any) => p.puesto)));
 
   const chartOptions = {
     responsive: true,
@@ -931,28 +936,33 @@ export default function EstadisticasPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {puestos.map((puesto) => {
-                          // Buscar los totales por puesto y año en resumenSedes
-                          const total2024 = porPuesto.find(r => r.puesto === puesto.nombre_puesto && r.anio === 2024)?.cantidad || 0
-                          const total2025 = porPuesto.find(r => r.puesto === puesto.nombre_puesto && r.anio === 2025)?.cantidad || 0
-                          return (
-                            <tr key={puesto.id_puesto}>
-                              <td className="border border-black p-1 text-xs">{puesto.nombre_puesto}</td>
-                              <td
-                                className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${puestoSeleccionado?.puesto === puesto.nombre_puesto && puestoSeleccionado?.año === 2024 ? 'bg-blue-100' : ''}`}
-                                onClick={() => { mostrarEventosPorPuesto(puesto.nombre_puesto, 2024); setShowModal(true); }}
-                              >
-                                {total2024}
-                              </td>
-                              <td
-                                className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${puestoSeleccionado?.puesto === puesto.nombre_puesto && puestoSeleccionado?.año === 2025 ? 'bg-blue-100' : ''}`}
-                                onClick={() => { mostrarEventosPorPuesto(puesto.nombre_puesto, 2025); setShowModal(true); }}
-                              >
-                                {total2025}
-                              </td>
-                            </tr>
-                          )
-                        })}
+                        {(() => {
+                          // Obtener puestos únicos del backend
+                          const puestosUnicos = Array.from(new Set(porPuesto.map((r: any) => r.puesto)));
+                          
+                          return puestosUnicos.map((nombrePuesto) => {
+                            // Buscar los totales por puesto y año en porPuesto
+                            const total2024 = porPuesto.find((r: any) => r.puesto === nombrePuesto && r.anio === 2024)?.cantidad || 0
+                            const total2025 = porPuesto.find((r: any) => r.puesto === nombrePuesto && r.anio === 2025)?.cantidad || 0
+                            return (
+                              <tr key={nombrePuesto}>
+                                <td className="border border-black p-1 text-xs">{nombrePuesto}</td>
+                                <td
+                                  className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${puestoSeleccionado?.puesto === nombrePuesto && puestoSeleccionado?.año === 2024 ? 'bg-blue-100' : ''}`}
+                                  onClick={() => { mostrarEventosPorPuesto(nombrePuesto, 2024); setShowModal(true); }}
+                                >
+                                  {total2024}
+                                </td>
+                                <td
+                                  className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${puestoSeleccionado?.puesto === nombrePuesto && puestoSeleccionado?.año === 2025 ? 'bg-blue-100' : ''}`}
+                                  onClick={() => { mostrarEventosPorPuesto(nombrePuesto, 2025); setShowModal(true); }}
+                                >
+                                  {total2025}
+                                </td>
+                              </tr>
+                            )
+                          })
+                        })()}
                         <tr>
                           <td className="border border-black p-1 text-center font-bold text-xs">Total</td>
                           <td className="border border-black p-1 text-center font-bold text-xs">
