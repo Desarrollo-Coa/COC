@@ -31,24 +31,15 @@ interface Asignacion {
   id_destinatario: number;
   nombre_destinatario: string;
   email_destinatario: string;
-  id_tipo_novedad: number;
-  nombre_tipo_novedad: string;
-  id_sede: number;
-  nombre_sede: string;
-  id_unidad_negocio: number;
-  nombre_unidad_negocio: string;
+  id_tipo_evento: number;
+  nombre_tipo_evento: string;
+  id_puesto: number;
+  nombre_puesto: string;
+  id_unidad: number;
+  nombre_unidad: string;
+  id_negocio: number;
+  nombre_negocio: string;
   activo: boolean;
-}
-
-interface TipoNovedad {
-  id_tipo_novedad: number;
-  nombre_novedad: string;
-}
-
-interface Sede {
-  id_sede: number;
-  nombre_sede: string;
-  id_unidad_negocio: number;
 }
 
 interface TipoReporte {
@@ -62,31 +53,47 @@ interface TipoEvento {
   id_tipo_reporte: number;
 }
 
+interface Negocio {
+  id_negocio: number;
+  nombre_negocio: string;
+}
+
+interface UnidadNegocio {
+  id_unidad: number;
+  nombre_unidad: string;
+  id_negocio: number;
+}
+
+interface Puesto {
+  id_puesto: number;
+  nombre_puesto: string;
+  id_unidad: number;
+}
+
 export default function AsignarDestinatarios() {
   const { toast } = useToast();
 
   // Estados
   const [destinatarios, setDestinatarios] = useState<Destinatario[]>([]);
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
-  const [tiposNovedad, setTiposNovedad] = useState<TipoNovedad[]>([]);
-  const [sedes, setSedes] = useState<Sede[]>([]);
+  const [tiposReporte, setTiposReporte] = useState<TipoReporte[]>([]);
+  const [tiposEvento, setTiposEvento] = useState<TipoEvento[]>([]);
+  const [negocios, setNegocios] = useState<Negocio[]>([]);
+  const [unidades, setUnidades] = useState<UnidadNegocio[]>([]);
+  const [puestos, setPuestos] = useState<Puesto[]>([]);
   const [loading, setLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isRegistroDialogOpen, setIsRegistroDialogOpen] = useState(false);
   const [selectedTipoReporte, setSelectedTipoReporte] = useState<string>('');
-  const [tiposEvento, setTiposEvento] = useState<TipoEvento[]>([]);
   const [selectedTipoEvento, setSelectedTipoEvento] = useState<string>('');
-  const [selectedSede, setSelectedSede] = useState<string>('');
+  const [selectedNegocio, setSelectedNegocio] = useState<string>('');
+  const [selectedUnidad, setSelectedUnidad] = useState<string>('');
+  const [selectedPuesto, setSelectedPuesto] = useState<string>('');
   const [selectedDestinatarios, setSelectedDestinatarios] = useState<number[]>([]);
-  const [formData, setFormData] = useState({
-    nombre: '',
-    email: ''
-  });
+  const [formData, setFormData] = useState({ nombre: '', email: '' });
   const [editingDestinatario, setEditingDestinatario] = useState<Destinatario | null>(null);
-  const [tiposReporte, setTiposReporte] = useState<TipoReporte[]>([]);
   const [isViewingAsignaciones, setIsViewingAsignaciones] = useState(false);
   const [selectedDestinatarioAsignaciones, setSelectedDestinatarioAsignaciones] = useState<Destinatario | null>(null);
-  const [selectedUnidadNegocio, setSelectedUnidadNegocio] = useState<string>('');
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -94,7 +101,7 @@ export default function AsignarDestinatarios() {
       fetchData('/api/novedades/destinatarios', setDestinatarios),
       fetchData('/api/novedades/asignaciones', setAsignaciones),
       fetchData('/api/novedades/tipos-reporte', setTiposReporte),
-      fetchData('/api/novedades/sedes', setSedes),
+      fetchData('/api/novedades/negocios', setNegocios),
     ]).catch(() => {
       toast({ variant: "destructive", title: "Error", description: "Error al cargar datos iniciales" });
     });
@@ -104,16 +111,42 @@ export default function AsignarDestinatarios() {
   useEffect(() => {
     if (selectedTipoReporte) {
       fetchData(`/api/novedades/tipos-evento/${selectedTipoReporte}`, setTiposEvento);
-      setSelectedTipoEvento(''); // Resetear selección de tipo de evento
-      setSelectedSede(''); // Resetear selección de sede
-      setSelectedUnidadNegocio(''); // Resetear selección de unidad de negocio
+      setSelectedTipoEvento('');
+      setSelectedNegocio('');
+      setSelectedUnidad('');
+      setSelectedPuesto('');
     } else {
       setTiposEvento([]);
       setSelectedTipoEvento('');
-      setSelectedSede('');
-      setSelectedUnidadNegocio('');
+      setSelectedNegocio('');
+      setSelectedUnidad('');
+      setSelectedPuesto('');
     }
   }, [selectedTipoReporte]);
+
+  // Cargar unidades de negocio cuando cambia el negocio
+  useEffect(() => {
+    if (selectedNegocio) {
+      fetchData(`/api/settings/unidades-negocio?id_negocio=${selectedNegocio}`, setUnidades);
+      setSelectedUnidad('');
+      setSelectedPuesto('');
+    } else {
+      setUnidades([]);
+      setSelectedUnidad('');
+      setSelectedPuesto('');
+    }
+  }, [selectedNegocio]);
+
+  // Cargar puestos cuando cambia la unidad
+  useEffect(() => {
+    if (selectedUnidad) {
+      fetchData(`/api/novedades/puestos?id_unidad=${selectedUnidad}`, setPuestos);
+      setSelectedPuesto('');
+    } else {
+      setPuestos([]);
+      setSelectedPuesto('');
+    }
+  }, [selectedUnidad]);
 
   // Función genérica para fetch
   const fetchData = async <T,>(url: string, setter: (data: T[]) => void) => {
@@ -184,11 +217,11 @@ export default function AsignarDestinatarios() {
 
   // Guardar asignaciones
   const handleAsignacionesSubmit = async () => {
-    if (!selectedTipoEvento || !selectedSede || !selectedUnidadNegocio || selectedDestinatarios.length === 0) {
+    if (!selectedTipoEvento || !selectedNegocio || !selectedUnidad || !selectedPuesto || selectedDestinatarios.length === 0) {
       toast({ 
         variant: "destructive", 
         title: "Error", 
-        description: "Por favor seleccione tipo de reporte, tipo de novedad, sede y unidad de negocio" 
+        description: "Por favor seleccione tipo de reporte, tipo de novedad, negocio, unidad de negocio, puesto y destinatarios" 
       });
       return;
     }
@@ -202,9 +235,8 @@ export default function AsignarDestinatarios() {
         credentials: 'include',
         body: JSON.stringify({
             id_destinatario: Number(destinatarioId),
-            id_tipo_novedad: Number(selectedTipoEvento),
-            id_sede: Number(selectedSede),
-            id_unidad_negocio: Number(selectedUnidadNegocio)
+            id_tipo_evento: Number(selectedTipoEvento),
+            id_puesto: Number(selectedPuesto)
           }),
         })
       );
@@ -214,8 +246,9 @@ export default function AsignarDestinatarios() {
       setIsDialogOpen(false);
       setSelectedTipoReporte('');
       setSelectedTipoEvento('');
-      setSelectedSede('');
-      setSelectedUnidadNegocio('');
+      setSelectedNegocio('');
+      setSelectedUnidad('');
+      setSelectedPuesto('');
       setSelectedDestinatarios([]);
       fetchData('/api/novedades/asignaciones', setAsignaciones);
     } catch (error) {
@@ -334,7 +367,7 @@ export default function AsignarDestinatarios() {
                 <p className="text-xs sm:text-sm text-gray-500">Seleccione los destinatarios para cada tipo de novedad y sede</p>
           </DialogHeader>
               <div className="grid gap-4 sm:gap-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-3 sm:gap-4">
                   <div className="space-y-2">
                     <Label>Tipo de Reporte</Label>
                   <Select
@@ -375,25 +408,57 @@ export default function AsignarDestinatarios() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Sede</Label>
+                    <Label>Negocio</Label>
                     <Select
-                      value={selectedSede}
-                      onValueChange={(value) => {
-                        setSelectedSede(value);
-                        const sede = sedes.find(s => s.id_sede === Number(value));
-                        if (sede) {
-                          setSelectedUnidadNegocio(String(sede.id_unidad_negocio));
-                        }
-                      }}
+                      value={selectedNegocio}
+                      onValueChange={setSelectedNegocio}
                       disabled={!selectedTipoEvento}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Seleccione una sede" />
+                        <SelectValue placeholder="Seleccione un negocio" />
                       </SelectTrigger>
                       <SelectContent>
-                        {sedes.map(sede => (
-                          <SelectItem key={sede.id_sede} value={String(sede.id_sede)}>
-                            {sede.nombre_sede}
+                        {negocios.map(negocio => (
+                          <SelectItem key={negocio.id_negocio} value={String(negocio.id_negocio)}>
+                            {negocio.nombre_negocio}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label>Unidad de Negocio</Label>
+                    <Select
+                      value={selectedUnidad}
+                      onValueChange={setSelectedUnidad}
+                      disabled={!selectedNegocio}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione una unidad" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {unidades.map(unidad => (
+                          <SelectItem key={unidad.id_unidad} value={String(unidad.id_unidad)}>
+                            {unidad.nombre_unidad}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                    <Label>Puesto</Label>
+                    <Select
+                      value={selectedPuesto}
+                      onValueChange={setSelectedPuesto}
+                      disabled={!selectedUnidad}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione un puesto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {puestos.map(puesto => (
+                          <SelectItem key={puesto.id_puesto} value={String(puesto.id_puesto)}>
+                            {puesto.nombre_puesto}
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -430,7 +495,7 @@ export default function AsignarDestinatarios() {
 
                 <Button
                   onClick={handleAsignacionesSubmit}
-                  disabled={loading || !selectedTipoReporte || !selectedTipoEvento || !selectedSede || selectedDestinatarios.length === 0}
+                  disabled={loading || !selectedTipoReporte || !selectedTipoEvento || !selectedNegocio || !selectedUnidad || !selectedPuesto || selectedDestinatarios.length === 0}
                   className="w-full"
                 >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -535,7 +600,9 @@ export default function AsignarDestinatarios() {
                     <TableRow>
                       <TableHead className="text-xs sm:text-sm">Destinatario</TableHead>
                       <TableHead className="text-xs sm:text-sm">Tipo de Novedad</TableHead>
-                      <TableHead className="text-xs sm:text-sm">Sede</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Negocio</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Unidad</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Puesto</TableHead>
                       <TableHead className="text-right text-xs sm:text-sm">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -543,8 +610,10 @@ export default function AsignarDestinatarios() {
                     {asignaciones.map(asignacion => (
                       <TableRow key={asignacion.id}>
                         <TableCell className="font-medium text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_destinatario}</TableCell>
-                        <TableCell className="text-gray-500 text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_tipo_novedad}</TableCell>
-                        <TableCell className="text-gray-500 text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_sede}</TableCell>
+                        <TableCell className="text-gray-500 text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_tipo_evento}</TableCell>
+                        <TableCell className="text-gray-500 text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_negocio}</TableCell>
+                        <TableCell className="text-gray-500 text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_unidad}</TableCell>
+                        <TableCell className="text-gray-500 text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_puesto}</TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
@@ -553,12 +622,12 @@ export default function AsignarDestinatarios() {
                             onClick={() => handleRemoveAsignacion(asignacion.id)}
                           >
                             <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </div>
@@ -580,8 +649,9 @@ export default function AsignarDestinatarios() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-xs sm:text-sm">Tipo de Novedad</TableHead>
-                    <TableHead className="text-xs sm:text-sm">Sede</TableHead>
-                    <TableHead className="text-xs sm:text-sm">Unidad de Negocio</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Negocio</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Unidad</TableHead>
+                    <TableHead className="text-xs sm:text-sm">Puesto</TableHead>
                     <TableHead className="text-right text-xs sm:text-sm">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -589,9 +659,10 @@ export default function AsignarDestinatarios() {
                   {selectedDestinatarioAsignaciones && 
                     getAsignacionesByDestinatario(selectedDestinatarioAsignaciones.id).map(asignacion => (
                       <TableRow key={asignacion.id}>
-                        <TableCell className="text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_tipo_novedad}</TableCell>
-                        <TableCell className="text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_sede}</TableCell>
-                        <TableCell className="text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_unidad_negocio}</TableCell>
+                        <TableCell className="text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_tipo_evento}</TableCell>
+                        <TableCell className="text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_negocio}</TableCell>
+                        <TableCell className="text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_unidad}</TableCell>
+                        <TableCell className="text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_puesto}</TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"

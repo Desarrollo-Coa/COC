@@ -11,7 +11,7 @@ export async function GET() {
         nombre,
         email,
         activo
-      FROM destinatarios_cementos_argos
+      FROM destinatarios
       WHERE activo = true
       ORDER BY nombre ASC
     `
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const data = await request.json()
     
     const query = `
-      INSERT INTO destinatarios_cementos_argos 
+      INSERT INTO destinatarios 
       (nombre, email)
       VALUES (?, ?)
     `

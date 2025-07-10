@@ -11,18 +11,15 @@ export async function GET() {
         a.id_destinatario,
         d.nombre as nombre_destinatario,
         d.email as email_destinatario,
-        a.id_tipo_novedad,
-        te.nombre_tipo_evento as nombre_tipo_novedad,
-        a.id_sede,
-        s.nombre_sede,
-        a.id_unidad_negocio,
-        un.nombre_unidad as nombre_unidad_negocio,
+        a.id_tipo_evento,
+        te.nombre_tipo_evento as nombre_tipo_evento,
+        a.id_puesto,
+        p.nombre_puesto,
         a.activo
-      FROM asignaciones_destinatarios_cementos_argos a
-      INNER JOIN destinatarios_cementos_argos d ON a.id_destinatario = d.id_destinatario
-      INNER JOIN tipos_evento te ON a.id_tipo_novedad = te.id_tipo_evento
-      INNER JOIN Sedes s ON a.id_sede = s.id_sede
-      INNER JOIN unidades_negocio_cementos_argos un ON a.id_unidad_negocio = un.id_unidad
+      FROM asignaciones_destinatarios a
+      INNER JOIN destinatarios d ON a.id_destinatario = d.id_destinatario
+      INNER JOIN tipos_evento te ON a.id_tipo_evento = te.id_tipo_evento
+      INNER JOIN puestos p ON a.id_puesto = p.id_puesto
       WHERE a.activo = true
       ORDER BY d.nombre ASC
     `
@@ -41,16 +38,15 @@ export async function POST(request: NextRequest) {
     const data = await request.json()
     
     const query = `
-      INSERT INTO asignaciones_destinatarios_cementos_argos 
-      (id_destinatario, id_tipo_novedad, id_sede, id_unidad_negocio)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO asignaciones_destinatarios 
+      (id_destinatario, id_tipo_evento, id_puesto)
+      VALUES (?, ?, ?)
     `
 
     const [result] = await pool.query(query, [
       data.id_destinatario,
-      data.id_tipo_novedad,
-      data.id_sede,
-      data.id_unidad_negocio
+      data.id_tipo_evento,
+      data.id_puesto
     ])
 
     return NextResponse.json({ 

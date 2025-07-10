@@ -16,7 +16,7 @@ export async function PUT(
     const id = params.id;
 
     const query = `
-      UPDATE destinatarios_cementos_argos 
+      UPDATE destinatarios 
       SET nombre = ?, email = ?
       WHERE id_destinatario = ?
     `;
@@ -42,7 +42,7 @@ export async function DELETE(
     const id = params.id;
     
     const query = `
-      DELETE FROM destinatarios_cementos_argos 
+      DELETE FROM destinatarios 
       WHERE id_destinatario = ?
     `;
 
