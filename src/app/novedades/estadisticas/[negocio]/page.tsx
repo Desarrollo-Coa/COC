@@ -366,42 +366,47 @@ export default function EstadisticasPage() {
     setEventosPorPuesto(Object.values(conteosPorPuesto));
   };
 
+  // Ahora solo actualiza el estado mesSeleccionado
   const mostrarDetallesEventos = (mes: string, año: number) => {
     setMesSeleccionado({ mes, año });
-  
-    // Verificar si eventos contiene datos
-    if (!eventos.length) {
-      console.warn('No hay eventos en el estado eventos');
-      setEventosDetalle({});
-      return;
-    }
-  
-    const mesIndex = meses.indexOf(mes) + 1;
-    const eventosDelMes = eventos.filter(evento => {
-      if (!evento.fecha_novedad) return false;
-      const [eventoAño, eventoMes] = evento.fecha_novedad.split('T')[0].split('-').map(Number);
-      const negocioEvento = evento.unidad_negocio;
-      return (
-        eventoAño === año &&
-        eventoMes === mesIndex &&
-        negocioEvento === negocioSeleccionado?.nombre
-      );
-    });
-  
-    const conteoEventos: { [key: string]: { cantidad: number, ids: number[] } } = {};
-    eventosDelMes.forEach(evento => {
-      const key = `${evento.tipo_novedad}`;
-      if (!conteoEventos[key]) {
-        conteoEventos[key] = { cantidad: 0, ids: [] };
-      }
-      conteoEventos[key].cantidad++;
-      conteoEventos[key].ids.push(evento.id_novedad);
-    });
-  
-    console.log('Eventos del mes:', eventosDelMes); // Debugging
-    console.log('Conteo eventos:', conteoEventos); // Debugging
-    setEventosDetalle(conteoEventos);
   };
+
+  // Nuevo useEffect para cargar los detalles solo cuando cambia mesSeleccionado
+  useEffect(() => {
+    const fetchDetalles = async () => {
+      if (!mesSeleccionado || !negocioSeleccionado?.id) {
+        setEventosDetalle({});
+        setEventosSeleccionados([]);
+        return;
+      }
+      // Calcular primer y último día del mes
+      const mesIndex = meses.indexOf(mesSeleccionado.mes) + 1;
+      const desde = `${mesSeleccionado.año}-${mesIndex.toString().padStart(2, '0')}-01`;
+      const ultimoDia = new Date(mesSeleccionado.año, mesIndex, 0).getDate();
+      const hasta = `${mesSeleccionado.año}-${mesIndex.toString().padStart(2, '0')}-${ultimoDia}`;
+      try {
+        const res = await fetch(`/api/novedades/estadisticas-generales?id_negocio=${negocioSeleccionado.id}&desde=${desde}&hasta=${hasta}`);
+        if (!res.ok) throw new Error('Error al obtener eventos detallados');
+        const data = await res.json();
+        // Agrupar eventos por tipo para los cards
+        const conteoEventos: { [key: string]: { cantidad: number, ids: number[] } } = {};
+        (data.eventos || []).forEach((evento: any) => {
+          const key = `${evento.tipo_novedad}`;
+          if (!conteoEventos[key]) {
+            conteoEventos[key] = { cantidad: 0, ids: [] };
+          }
+          conteoEventos[key].cantidad++;
+          conteoEventos[key].ids.push(evento.id_novedad);
+        });
+        setEventosDetalle(conteoEventos);
+        setEventosSeleccionados(data.eventos || []);
+      } catch (error) {
+        setEventosDetalle({});
+        setEventosSeleccionados([]);
+      }
+    };
+    fetchDetalles();
+  }, [mesSeleccionado, negocioSeleccionado]);
  
 
   const mostrarEventosPorPuesto = (puesto: string, año: number) => {
@@ -793,16 +798,14 @@ export default function EstadisticasPage() {
                         {meses.map((mes, index) => (
                           <tr key={mes}>
                             <td className="border border-black p-1 text-center text-xs">{mes}</td>
-                            <td
-                              className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${mesSeleccionado?.mes === mes && mesSeleccionado?.año === 2024 ? 'bg-blue-100' : ''
-                                }`}
+                            <td 
+                              className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${mesSeleccionado?.mes === mes && mesSeleccionado?.año === 2024 ? 'bg-blue-100' : ''}`}
                               onClick={() => mostrarDetallesEventos(mes, 2024)}
                             >
                               {porMes.find(m => m.anio === 2024 && m.mes === index + 1)?.cantidad || 0}
                             </td>
-                            <td
-                              className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${mesSeleccionado?.mes === mes && mesSeleccionado?.año === 2025 ? 'bg-blue-100' : ''
-                                }`}
+                            <td 
+                              className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${mesSeleccionado?.mes === mes && mesSeleccionado?.año === 2025 ? 'bg-blue-100' : ''}`}
                               onClick={() => mostrarDetallesEventos(mes, 2025)}
                             >
                               {porMes.find(m => m.anio === 2025 && m.mes === index + 1)?.cantidad || 0}
