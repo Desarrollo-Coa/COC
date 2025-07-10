@@ -225,17 +225,26 @@ export default function EstadisticasPage() {
     fetchUnidades();
   }, [negocioSeleccionado]);
 
-  // 3. Cuando cambia unidadSeleccionada, carga los puestos:
+  // 3. Cuando cambia negocioSeleccionado, carga todos los puestos de todas las unidades del negocio:
   useEffect(() => {
-    if (!unidadSeleccionada) return;
-    const fetchPuestos = async () => {
+    if (!negocioSeleccionado) return;
+    const fetchAllPuestos = async () => {
       try {
-        const response = await fetch(`/api/novedades/puestos?id_unidad=${unidadSeleccionada.id}`);
-        if (!response.ok) throw new Error('Error al cargar puestos');
-        const data = await response.json();
-        setPuestos(data);
-        if (data.length > 0) {
-          setPuestoSeleccionado({ puesto: data[0].nombre_puesto, año: currentYear });
+        // 1. Traer todas las unidades del negocio
+        const unidadesRes = await fetch(`/api/novedades/unidades-negocio?id_negocio=${negocioSeleccionado.id}`);
+        if (!unidadesRes.ok) throw new Error('Error al cargar unidades de negocio');
+        const unidadesData = await unidadesRes.json();
+        // 2. Traer todos los puestos de todas las unidades
+        let allPuestos: Puesto[] = [];
+        for (const unidad of unidadesData) {
+          const puestosRes = await fetch(`/api/novedades/puestos?id_unidad=${unidad.id_unidad_negocio}`);
+          if (!puestosRes.ok) continue;
+          const puestosData = await puestosRes.json();
+          allPuestos = allPuestos.concat(puestosData);
+        }
+        setPuestos(allPuestos);
+        if (allPuestos.length > 0) {
+          setPuestoSeleccionado({ puesto: allPuestos[0].nombre_puesto, año: currentYear });
         } else {
           setPuestoSeleccionado(null);
         }
@@ -244,8 +253,8 @@ export default function EstadisticasPage() {
         setPuestoSeleccionado(null);
       }
     };
-    fetchPuestos();
-  }, [unidadSeleccionada]);
+    fetchAllPuestos();
+  }, [negocioSeleccionado]);
 
   // Modifica cargarEventos para requerir los tres valores:
   const cargarEventos = async () => {
