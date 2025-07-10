@@ -676,45 +676,45 @@ export default function EstadisticasPage() {
           {/* Cabecera con tabs de negocios y datos seleccionados en una sola línea, scroll horizontal y flechas */}
           <div className="header mb-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center w-full">
-                <button
-                  className="px-2 py-1 text-xl font-bold text-gray-500 hover:text-blue-600 focus:outline-none"
-                  onClick={() => scrollTabs('left')}
-                  aria-label="Desplazar negocios a la izquierda"
-                  type="button"
-                >
-                  <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-                </button>
-                <div
-                  ref={scrollTabsRef}
-                  className="tabs flex flex-nowrap items-center gap-0 overflow-x-auto px-2 max-w-[70dvh] scrollbar-hide"
-                  style={{ scrollBehavior: 'smooth', minWidth: 0 }}
-                >
-                  {negocios.map((negocio, index) => (
-                    <Fragment key={negocio.id_negocio}>
-                      <span
-                        className={`cursor-pointer px-2 lg:px-4 font-bold whitespace-nowrap ${negocioSeleccionado?.id === negocio.id_negocio ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
-                        onClick={() => setNegocioSeleccionado({id: negocio.id_negocio, nombre: negocio.nombre_negocio})}
-                      >
-                        {negocio.nombre_negocio}
-                      </span>
-                      {index < negocios.length - 1 && (
-                        <span className="mx-1 text-gray-400" key={`sep-${negocio.id_negocio}`}>|</span>
-                      )}
-                    </Fragment>
-                  ))}
-              </div>
-                <button
-                  className="px-2 py-1 text-xl font-bold text-gray-500 hover:text-blue-600 focus:outline-none"
-                  onClick={() => scrollTabs('right')}
-                  aria-label="Desplazar negocios a la derecha"
-                  type="button"
-                >
-                  <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                </button>
-              </div>
-              <div className="flex items-center gap-4 ml-4">
-                {/* Eliminado: Unidad y Puesto seleccionados */}
+            <div className="flex items-center w-full">
+              <button
+                className="px-2 py-1 text-xl font-bold text-gray-500 hover:text-blue-600 focus:outline-none"
+                onClick={() => scrollTabs('left')}
+                aria-label="Desplazar negocios a la izquierda"
+                type="button"
+              >
+                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+              </button>
+              <div
+                ref={scrollTabsRef}
+                className="tabs flex flex-nowrap items-center gap-0 overflow-x-auto px-2 max-w-[70dvh] scrollbar-hide"
+                style={{ scrollBehavior: 'smooth', minWidth: 0 }}
+              >
+                {negocios.map((negocio, index) => (
+                  <Fragment key={negocio.id_negocio}>
+                    <span
+                      className={`cursor-pointer px-2 lg:px-4 font-bold whitespace-nowrap ${negocioSeleccionado?.id === negocio.id_negocio ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
+                      onClick={() => setNegocioSeleccionado({id: negocio.id_negocio, nombre: negocio.nombre_negocio})}
+                    >
+                      {negocio.nombre_negocio}
+                    </span>
+                    {index < negocios.length - 1 && (
+                      <span className="mx-1 text-gray-400" key={`sep-${negocio.id_negocio}`}>|</span>
+                    )}
+                  </Fragment>
+                ))}
+            </div>
+              <button
+                className="px-2 py-1 text-xl font-bold text-gray-500 hover:text-blue-600 focus:outline-none"
+                onClick={() => scrollTabs('right')}
+                aria-label="Desplazar negocios a la derecha"
+                type="button"
+              >
+                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </button>
+            </div>
+            <div className="flex items-center gap-4 ml-4">
+              {/* Eliminado: Unidad y Puesto seleccionados */}
               </div>
             </div>
           </div>
