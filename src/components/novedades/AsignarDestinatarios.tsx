@@ -361,110 +361,91 @@ export default function AsignarDestinatarios() {
                 <span>Gestionar Asignaciones</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-h-[90vh] overflow-y-auto w-[95vw] sm:w-auto">
+            <DialogContent className="max-h-[90vh] overflow-y-auto w-[98vw] max-w-3xl">
           <DialogHeader>
                 <DialogTitle className="text-lg sm:text-xl">Asignar Destinatarios a Novedades</DialogTitle>
-                <p className="text-xs sm:text-sm text-gray-500">Seleccione los destinatarios para cada tipo de novedad y sede</p>
+                <p className="text-xs sm:text-sm text-gray-500">Seleccione los destinatarios para cada tipo de novedad y puesto</p>
           </DialogHeader>
-              <div className="grid gap-4 sm:gap-6">
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3 sm:gap-4">
-                  <div className="space-y-2">
-                    <Label>Tipo de Reporte</Label>
-                  <Select
-                      value={selectedTipoReporte}
-                      onValueChange={setSelectedTipoReporte}
-                  >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Seleccione tipo de reporte" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {tiposReporte.map(tipo => (
-                          <SelectItem key={tipo.id_tipo_reporte} value={String(tipo.id_tipo_reporte)}>
-                            {tipo.nombre_tipo_reporte}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                  <div className="space-y-2">
-                  <Label>Tipo de Novedad</Label>
-                  <Select
-                      value={selectedTipoEvento}
-                      onValueChange={setSelectedTipoEvento}
-                      disabled={!selectedTipoReporte}
-                  >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Seleccione tipo de novedad" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {tiposEvento.map(tipo => (
-                          <SelectItem key={tipo.id_tipo_evento} value={String(tipo.id_tipo_evento)}>
-                            {tipo.nombre_tipo_evento}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Negocio</Label>
-                    <Select
-                      value={selectedNegocio}
-                      onValueChange={setSelectedNegocio}
-                      disabled={!selectedTipoEvento}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione un negocio" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {negocios.map(negocio => (
-                          <SelectItem key={negocio.id_negocio} value={String(negocio.id_negocio)}>
-                            {negocio.nombre_negocio}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                    <Label>Unidad de Negocio</Label>
-                    <Select
-                      value={selectedUnidad}
-                      onValueChange={setSelectedUnidad}
-                      disabled={!selectedNegocio}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione una unidad" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {unidades.map(unidad => (
-                          <SelectItem key={unidad.id_unidad} value={String(unidad.id_unidad)}>
-                            {unidad.nombre_unidad}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                    <Label>Puesto</Label>
-                    <Select
-                      value={selectedPuesto}
-                      onValueChange={setSelectedPuesto}
-                      disabled={!selectedUnidad}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccione un puesto" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {puestos.map(puesto => (
-                          <SelectItem key={puesto.id_puesto} value={String(puesto.id_puesto)}>
-                            {puesto.nombre_puesto}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                </div>
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+    {/* Fila 1 */}
+    <div className="space-y-2">
+      <Label>Tipo de Reporte</Label>
+      <Select value={selectedTipoReporte} onValueChange={setSelectedTipoReporte}>
+        <SelectTrigger className="w-full text-base min-h-[44px]">
+          <SelectValue placeholder="Seleccione tipo de reporte" className="text-base" />
+        </SelectTrigger>
+        <SelectContent>
+          {tiposReporte.map(tipo => (
+            <SelectItem key={tipo.id_tipo_reporte} value={String(tipo.id_tipo_reporte)} className="text-base">
+              {tipo.nombre_tipo_reporte}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+    <div className="space-y-2">
+      <Label>Tipo de Novedad</Label>
+      <Select value={selectedTipoEvento} onValueChange={setSelectedTipoEvento} disabled={!selectedTipoReporte}>
+        <SelectTrigger className="w-full text-base min-h-[44px]">
+          <SelectValue placeholder="Seleccione tipo de novedad" className="text-base" />
+        </SelectTrigger>
+        <SelectContent>
+          {tiposEvento.map(tipo => (
+            <SelectItem key={tipo.id_tipo_evento} value={String(tipo.id_tipo_evento)} className="text-base">
+              {tipo.nombre_tipo_evento}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+    {/* Fila 2 */}
+    <div className="space-y-2">
+      <Label>Negocio</Label>
+      <Select value={selectedNegocio} onValueChange={setSelectedNegocio} disabled={!selectedTipoEvento}>
+        <SelectTrigger className="w-full text-base min-h-[44px]">
+          <SelectValue placeholder="Seleccione un negocio" className="text-base" />
+        </SelectTrigger>
+        <SelectContent>
+          {negocios.map(negocio => (
+            <SelectItem key={negocio.id_negocio} value={String(negocio.id_negocio)} className="text-base">
+              {negocio.nombre_negocio}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+    <div className="space-y-2">
+      <Label>Unidad de Negocio</Label>
+      <Select value={selectedUnidad} onValueChange={setSelectedUnidad} disabled={!selectedNegocio}>
+        <SelectTrigger className="w-full text-base min-h-[44px]">
+          <SelectValue placeholder="Seleccione una unidad" className="text-base" />
+        </SelectTrigger>
+        <SelectContent>
+          {unidades.map(unidad => (
+            <SelectItem key={unidad.id_unidad} value={String(unidad.id_unidad)} className="text-base">
+              {unidad.nombre_unidad}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+    {/* Fila 3: Puesto ocupa las dos columnas */}
+    <div className="space-y-2 col-span-1 sm:col-span-2">
+      <Label>Puesto</Label>
+      <Select value={selectedPuesto} onValueChange={setSelectedPuesto} disabled={!selectedUnidad}>
+        <SelectTrigger className="w-full text-base min-h-[44px]">
+          <SelectValue placeholder="Seleccione un puesto" className="text-base" />
+        </SelectTrigger>
+        <SelectContent>
+          {puestos.map(puesto => (
+            <SelectItem key={puesto.id_puesto} value={String(puesto.id_puesto)} className="text-base">
+              {puesto.nombre_puesto}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  </div>
 
                 <div className="space-y-2">
                   <Label>Destinatarios</Label>
@@ -484,7 +465,8 @@ export default function AsignarDestinatarios() {
                         />
                         <label
                           htmlFor={`destinatario-${destinatario.id}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          className="text-base font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 truncate"
+                          title={`${destinatario.nombre} (${destinatario.email})`}
                         >
                           {destinatario.nombre} ({destinatario.email})
                         </label>
@@ -496,14 +478,13 @@ export default function AsignarDestinatarios() {
                 <Button
                   onClick={handleAsignacionesSubmit}
                   disabled={loading || !selectedTipoReporte || !selectedTipoEvento || !selectedNegocio || !selectedUnidad || !selectedPuesto || selectedDestinatarios.length === 0}
-                  className="w-full"
+                  className="w-full mt-4 text-base min-h-[44px]"
                 >
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Asignar Destinatarios
                 </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
         </div>
       </div>
 
@@ -584,7 +565,7 @@ export default function AsignarDestinatarios() {
             <h3 className="text-sm sm:text-base font-semibold text-gray-900">Asignaciones Actuales</h3>
             <span className="text-xs sm:text-sm text-gray-500">{asignaciones.length} asignaciones</span>
           </div>
-          <div className="overflow-x-auto -mx-2 sm:mx-0">
+          <div className="overflow-x-auto w-full">
             {loading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
@@ -595,25 +576,25 @@ export default function AsignarDestinatarios() {
               </div>
             ) : (
               <div className="min-w-[300px] sm:min-w-[500px]">
-                <Table>
+                <Table className="min-w-[900px] text-base">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs sm:text-sm">Destinatario</TableHead>
-                      <TableHead className="text-xs sm:text-sm">Tipo de Novedad</TableHead>
-                      <TableHead className="text-xs sm:text-sm">Negocio</TableHead>
-                      <TableHead className="text-xs sm:text-sm">Unidad</TableHead>
-                      <TableHead className="text-xs sm:text-sm">Puesto</TableHead>
-                      <TableHead className="text-right text-xs sm:text-sm">Acciones</TableHead>
+                      <TableHead className="text-base">Destinatario</TableHead>
+                      <TableHead className="text-base">Tipo de Novedad</TableHead>
+                      <TableHead className="text-base">Negocio</TableHead>
+                      <TableHead className="text-base">Unidad</TableHead>
+                      <TableHead className="text-base">Puesto</TableHead>
+                      <TableHead className="text-base text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {asignaciones.map(asignacion => (
                       <TableRow key={asignacion.id}>
-                        <TableCell className="font-medium text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_destinatario}</TableCell>
-                        <TableCell className="text-gray-500 text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_tipo_evento}</TableCell>
-                        <TableCell className="text-gray-500 text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_negocio}</TableCell>
-                        <TableCell className="text-gray-500 text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_unidad}</TableCell>
-                        <TableCell className="text-gray-500 text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_puesto}</TableCell>
+                        <TableCell className="font-medium text-base max-w-[180px] truncate" title={asignacion.nombre_destinatario}>{asignacion.nombre_destinatario}</TableCell>
+                        <TableCell className="text-gray-500 text-base max-w-[180px] truncate" title={asignacion.nombre_tipo_evento}>{asignacion.nombre_tipo_evento}</TableCell>
+                        <TableCell className="text-gray-500 text-base max-w-[180px] truncate" title={asignacion.nombre_negocio}>{asignacion.nombre_negocio}</TableCell>
+                        <TableCell className="text-gray-500 text-base max-w-[180px] truncate" title={asignacion.nombre_unidad}>{asignacion.nombre_unidad}</TableCell>
+                        <TableCell className="text-gray-500 text-base max-w-[180px] truncate" title={asignacion.nombre_puesto}>{asignacion.nombre_puesto}</TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
@@ -636,49 +617,47 @@ export default function AsignarDestinatarios() {
 
       {/* Modal para ver asignaciones */}
       <Dialog open={isViewingAsignaciones} onOpenChange={setIsViewingAsignaciones}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto w-[95vw] sm:w-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto w-[98vw] max-w-3xl">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg">
               Asignaciones de {selectedDestinatarioAsignaciones?.nombre} - ({selectedDestinatarioAsignaciones?.email})
             </DialogTitle>
             <p className="text-xs sm:text-sm text-gray-500">Lista de asignaciones actuales</p>
           </DialogHeader>
-          <div className="mt-4 overflow-x-auto -mx-2 sm:mx-0">
-            <div className="min-w-[300px] sm:min-w-[500px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs sm:text-sm">Tipo de Novedad</TableHead>
-                    <TableHead className="text-xs sm:text-sm">Negocio</TableHead>
-                    <TableHead className="text-xs sm:text-sm">Unidad</TableHead>
-                    <TableHead className="text-xs sm:text-sm">Puesto</TableHead>
-                    <TableHead className="text-right text-xs sm:text-sm">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedDestinatarioAsignaciones && 
-                    getAsignacionesByDestinatario(selectedDestinatarioAsignaciones.id).map(asignacion => (
-                      <TableRow key={asignacion.id}>
-                        <TableCell className="text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_tipo_evento}</TableCell>
-                        <TableCell className="text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_negocio}</TableCell>
-                        <TableCell className="text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_unidad}</TableCell>
-                        <TableCell className="text-xs sm:text-sm max-w-[80px] sm:max-w-none truncate">{asignacion.nombre_puesto}</TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 sm:h-8 sm:w-8"
-                            onClick={() => handleRemoveAsignacion(asignacion.id)}
-                          >
-                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  }
-                </TableBody>
-              </Table>
-            </div>
+          <div className="mt-4 overflow-x-auto w-full">
+            <Table className="min-w-[900px] text-base">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-base">Tipo de Novedad</TableHead>
+                  <TableHead className="text-base">Negocio</TableHead>
+                  <TableHead className="text-base">Unidad</TableHead>
+                  <TableHead className="text-base">Puesto</TableHead>
+                  <TableHead className="text-base text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedDestinatarioAsignaciones &&
+                  getAsignacionesByDestinatario(selectedDestinatarioAsignaciones.id).map(asignacion => (
+                    <TableRow key={asignacion.id}>
+                      <TableCell className="text-base max-w-[180px] truncate" title={asignacion.nombre_tipo_evento}>{asignacion.nombre_tipo_evento}</TableCell>
+                      <TableCell className="text-base max-w-[180px] truncate" title={asignacion.nombre_negocio}>{asignacion.nombre_negocio}</TableCell>
+                      <TableCell className="text-base max-w-[180px] truncate" title={asignacion.nombre_unidad}>{asignacion.nombre_unidad}</TableCell>
+                      <TableCell className="text-base max-w-[180px] truncate" title={asignacion.nombre_puesto}>{asignacion.nombre_puesto}</TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 sm:h-8 sm:w-8"
+                          onClick={() => handleRemoveAsignacion(asignacion.id)}
+                        >
+                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                }
+              </TableBody>
+            </Table>
           </div>
         </DialogContent>
       </Dialog>
