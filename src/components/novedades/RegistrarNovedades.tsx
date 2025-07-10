@@ -599,13 +599,13 @@ export default function RegistrarNovedades() {
 
                   <FormField
                     control={form.control}
-                    name="gestion"
+                    name="descripcion"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="text-gray-900 font-medium">Gestión</FormLabel>
+                        <FormLabel className="text-gray-900 font-medium">Descripción de la Novedad</FormLabel>
                       <FormControl>
                         <Textarea 
-                            placeholder="Describa la gestión realizada"
+                            placeholder="Describa la novedad en detalle"
                           {...field} 
                             className="min-h-[120px] resize-y bg-white"
                         />
@@ -617,13 +617,13 @@ export default function RegistrarNovedades() {
 
                   <FormField
                     control={form.control}
-                    name="descripcion"
+                    name="gestion"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="text-gray-900 font-medium">Descripción</FormLabel>
+                        <FormLabel className="text-gray-900 font-medium">Gestión</FormLabel>
                       <FormControl>
                         <Textarea 
-                            placeholder="Describa la novedad en detalle"
+                            placeholder="Describa la gestión realizada"
                           {...field} 
                             className="min-h-[120px] resize-y bg-white"
                         />
