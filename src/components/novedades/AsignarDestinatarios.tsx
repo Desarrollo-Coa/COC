@@ -10,13 +10,14 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
 } from "@/components/ui/dialog";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { Loader2, Pencil, Trash2, Users, UserPlus, Eye } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import  Skeleton from "@/components/ui/skeleton";
+import ModalConfirmacion from "@/components/novedades/ModalConfirmacion";
 
 // Tipos
 interface Destinatario {
@@ -71,8 +72,6 @@ interface Puesto {
 }
 
 export default function AsignarDestinatarios() {
-  const { toast } = useToast();
-
   // Estados
   const [destinatarios, setDestinatarios] = useState<Destinatario[]>([]);
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([]);
@@ -94,6 +93,8 @@ export default function AsignarDestinatarios() {
   const [editingDestinatario, setEditingDestinatario] = useState<Destinatario | null>(null);
   const [isViewingAsignaciones, setIsViewingAsignaciones] = useState(false);
   const [selectedDestinatarioAsignaciones, setSelectedDestinatarioAsignaciones] = useState<Destinatario | null>(null);
+  // Estado para el modal de confirmación de eliminación de destinatario
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -103,7 +104,7 @@ export default function AsignarDestinatarios() {
       fetchData('/api/novedades/tipos-reporte', setTiposReporte),
       fetchData('/api/novedades/negocios', setNegocios),
     ]).catch(() => {
-      toast({ variant: "destructive", title: "Error", description: "Error al cargar datos iniciales" });
+      toast.error("Error al cargar datos iniciales");
     });
   }, []);
 
@@ -157,7 +158,7 @@ export default function AsignarDestinatarios() {
       const data = await res.json();
       setter(data);
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: `No se pudo cargar ${url}` });
+      toast.error(`No se pudo cargar ${url}`);
     } finally {
       setLoading(false);
     }
@@ -183,23 +184,17 @@ export default function AsignarDestinatarios() {
 
       if (!res.ok) throw new Error('Error al guardar');
       
-      toast({ 
-        title: "Éxito", 
-        description: editingDestinatario 
-          ? "Destinatario actualizado correctamente" 
-          : "Destinatario creado correctamente" 
-      });
+      toast.success(editingDestinatario 
+        ? "Destinatario actualizado correctamente" 
+        : "Destinatario creado correctamente" 
+      );
       
       setIsRegistroDialogOpen(false);
       setFormData({ nombre: '', email: '' });
       setEditingDestinatario(null);
       fetchData('/api/novedades/destinatarios', setDestinatarios);
     } catch (error) {
-      toast({ 
-        variant: "destructive", 
-        title: "Error", 
-        description: `No se pudo ${editingDestinatario ? 'actualizar' : 'crear'} el destinatario` 
-      });
+      toast.error(`No se pudo ${editingDestinatario ? 'actualizar' : 'crear'} el destinatario`);
     } finally {
       setLoading(false);
     }
@@ -218,11 +213,7 @@ export default function AsignarDestinatarios() {
   // Guardar asignaciones
   const handleAsignacionesSubmit = async () => {
     if (!selectedTipoEvento || !selectedNegocio || !selectedUnidad || !selectedPuesto || selectedDestinatarios.length === 0) {
-      toast({ 
-        variant: "destructive", 
-        title: "Error", 
-        description: "Por favor seleccione tipo de reporte, tipo de novedad, negocio, unidad de negocio, puesto y destinatarios" 
-      });
+      toast.error("Por favor seleccione tipo de reporte, tipo de novedad, negocio, unidad de negocio, puesto y destinatarios");
       return;
     }
 
@@ -242,7 +233,7 @@ export default function AsignarDestinatarios() {
       );
 
       await Promise.all(promises);
-      toast({ title: "Éxito", description: "Asignaciones guardadas correctamente" });
+      toast.success("Asignaciones guardadas correctamente");
       setIsDialogOpen(false);
       setSelectedTipoReporte('');
       setSelectedTipoEvento('');
@@ -252,7 +243,7 @@ export default function AsignarDestinatarios() {
       setSelectedDestinatarios([]);
       fetchData('/api/novedades/asignaciones', setAsignaciones);
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "No se pudieron guardar las asignaciones" });
+      toast.error("No se pudieron guardar las asignaciones");
     } finally {
       setLoading(false);
     }
@@ -266,26 +257,38 @@ export default function AsignarDestinatarios() {
         credentials: 'include',
       });
       if (!res.ok) throw new Error('Error al eliminar asignación');
-      toast({ title: "Éxito", description: "Asignación eliminada" });
+      toast.success("Asignación eliminada");
       fetchData('/api/novedades/asignaciones', setAsignaciones);
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar la asignación" });
+      toast.error("No se pudo eliminar la asignación");
     }
   };
 
   // Eliminar destinatario
-  const handleDeleteDestinatario = async (id: number) => {
-    if (!confirm('¿Seguro que desea eliminar este destinatario?')) return;
+  const handleDeleteDestinatario = (id: number) => {
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (confirmDeleteId === null) return;
     try {
-      const res = await fetch(`/api/novedades/destinatarios/${id}`, {
+      setLoading(true);
+      const res = await fetch(`/api/novedades/destinatarios/${confirmDeleteId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
+      if (res.status === 409) {
+        toast.error("Este destinatario tiene asignaciones activas. Elimine primero las asignaciones antes de borrar el destinatario.");
+        return;
+      }
       if (!res.ok) throw new Error('Error al eliminar');
-      toast({ title: "Éxito", description: "Destinatario eliminado" });
+      toast.success("Destinatario eliminado");
       fetchData('/api/novedades/destinatarios', setDestinatarios);
     } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "No se pudo eliminar" });
+      toast.error("No se pudo eliminar");
+    } finally {
+      setLoading(false);
+      setConfirmDeleteId(null);
     }
   };
 
@@ -661,6 +664,14 @@ export default function AsignarDestinatarios() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ModalConfirmacion
+        isOpen={confirmDeleteId !== null}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={confirmDelete}
+        title="Eliminar destinatario"
+        description="¿Seguro que desea eliminar este destinatario?"
+      />
     </div>
   );
 }
