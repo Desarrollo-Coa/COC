@@ -169,7 +169,7 @@ export default function NegociosPage() {
               <div className="flex flex-col flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-base font-semibold text-gray-900 text-left flex-1 min-w-0">
-                    <span className="truncate w-full" title={negocio.nombre_negocio}>
+                    <span className="truncate w-full text-sm max-w-full block" title={negocio.nombre_negocio}>
                       {negocio.nombre_negocio}
                     </span>
                   </CardTitle>
