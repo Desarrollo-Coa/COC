@@ -555,14 +555,16 @@ export default function EstadisticasGeneralesPage({ id_negocio, id_unidad, id_pu
 
   // Filtrar eventos por unidad y puesto seleccionados
   const eventosFiltrados: Evento[] = eventos.filter((e: any) => {
+    // Extraer solo la parte de la fecha (YYYY-MM-DD) del evento
     const fechaEvento = e.fecha_novedad.split('T')[0];
+    // Comparar solo la fecha, ignorando la hora
     const cumpleFiltroFecha = (!desde || fechaEvento >= desde) && (!hasta || fechaEvento <= hasta);
-    
+
     // Si no hay filtros de unidad/puesto, usar todos los eventos
     if (!unidadSeleccionada && !puestoSeleccionado) {
       return cumpleFiltroFecha;
     }
-    
+
     // Si hay filtro de unidad, verificar que el evento pertenezca a esa unidad
     if (unidadSeleccionada) {
       const unidadEvento = unidades.find(u => u.id_unidad_negocio === unidadSeleccionada);
@@ -570,7 +572,7 @@ export default function EstadisticasGeneralesPage({ id_negocio, id_unidad, id_pu
         return false;
       }
     }
-    
+
     // Si hay filtro de puesto, verificar que el evento pertenezca a ese puesto
     if (puestoSeleccionado) {
       const puestoEvento = puestos.find(p => p.id_puesto === puestoSeleccionado);
@@ -578,7 +580,7 @@ export default function EstadisticasGeneralesPage({ id_negocio, id_unidad, id_pu
         return false;
       }
     }
-    
+
     return cumpleFiltroFecha;
   });
    

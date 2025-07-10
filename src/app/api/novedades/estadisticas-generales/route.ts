@@ -7,8 +7,8 @@ export async function GET(request: Request) {
     const id_negocio = searchParams.get('id_negocio');
     const id_unidad = searchParams.get('id_unidad');
     const id_puesto = searchParams.get('id_puesto');
-    const desde = searchParams.get('desde');
-    const hasta = searchParams.get('hasta');
+    let desde = searchParams.get('desde');
+    let hasta = searchParams.get('hasta');
 
     // LOG de parámetros recibidos
     console.log('--- Estadísticas Generales ---');
@@ -16,6 +16,14 @@ export async function GET(request: Request) {
 
     if (!id_negocio || !desde || !hasta) {
       return NextResponse.json({ error: 'Faltan parámetros requeridos (id_negocio, desde, hasta)' }, { status: 400 });
+    }
+
+    // Ajustar fechas para incluir todo el rango del día
+    if (/^\d{4}-\d{2}-\d{2}$/.test(desde)) {
+      desde = `${desde} 00:00:00`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(hasta)) {
+      hasta = `${hasta} 23:59:59`;
     }
 
     // Filtros dinámicos
