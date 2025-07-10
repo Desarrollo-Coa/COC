@@ -121,6 +121,62 @@ export async function GET(request: Request) {
     `
     const [resumenPuestos] = await pool.query(queryResumenPuestos, [id_negocio])
 
+    // Función para generar estructura de debugging
+    const generarEstructuraDebug = () => {
+      const negocioData = (negocioCompleto as any[])[0];
+      if (!negocioData) return null;
+
+      const estructura = {
+        negocio: negocioData.nombre_negocio,
+        unidades: [] as any[]
+      };
+
+      // Agrupar puestos por unidad
+      const puestosPorUnidad: { [key: string]: any[] } = {};
+      
+      (porPuesto as any[]).forEach((puesto: any) => {
+        if (!puestosPorUnidad[puesto.nombre_unidad]) {
+          puestosPorUnidad[puesto.nombre_unidad] = [];
+        }
+        puestosPorUnidad[puesto.nombre_unidad].push(puesto);
+      });
+
+      // Crear estructura de unidades
+      Object.keys(puestosPorUnidad).forEach(nombreUnidad => {
+        const puestosUnidad = puestosPorUnidad[nombreUnidad];
+        const puestosAgrupados: { [key: string]: any } = {};
+
+        // Agrupar por nombre de puesto
+        puestosUnidad.forEach((puesto: any) => {
+          if (!puestosAgrupados[puesto.puesto]) {
+            puestosAgrupados[puesto.puesto] = {
+              nombre_puesto: puesto.puesto,
+              novedades_2024: 0,
+              novedades_2025: 0
+            };
+          }
+          if (puesto.anio === 2024) {
+            puestosAgrupados[puesto.puesto].novedades_2024 = parseInt(puesto.cantidad);
+          } else if (puesto.anio === 2025) {
+            puestosAgrupados[puesto.puesto].novedades_2025 = parseInt(puesto.cantidad);
+          }
+        });
+
+        estructura.unidades.push({
+          nombre_unidad: nombreUnidad,
+          puestos: Object.values(puestosAgrupados)
+        });
+      });
+
+      return estructura;
+    };
+
+    // Generar y imprimir estructura de debugging
+    const estructuraDebug = generarEstructuraDebug();
+    console.log('=== DEBUG: ESTRUCTURA DEL NEGOCIO ===');
+    console.log(JSON.stringify(estructuraDebug, null, 2));
+    console.log('=== FIN DEBUG ===');
+
     return NextResponse.json({
       // Información del negocio
       negocio: (negocioCompleto as any[]).length > 0 ? {
@@ -135,6 +191,9 @@ export async function GET(request: Request) {
       porMes,
       porTipo,
       totales,
+      
+      // Estructura de debugging
+      estructuraDebug,
       
       // Datos completos para debugging
       debug: {
