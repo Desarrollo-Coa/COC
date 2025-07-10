@@ -12,7 +12,7 @@ export async function PUT(
     const { nombre_tipo_reporte } = data
 
     await pool.query(
-      'UPDATE Tipos_Reporte SET nombre_tipo_reporte = ? WHERE id_tipo_reporte = ?',
+      'UPDATE tipos_reporte SET nombre_tipo_reporte = ? WHERE id_tipo_reporte = ?',
       [nombre_tipo_reporte, idTipoReporte]
     )
 
@@ -35,7 +35,7 @@ export async function DELETE(
     const idTipoReporte = parseInt(id)
 
     await pool.query(
-      'DELETE FROM Tipos_Reporte WHERE id_tipo_reporte = ?',
+      'DELETE FROM tipos_reporte WHERE id_tipo_reporte = ?',
       [idTipoReporte]
     )
 

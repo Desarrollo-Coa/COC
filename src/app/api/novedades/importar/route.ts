@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
       // Buscar id_tipo_reporte
       const [tipoReporteRows]: any = await pool.query(
-        'SELECT id_tipo_reporte FROM Tipos_Reporte WHERE nombre_tipo_reporte = ? LIMIT 1',
+        'SELECT id_tipo_reporte FROM tipos_reporte WHERE nombre_tipo_reporte = ? LIMIT 1',
         [tipoReporte]
       )
       if (!tipoReporteRows.length) {
