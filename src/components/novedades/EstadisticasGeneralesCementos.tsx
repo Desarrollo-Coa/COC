@@ -622,10 +622,7 @@ export default function EstadisticasGeneralesPage({ id_negocio, id_unidad, id_pu
         titulo="Estadísticas Generales"
         descripcion="Visualización y análisis de novedades por período"
         filtros={
-          loadingZona ? (
-            <Skeleton className="w-full h-40" />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 col-span-2">
               {/* Fila 1 */}
               <div className="md:col-span-1">
                 <label htmlFor="unidadNegocio" className="block text-xs font-medium text-gray-700 mb-1">
@@ -687,7 +684,6 @@ export default function EstadisticasGeneralesPage({ id_negocio, id_unidad, id_pu
                 />
               </div>
             </div>
-          )
         }
         metricas={
           loadingZona ? (
