@@ -10,10 +10,30 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Se requiere el parámetro id_negocio" }, { status: 400 })
     }
 
-    // 1. Eventos por puesto y año (LEFT JOIN para incluir puestos sin eventos)
+    // 1. Información completa del negocio con unidades y puestos
+    const queryNegocioCompleto = `
+      SELECT 
+        ne.id_negocio,
+        ne.nombre_negocio,
+        un.id_unidad,
+        un.nombre_unidad,
+        p.id_puesto,
+        p.nombre_puesto,
+        p.activo as puesto_activo
+      FROM negocios ne
+      JOIN unidades_negocio un ON ne.id_negocio = un.id_negocio
+      JOIN puestos p ON un.id_unidad = p.id_unidad
+      WHERE ne.id_negocio = ? AND p.activo = 1
+      ORDER BY un.nombre_unidad, p.nombre_puesto
+    `
+    const [negocioCompleto] = await pool.query(queryNegocioCompleto, [id_negocio])
+
+    // 2. Eventos por puesto y año (LEFT JOIN para incluir puestos sin eventos)
     const queryPorPuesto = `
       SELECT 
+        p.id_puesto,
         p.nombre_puesto AS puesto,
+        un.nombre_unidad,
         y.anio AS anio,
         COUNT(n.id_novedad) AS cantidad
       FROM puestos p
@@ -23,17 +43,19 @@ export async function GET(request: Request) {
         SELECT * FROM novedades WHERE YEAR(fecha_hora_novedad) IN (2024, 2025)
       ) n ON n.id_puesto = p.id_puesto
       JOIN (SELECT 2024 as anio UNION SELECT 2025) y
-      WHERE ne.id_negocio = ?
+      WHERE ne.id_negocio = ? AND p.activo = 1
         AND (YEAR(n.fecha_hora_novedad) = y.anio OR n.id_novedad IS NULL)
-      GROUP BY p.nombre_puesto, y.anio
-      ORDER BY p.nombre_puesto, y.anio
+      GROUP BY p.id_puesto, p.nombre_puesto, un.nombre_unidad, y.anio
+      ORDER BY un.nombre_unidad, p.nombre_puesto, y.anio
     `
     const [porPuesto] = await pool.query(queryPorPuesto, [id_negocio])
 
-    // 2. Eventos por mes y año (todos los meses, aunque no haya eventos)
+    // 3. Eventos por mes y año (todos los meses, aunque no haya eventos)
     const queryPorMes = `
       SELECT 
-        y.anio, m.mes, COUNT(n.id_novedad) AS cantidad
+        y.anio, 
+        m.mes, 
+        COUNT(n.id_novedad) AS cantidad
       FROM 
         (SELECT 2024 as anio UNION SELECT 2025) y
       CROSS JOIN 
@@ -42,50 +64,86 @@ export async function GET(request: Request) {
       LEFT JOIN puestos p ON n.id_puesto = p.id_puesto
       LEFT JOIN unidades_negocio un ON p.id_unidad = un.id_unidad
       LEFT JOIN negocios ne ON un.id_negocio = ne.id_negocio
-      WHERE ne.id_negocio = ? OR ne.id_negocio IS NULL
+      WHERE (ne.id_negocio = ? OR ne.id_negocio IS NULL) AND (p.activo = 1 OR p.activo IS NULL)
       GROUP BY y.anio, m.mes
       ORDER BY y.anio, m.mes
     `
     const [porMes] = await pool.query(queryPorMes, [id_negocio])
 
-    // 3. Eventos por tipo y año (todos los tipos, aunque no haya eventos)
+    // 4. Eventos por tipo y año (todos los tipos, aunque no haya eventos)
     const queryPorTipo = `
       SELECT 
+        t.id_tipo_evento,
         t.nombre_tipo_evento AS tipo,
+        tr.nombre_tipo_reporte,
         y.anio,
         COUNT(n.id_novedad) AS cantidad
       FROM tipos_evento t
+      JOIN tipos_reporte tr ON t.id_tipo_reporte = tr.id_tipo_reporte
       CROSS JOIN (SELECT 2024 as anio UNION SELECT 2025) y
       LEFT JOIN novedades n ON n.id_tipo_evento = t.id_tipo_evento AND YEAR(n.fecha_hora_novedad) = y.anio
       LEFT JOIN puestos p ON n.id_puesto = p.id_puesto
       LEFT JOIN unidades_negocio un ON p.id_unidad = un.id_unidad
       LEFT JOIN negocios ne ON un.id_negocio = ne.id_negocio
-      WHERE ne.id_negocio = ? OR ne.id_negocio IS NULL
-      GROUP BY t.nombre_tipo_evento, y.anio
-      ORDER BY t.nombre_tipo_evento, y.anio
+      WHERE (ne.id_negocio = ? OR ne.id_negocio IS NULL) AND (p.activo = 1 OR p.activo IS NULL)
+      GROUP BY t.id_tipo_evento, t.nombre_tipo_evento, tr.nombre_tipo_reporte, y.anio
+      ORDER BY tr.nombre_tipo_reporte, t.nombre_tipo_evento, y.anio
     `
     const [porTipo] = await pool.query(queryPorTipo, [id_negocio])
 
-    // 4. Totales por año
+    // 5. Totales por año
     const queryTotales = `
       SELECT 
-        y.anio, COUNT(n.id_novedad) AS cantidad
+        y.anio, 
+        COUNT(n.id_novedad) AS cantidad
       FROM (SELECT 2024 as anio UNION SELECT 2025) y
       LEFT JOIN novedades n ON YEAR(n.fecha_hora_novedad) = y.anio
       LEFT JOIN puestos p ON n.id_puesto = p.id_puesto
       LEFT JOIN unidades_negocio un ON p.id_unidad = un.id_unidad
       LEFT JOIN negocios ne ON un.id_negocio = ne.id_negocio
-      WHERE ne.id_negocio = ? OR ne.id_negocio IS NULL
+      WHERE (ne.id_negocio = ? OR ne.id_negocio IS NULL) AND (p.activo = 1 OR p.activo IS NULL)
       GROUP BY y.anio
       ORDER BY y.anio
     `
     const [totales] = await pool.query(queryTotales, [id_negocio])
 
+    // 6. Resumen de puestos por unidad
+    const queryResumenPuestos = `
+      SELECT 
+        un.nombre_unidad,
+        COUNT(p.id_puesto) as total_puestos,
+        COUNT(CASE WHEN p.activo = 1 THEN 1 END) as puestos_activos
+      FROM unidades_negocio un
+      LEFT JOIN puestos p ON un.id_unidad = p.id_unidad
+      WHERE un.id_negocio = ?
+      GROUP BY un.id_unidad, un.nombre_unidad
+      ORDER BY un.nombre_unidad
+    `
+    const [resumenPuestos] = await pool.query(queryResumenPuestos, [id_negocio])
+
     return NextResponse.json({
+      // Información del negocio
+      negocio: (negocioCompleto as any[]).length > 0 ? {
+        id_negocio: (negocioCompleto as any[])[0].id_negocio,
+        nombre_negocio: (negocioCompleto as any[])[0].nombre_negocio,
+        unidades: resumenPuestos,
+        total_puestos: (negocioCompleto as any[]).length
+      } : null,
+      
+      // Datos estructurados
       porPuesto,
       porMes,
       porTipo,
-      totales
+      totales,
+      
+      // Datos completos para debugging
+      debug: {
+        negocioCompleto,
+        resumenPuestos,
+        total_registros_porPuesto: (porPuesto as any[]).length,
+        total_registros_porMes: (porMes as any[]).length,
+        total_registros_porTipo: (porTipo as any[]).length
+      }
     })
   } catch (error) {
     console.error("Error al obtener reportes por puesto:", error)
