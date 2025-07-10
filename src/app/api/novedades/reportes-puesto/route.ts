@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     const queryPorPuesto = `
       SELECT 
         p.nombre_puesto AS puesto,
-        IFNULL(YEAR(n.fecha_hora_novedad), y.anio) AS anio,
+        y.anio AS anio,
         COUNT(n.id_novedad) AS cantidad
       FROM puestos p
       JOIN unidades_negocio un ON p.id_unidad = un.id_unidad
