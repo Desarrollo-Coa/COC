@@ -282,13 +282,13 @@ export default function EstadisticasPage() {
       setEventos(eventosFiltrados);
 
       // Cargar resumen por puesto y año SOLO para la vista de plantas
-      const resResumen = await fetch(`/api/novedades/reportes-sede?id_negocio=${negocioSeleccionado.id}&resumen=1`);
+      const resResumen = await fetch(`/api/novedades/reportes-puesto?id_negocio=${negocioSeleccionado.id}&resumen=1`);
       if (!resResumen.ok) throw new Error('Error al cargar resumen por puesto');
       const dataResumen = await resResumen.json();
       setResumenSedes(dataResumen.filter((r: any) => r.puesto === puestoSeleccionado.puesto));
 
       // Cargar eventos por puesto (detalle, para modales)
-      const resPuestos = await fetch(`/api/novedades/reportes-sede?id_negocio=${negocioSeleccionado.id}`);
+      const resPuestos = await fetch(`/api/novedades/reportes-puesto?id_negocio=${negocioSeleccionado.id}`);
       if (!resPuestos.ok) throw new Error('Error al cargar eventos por puesto');
       const dataPuestos = await resPuestos.json();
       setEventosPuesto(dataPuestos.filter((e: any) => e.puesto === puestoSeleccionado.puesto));

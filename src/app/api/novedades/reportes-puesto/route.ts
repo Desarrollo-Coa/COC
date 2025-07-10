@@ -63,7 +63,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(eventosProcesados)
   } catch (error) {
-    console.error("Error al obtener reportes por sede:", error)
-    return NextResponse.json({ error: "Error al obtener reportes por sede" }, { status: 500 })
+    console.error("Error al obtener reportes por puesto:", error)
+    return NextResponse.json({ error: "Error al obtener reportes por puesto" }, { status: 500 })
   }
 } 
