@@ -20,10 +20,9 @@ import {
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 import { Bar, Line } from 'react-chartjs-2'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Fragment } from "react";
-import EstadisticasGeneralesPage from '@/components/novedades/EstadisticasGenerales';
+ import EstadisticasGeneralesPage from '@/components/novedades/EstadisticasGenerales';
 import { useRef } from 'react';
-import { GraficoCard } from '@/components/novedades/GraficoCard';
+import SelectorNegocio from '@/components/negocios/SelectorNegocio';
 import EstadisticasGeneralesTodos from '@/components/novedades/EstadisticasGeneralesTodos';
 
 ChartJS.register(
@@ -784,86 +783,17 @@ export default function EstadisticasPage() {
         <div className="flex-1 h-full pt-4 lg:pt-8">
           {/* Cabecera con tabs de negocios y datos seleccionados en una sola línea, scroll horizontal y flechas */}
           <div className="header mb-4 flex items-center justify-between">
-            <div className="flex items-center w-full">
-              {/* Buscador de negocios */}
-              <div className="relative mr-2 min-w-[180px] max-w-[260px]">
-                <input
-                  type="text"
-                  className="border border-gray-300 rounded px-2 py-1 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  placeholder="Buscar negocio..."
-                  value={busquedaNegocio}
-                  onChange={e => setBusquedaNegocio(e.target.value)}
-                  onFocus={() => setMostrarSugerencias(sugerenciasNegocio.length > 0)}
-                  onBlur={() => setTimeout(() => setMostrarSugerencias(false), 120)}
-                />
-                {mostrarSugerencias && (
-                  <ul className="absolute z-10 bg-white border border-gray-200 rounded shadow w-full mt-1 max-h-48 overflow-y-auto">
-                    {sugerenciasNegocio.map(n => (
-                      <li
-                        key={n.id_negocio}
-                        className="px-3 py-2 cursor-pointer hover:bg-blue-100 text-sm"
-                        onMouseDown={() => seleccionarNegocioBusqueda(n)}
-                      >
-                        {n.nombre_negocio}
-                      </li>
-                    ))}
-                    {sugerenciasNegocio.length === 0 && (
-                      <li className="px-3 py-2 text-gray-400 text-sm">Sin resultados</li>
-                    )}
-                  </ul>
-                )}
-              </div>
-              <button
-                className="px-2 py-1 text-xl font-bold text-gray-500 hover:text-blue-600 focus:outline-none"
-                onClick={() => scrollTabs('left')}
-                aria-label="Desplazar negocios a la izquierda"
-                type="button"
-              >
-                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
-              </button>
-              <div
-                ref={scrollTabsRef}
-                className="tabs flex flex-nowrap items-center gap-0 overflow-x-auto px-2 max-w-[70dvh] scrollbar-hide"
-                style={{ scrollBehavior: 'smooth', minWidth: 0 }}
-              >
-                {/* Opción GENERALES */}
-                <span
-                  className={`cursor-pointer px-2 lg:px-4 font-bold whitespace-nowrap ${opcionGenerales ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
-                  onClick={() => {
-                    setOpcionGenerales(true);
-                    setNegocioSeleccionado(null);
-                  }}
-                >
-                  GENERALES
-                </span>
-                <span className="mx-1 text-gray-400">|</span>
-                {negocios.map((negocio, index) => (
-                  <Fragment key={negocio.id_negocio}>
-                    <span
-                      ref={el => { negocioTabRefs.current[negocio.id_negocio] = el; }}
-                      className={`cursor-pointer px-2 lg:px-4 font-bold whitespace-nowrap ${negocioSeleccionado?.id === negocio.id_negocio && !opcionGenerales ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
-                      onClick={() => {
-                        setNegocioSeleccionado({ id: negocio.id_negocio, nombre: negocio.nombre_negocio });
-                        setOpcionGenerales(false);
-                      }}
-                    >
-                      {negocio.nombre_negocio}
-                    </span>
-                    {index < negocios.length - 1 && (
-                      <span className="mx-1 text-gray-400" key={`sep-${negocio.id_negocio}`}>|</span>
-                    )}
-                  </Fragment>
-                ))}
-              </div>
-              <button
-                className="px-2 py-1 text-xl font-bold text-gray-500 hover:text-blue-600 focus:outline-none"
-                onClick={() => scrollTabs('right')}
-                aria-label="Desplazar negocios a la derecha"
-                type="button"
-              >
-                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-              </button>
-            </div>
+            <SelectorNegocio
+              negocios={negocios}
+              negocioSeleccionado={negocioSeleccionado}
+              onSeleccionar={(negocio) => {
+                setNegocioSeleccionado(negocio);
+                if (!negocio) setOpcionGenerales(true);
+                else setOpcionGenerales(false);
+              }}
+              opcionGenerales={opcionGenerales}
+              setOpcionGenerales={setOpcionGenerales}
+            />
             <div className="flex items-center gap-4 ml-4">
               {/* Eliminado: Unidad y Puesto seleccionados */}
             </div>
