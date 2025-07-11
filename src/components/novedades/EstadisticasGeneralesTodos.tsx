@@ -24,10 +24,12 @@ export default function EstadisticasGeneralesTodos() {
   // ESTADO PARA GENERALES
   const [generalesData, setGeneralesData] = useState<any>(null);
   const [loadingGenerales, setLoadingGenerales] = useState(false);
-  // Filtros de fecha para GENERALES
+  // Filtros de fecha para GENERALES (por defecto últimos 7 días)
   const [fechaDesde, setFechaDesde] = useState(() => {
     const hoy = new Date();
-    return `${hoy.getFullYear()}-01-01`;
+    const hace7 = new Date(hoy);
+    hace7.setDate(hoy.getDate() - 6);
+    return hace7.toISOString().split('T')[0];
   });
   const [fechaHasta, setFechaHasta] = useState(() => {
     const hoy = new Date();
@@ -114,6 +116,32 @@ export default function EstadisticasGeneralesTodos() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Estadísticas Generales</h1>
             <p className="mt-2 text-sm text-gray-600">Visualización y análisis de novedades por período</p>
+          </div>
+        </div>
+        {/* Filtros de fecha dinámicos */}
+        <div className="px-6 mb-6 flex flex-col md:flex-row gap-4 items-start md:items-center">
+          <div className="flex flex-col md:flex-row gap-2 items-start md:items-center">
+            <label htmlFor="fechaDesde" className="text-sm font-medium">Fecha inicio:</label>
+            <input
+              id="fechaDesde"
+              type="date"
+              className="border rounded px-2 py-1 text-sm"
+              value={fechaDesde}
+              max={fechaHasta}
+              onChange={e => setFechaDesde(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col md:flex-row gap-2 items-start md:items-center">
+            <label htmlFor="fechaHasta" className="text-sm font-medium">Fecha fin:</label>
+            <input
+              id="fechaHasta"
+              type="date"
+              className="border rounded px-2 py-1 text-sm"
+              value={fechaHasta}
+              min={fechaDesde}
+              max={new Date().toISOString().split('T')[0]}
+              onChange={e => setFechaHasta(e.target.value)}
+            />
           </div>
         </div>
         {/* Charts Section */}
