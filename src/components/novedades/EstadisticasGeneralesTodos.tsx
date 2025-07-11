@@ -118,8 +118,8 @@ export default function EstadisticasGeneralesTodos() {
         </div>
         {/* Charts Section */}
         <div className="space-y-8 px-6">
-          {/* Primera fila: Dos columnas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Gráficos: uno por fila */}
+          <div className="flex flex-col gap-8">
             <GraficoCard
               titulo="Novedades por Negocio"
               descripcion="Cantidad de novedades registradas por cada negocio."
