@@ -123,26 +123,94 @@ export default function EstadisticasGeneralesTodos() {
             <GraficoCard
               titulo="Novedades por Negocio"
               descripcion="Cantidad de novedades registradas por cada negocio."
-              datos={graficoPorNegocio}
-              loading={loadingGenerales}
+              datos={{
+                ...graficoPorNegocio,
+                datasets: [{
+                  ...graficoPorNegocio.datasets[0],
+                  backgroundColor: graficoPorNegocio.labels.map((_: any, i: number) => PALETA[i % PALETA.length]) as any,
+                }],
+              }}
+              loading={loadingGenerales}  
+              opciones={{
+                scales: {
+                  x: {
+                    ticks: {
+                      minRotation: 90,
+                      maxRotation: 90,
+                      align: 'center',
+                    },
+                  },
+                },
+              }}
             />
             <GraficoCard
               titulo="Novedades por Tipo de Evento"
               descripcion="Cantidad de novedades agrupadas por tipo de evento."
-              datos={graficoPorTipo}
+              datos={{
+                ...graficoPorTipo,
+                datasets: [{
+                  ...graficoPorTipo.datasets[0],
+                  backgroundColor: graficoPorTipo.labels.map((_: any, i: number) => PALETA[i % PALETA.length]) as any,
+                }],
+              }}
               loading={loadingGenerales}
+              opciones={{
+                scales: {
+                  x: {
+                    ticks: {
+                      minRotation: 90,
+                      maxRotation: 90,
+                      align: 'center',
+                    },
+                  },
+                },
+              }}
             />
             <GraficoCard
               titulo="Novedades por Mes"
               descripcion="Cantidad de novedades registradas en cada mes del periodo."
-              datos={graficoPorMes}
+              datos={{
+                ...graficoPorMes,
+                datasets: [{
+                  ...graficoPorMes.datasets[0],
+                  backgroundColor: graficoPorMes.labels.map((_: any, i: number) => PALETA[i % PALETA.length]) as any,
+                }],
+              }}
               loading={loadingGenerales}
+              opciones={{
+                scales: {
+                  x: {
+                    ticks: {
+                      minRotation: 90,
+                      maxRotation: 90,
+                      align: 'center',
+                    },
+                  },
+                },
+              }}
             />
             <GraficoCard
               titulo="Novedades por Unidad de Negocio"
               descripcion="Cantidad de novedades agrupadas por unidad de negocio."
-              datos={graficoPorUnidad}
+              datos={{
+                ...graficoPorUnidad,
+                datasets: [{
+                  ...graficoPorUnidad.datasets[0],
+                  backgroundColor: graficoPorUnidad.labels.map((_: any, i: number) => PALETA[i % PALETA.length]) as any,
+                }],
+              }}
               loading={loadingGenerales}
+              opciones={{
+                scales: {
+                  x: {
+                    ticks: {
+                      minRotation: 90,
+                      maxRotation: 90,
+                      align: 'center',
+                    },
+                  },
+                },
+              }}
             />
           </div>
           {/* Segunda fila: Distribución Horaria */}
