@@ -23,6 +23,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Fragment } from "react";
 import EstadisticasGeneralesPage from '@/components/novedades/EstadisticasGeneralesCementos';
 import { useRef } from 'react';
+import { GraficoCard } from '@/components/novedades/GraficoCard';
+import EstadisticasGeneralesTodos from '@/components/novedades/EstadisticasGeneralesTodos';
 
 ChartJS.register(
   CategoryScale,
@@ -83,6 +85,11 @@ interface EventosPorPuesto {
 
 const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
 
+// Paleta de colores para los gráficos
+const PALETA = [
+  '#9966CC', '#00AFA3', '#1A4A96', '#FF6B6B', '#4CAF50', '#FFA726', '#7E57C2', '#26A69A', '#EF5350', '#66BB6A', '#FFEE58', '#5C6BC0',
+];
+
 
 export default function EstadisticasPage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -101,6 +108,7 @@ export default function EstadisticasPage() {
   const [showModal, setShowModal] = useState(false)
   const [eventosSeleccionados, setEventosSeleccionados] = useState<Evento[]>([])
   const [vistaActual, setVistaActual] = useState<'generales' | 'comparativa' | 'puestos'>('generales')
+  const [opcionGenerales, setOpcionGenerales] = useState(true);
   const { toast } = useToast()
   const [eventosPorPuestoDetalle, setEventosPorPuestoDetalle] = useState<{ [key: string]: { cantidad: number, ids: number[] } }>({})
   const [resumenSedes, setResumenSedes] = useState<any[]>([])
@@ -167,12 +175,102 @@ export default function EstadisticasPage() {
     ]
   }
 
+  // ESTADO PARA GENERALES
+  const [generalesData, setGeneralesData] = useState<any>(null);
+  const [loadingGenerales, setLoadingGenerales] = useState(false);
+  // Filtros de fecha para GENERALES
+  const [fechaDesde, setFechaDesde] = useState(() => {
+    const hoy = new Date();
+    return `${hoy.getFullYear()}-01-01`;
+  });
+  const [fechaHasta, setFechaHasta] = useState(() => {
+    const hoy = new Date();
+    return hoy.toISOString().split('T')[0];
+  });
+
+  // Fetch de datos GENERALES
+  useEffect(() => {
+    if (!opcionGenerales) return;
+    setLoadingGenerales(true);
+    fetch(`/api/novedades/estadisticas-generales-todos?desde=${fechaDesde}&hasta=${fechaHasta}`)
+      .then(res => res.json())
+      .then(data => setGeneralesData(data))
+      .catch(() => setGeneralesData(null))
+      .finally(() => setLoadingGenerales(false));
+  }, [opcionGenerales, fechaDesde, fechaHasta]);
+
+  // Procesamiento de datos para los gráficos GENERALES
+  const labelsMeses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  // Novedades por Negocio
+  const datosPorNegocio = generalesData?.porNegocio || [];
+  const graficoPorNegocio = {
+    labels: datosPorNegocio.map((n: any) => n.negocio),
+    datasets: [{
+      label: 'Novedades',
+      data: datosPorNegocio.map((n: any) => n.cantidad),
+      backgroundColor: PALETA[0],
+      borderRadius: 4,
+    }],
+  };
+  // Novedades por Tipo de Evento
+  const datosPorTipo = generalesData?.porTipo || [];
+  const graficoPorTipo = {
+    labels: datosPorTipo.map((t: any) => t.tipo),
+    datasets: [{
+      label: 'Novedades',
+      data: datosPorTipo.map((t: any) => t.cantidad),
+      backgroundColor: PALETA[1],
+      borderRadius: 4,
+    }],
+  };
+  // Novedades por Mes
+  const datosPorMes = generalesData?.porMes || [];
+  const graficoPorMes = {
+    labels: labelsMeses,
+    datasets: [{
+      label: 'Novedades',
+      data: labelsMeses.map((_, i) => {
+        const found = datosPorMes.find((m: any) => m.mes === i + 1);
+        return found ? found.cantidad : 0;
+      }),
+      backgroundColor: PALETA[2],
+      borderRadius: 4,
+    }],
+  };
+  // Novedades por Unidad de Negocio
+  const datosPorUnidad = generalesData?.porUnidad || [];
+  const graficoPorUnidad = {
+    labels: datosPorUnidad.map((u: any) => u.unidad),
+    datasets: [{
+      label: 'Novedades',
+      data: datosPorUnidad.map((u: any) => u.cantidad),
+      backgroundColor: PALETA[3],
+      borderRadius: 4,
+    }],
+  };
+  // Distribución Horaria de Novedades (por tipo)
+  const eventosGenerales = generalesData?.eventos || [];
+  const horasGenerales = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+  const tiposGenerales: string[] = Array.from(new Set(eventosGenerales.map((e: any) => e.tipo_novedad)));
+  const dataDistribucion = {
+    labels: horasGenerales,
+    datasets: tiposGenerales.map((tipo: string, idx: number) => ({
+      label: tipo,
+      data: horasGenerales.map(hora => eventosGenerales.filter((e: any) => e.hora_novedad?.slice(0,2) === hora && e.tipo_novedad === tipo).length),
+      backgroundColor: PALETA[idx % PALETA.length],
+      stack: 'a',
+      borderRadius: 2,
+    })),
+  };
+
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push('/login')
     }
   }, [authLoading, isAuthenticated, router])
 
+  // Modificar el efecto de negocios para que GENERALES sea la opción por defecto
   useEffect(() => {
     const fetchNegocios = async () => {
       try {
@@ -180,9 +278,9 @@ export default function EstadisticasPage() {
         if (!response.ok) throw new Error('Error al cargar negocios')
         const data = await response.json()
         setNegocios(data)
-        if (data.length > 0) {
-          setNegocioSeleccionado({ id: data[0].id_negocio, nombre: data[0].nombre_negocio })
-        }
+        // Por defecto selecciona GENERALES
+        setOpcionGenerales(true);
+        setNegocioSeleccionado(null);
       } catch (error) {
         // Error al cargar negocios
         toast({
@@ -195,6 +293,13 @@ export default function EstadisticasPage() {
 
     fetchNegocios()
   }, [toast])
+
+  // Cuando se selecciona un negocio, desactiva GENERALES
+  useEffect(() => {
+    if (negocioSeleccionado) {
+      setOpcionGenerales(false);
+    }
+  }, [negocioSeleccionado]);
 
   // 2. Cuando cambia negocioSeleccionado, carga las unidades de negocio:
   useEffect(() => {
@@ -645,23 +750,30 @@ export default function EstadisticasPage() {
           <h2 className="text-lg font-bold mb-4">Vistas</h2>
           <div className="flex lg:flex-col gap-2 lg:space-y-2">
             <button
-              className={`flex-1 lg:w-full text-center lg:text-left px-4 py-2 rounded ${vistaActual === 'generales' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
-                }`}
+              className={`flex-1 lg:w-full text-center lg:text-left px-4 py-2 rounded ${vistaActual === 'generales' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}
               onClick={() => setVistaActual('generales')}
             >
               Estadísticas Generales
             </button>
             <button
-              className={`flex-1 lg:w-full text-center lg:text-left px-4 py-2 rounded ${vistaActual === 'comparativa' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
-                }`}
-              onClick={() => setVistaActual('comparativa')}
+              className={`flex-1 lg:w-full text-center lg:text-left px-4 py-2 rounded ${
+                opcionGenerales ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' : vistaActual === 'comparativa' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+              }`}
+              onClick={() => {
+                if (!opcionGenerales) setVistaActual('comparativa');
+              }}
+              disabled={opcionGenerales}
             >
               Comparativa de Eventos
             </button>
             <button
-              className={`flex-1 lg:w-full text-center lg:text-left px-4 py-2 rounded ${vistaActual === 'puestos' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
-                }`}
-              onClick={() => setVistaActual('puestos')}
+              className={`flex-1 lg:w-full text-center lg:text-left px-4 py-2 rounded ${
+                opcionGenerales ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' : vistaActual === 'puestos' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+              }`}
+              onClick={() => {
+                if (!opcionGenerales) setVistaActual('puestos');
+              }}
+              disabled={opcionGenerales}
             >
               Eventos por Puestos
             </button>
@@ -714,12 +826,26 @@ export default function EstadisticasPage() {
                 className="tabs flex flex-nowrap items-center gap-0 overflow-x-auto px-2 max-w-[70dvh] scrollbar-hide"
                 style={{ scrollBehavior: 'smooth', minWidth: 0 }}
               >
+                {/* Opción GENERALES */}
+                <span
+                  className={`cursor-pointer px-2 lg:px-4 font-bold whitespace-nowrap ${opcionGenerales ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
+                  onClick={() => {
+                    setOpcionGenerales(true);
+                    setNegocioSeleccionado(null);
+                  }}
+                >
+                  GENERALES
+                </span>
+                <span className="mx-1 text-gray-400">|</span>
                 {negocios.map((negocio, index) => (
                   <Fragment key={negocio.id_negocio}>
                     <span
                       ref={el => { negocioTabRefs.current[negocio.id_negocio] = el; }}
-                      className={`cursor-pointer px-2 lg:px-4 font-bold whitespace-nowrap ${negocioSeleccionado?.id === negocio.id_negocio ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
-                      onClick={() => setNegocioSeleccionado({ id: negocio.id_negocio, nombre: negocio.nombre_negocio })}
+                      className={`cursor-pointer px-2 lg:px-4 font-bold whitespace-nowrap ${negocioSeleccionado?.id === negocio.id_negocio && !opcionGenerales ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`}
+                      onClick={() => {
+                        setNegocioSeleccionado({ id: negocio.id_negocio, nombre: negocio.nombre_negocio });
+                        setOpcionGenerales(false);
+                      }}
                     >
                       {negocio.nombre_negocio}
                     </span>
@@ -743,7 +869,14 @@ export default function EstadisticasPage() {
             </div>
           </div>
           <hr />
-          {vistaActual === 'generales' && negocioSeleccionado?.id && (
+          {/* Renderizado condicional para GENERALES */}
+          {vistaActual === 'generales' && opcionGenerales && (
+            <>
+              <EstadisticasGeneralesTodos />
+            </>
+          )}
+          {/* Renderizado de EstadisticasGeneralesPage si se selecciona un negocio */}
+          {vistaActual === 'generales' && negocioSeleccionado?.id && !opcionGenerales && (
             <EstadisticasGeneralesPage
               id_negocio={negocioSeleccionado.id}
               id_unidad={unidadSeleccionada?.id}
@@ -1102,4 +1235,4 @@ export default function EstadisticasPage() {
       </Dialog>
     </div>
   )
-} 
+}
