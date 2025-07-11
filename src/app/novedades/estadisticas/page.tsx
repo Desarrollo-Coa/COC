@@ -22,7 +22,7 @@ import { Bar, Line } from 'react-chartjs-2'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
  import EstadisticasGeneralesPage from '@/components/novedades/EstadisticasGenerales';
 import { useRef } from 'react';
-import SelectorNegocio from '@/components/negocios/SelectorNegocio';
+import SelectorNegocio from '@/components/negocios/SelectorNegocioGenerales';
 import EstadisticasGeneralesTodos from '@/components/novedades/EstadisticasGeneralesTodos';
 
 ChartJS.register(
