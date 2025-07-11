@@ -31,3 +31,8 @@ next-env.d.ts
 
 # Omitir todo el contenido de la carpeta data dentro de database
 /database/data/
+
+# Archivos y carpetas temporales para generación de novedades de prueba
+src/app/api/novedades/generar-fake/
+src/app/novedades/estadisticas/GENERADORNOVEDADES.tsx
+src/components/novedades/GeneradorNovedadesModal.tsx
