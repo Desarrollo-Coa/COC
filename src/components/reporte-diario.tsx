@@ -262,26 +262,32 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
     });
     try {
       const fecha = new Date(parseInt(date.anio), parseInt(date.mes) - 1, parseInt(date.dia)).toISOString();
-      const payloads: { id_cumplido: number, calificaciones: Record<string, Record<string, { valor: number, nota: string | null }>> }[] = [];
+      const payloads: { id_cumplido: number, calificaciones: Record<string, Record<string, { valor: number | null, nota: string | null }>> }[] = [];
+      // Definir todas las horas posibles de ambos turnos
+      const todasLasHoras = [
+        ...Array.from({ length: cantidad_diurno }, (_, i) => ({ key: `R${i + 1}_diurno`, tipo: 'diurno' as const })),
+        ...Array.from({ length: cantidad_nocturno }, (_, i) => ({ key: `R${i + 1}_nocturno`, tipo: 'nocturno' as const }))
+      ];
       for (const change of changes) {
         const cumplido = cumplidos[change.idPuesto];
+        // Diurno
         if (cumplido?.diurno) {
-          const calificacionesDiurno: Record<string, Record<string, { valor: number, nota: string | null }>> = {};
+          let calificacionesDiurno: Record<string, Record<string, { valor: number | null, nota: string | null }>> = {};
           let n = 1;
-          horasFiltradas.forEach(({ key }) => {
-            if (key.endsWith('_diurno')) {
+          todasLasHoras.forEach(({ key, tipo }) => {
+            if (tipo === 'diurno' && key.endsWith('_diurno')) {
               const hora = horasCol[key] || '';
               let valorObj = change.calificaciones?.[key];
               if (valorObj === undefined) valorObj = cumplido?.diurno?.calificaciones?.[key];
-              let valor = 0;
+              let valor: number | null = 0;
               let nota: string | null = null;
               if (typeof valorObj === 'object' && valorObj !== null && 'valor' in valorObj) {
-                valor = valorObj.valor ?? 0;
+                valor = typeof valorObj.valor === 'number' ? valorObj.valor : null;
                 nota = valorObj.nota ?? null;
               } else {
-                valor = valorObj ?? 0;
+                valor = typeof valorObj === 'number' ? valorObj : null;
               }
-              if (hora && (valor > 0 || (nota && nota.length > 0))) {
+              if (hora && (valor !== null && valor > 0 || (nota && nota.length > 0))) {
                 calificacionesDiurno[`R${n}`] = { [hora]: { valor, nota } };
               }
               n++;
@@ -294,23 +300,24 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
           });
           payloads.push({ id_cumplido: cumplido.diurno.id_cumplido, calificaciones: calificacionesDiurno });
         }
+        // Nocturno
         if (cumplido?.nocturno) {
-          const calificacionesNocturno: Record<string, Record<string, { valor: number, nota: string | null }>> = {};
+          let calificacionesNocturno: Record<string, Record<string, { valor: number | null, nota: string | null }>> = {};
           let n = 1;
-          horasFiltradas.forEach(({ key }) => {
-            if (key.endsWith('_nocturno')) {
+          todasLasHoras.forEach(({ key, tipo }) => {
+            if (tipo === 'nocturno' && key.endsWith('_nocturno')) {
               const hora = horasCol[key] || '';
               let valorObj = change.calificaciones?.[key];
               if (valorObj === undefined) valorObj = cumplido?.nocturno?.calificaciones?.[key];
-              let valor = 0;
+              let valor: number | null = 0;
               let nota: string | null = null;
               if (typeof valorObj === 'object' && valorObj !== null && 'valor' in valorObj) {
-                valor = valorObj.valor ?? 0;
+                valor = typeof valorObj.valor === 'number' ? valorObj.valor : null;
                 nota = valorObj.nota ?? null;
               } else {
-                valor = valorObj ?? 0;
+                valor = typeof valorObj === 'number' ? valorObj : null;
               }
-              if (hora && (valor > 0 || (nota && nota.length > 0))) {
+              if (hora && (valor !== null && valor > 0 || (nota && nota.length > 0))) {
                 calificacionesNocturno[`R${n}`] = { [hora]: { valor, nota } };
               }
               n++;

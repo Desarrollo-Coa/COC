@@ -375,10 +375,10 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const fetchDetalles = async () => {
       if (!mesSeleccionado || !negocioSeleccionado?.id) {
-        setEventosDetalle({});
+      setEventosDetalle({});
         setEventosSeleccionados([]);
-        return;
-      }
+      return;
+    }
       // Calcular primer y último día del mes
       const mesIndex = meses.indexOf(mesSeleccionado.mes) + 1;
       const desde = `${mesSeleccionado.año}-${mesIndex.toString().padStart(2, '0')}-01`;
@@ -389,22 +389,22 @@ export default function EstadisticasPage() {
         if (!res.ok) throw new Error('Error al obtener eventos detallados');
         const data = await res.json();
         // Agrupar eventos por tipo para los cards
-        const conteoEventos: { [key: string]: { cantidad: number, ids: number[] } } = {};
+    const conteoEventos: { [key: string]: { cantidad: number, ids: number[] } } = {};
         (data.eventos || []).forEach((evento: any) => {
-          const key = `${evento.tipo_novedad}`;
-          if (!conteoEventos[key]) {
-            conteoEventos[key] = { cantidad: 0, ids: [] };
-          }
-          conteoEventos[key].cantidad++;
-          conteoEventos[key].ids.push(evento.id_novedad);
-        });
-        setEventosDetalle(conteoEventos);
+      const key = `${evento.tipo_novedad}`;
+      if (!conteoEventos[key]) {
+        conteoEventos[key] = { cantidad: 0, ids: [] };
+      }
+      conteoEventos[key].cantidad++;
+      conteoEventos[key].ids.push(evento.id_novedad);
+    });
+    setEventosDetalle(conteoEventos);
         setEventosSeleccionados(data.eventos || []);
       } catch (error) {
         setEventosDetalle({});
         setEventosSeleccionados([]);
       }
-    };
+  };
     fetchDetalles();
   }, [mesSeleccionado, negocioSeleccionado]);
  
@@ -944,23 +944,23 @@ export default function EstadisticasPage() {
                             // Buscar los totales por puesto y año en porPuesto
                             const total2024 = porPuesto.find((r: any) => r.puesto === nombrePuesto && r.anio === 2024)?.cantidad || 0
                             const total2025 = porPuesto.find((r: any) => r.puesto === nombrePuesto && r.anio === 2025)?.cantidad || 0
-                            return (
+                          return (
                               <tr key={nombrePuesto}>
                                 <td className="border border-black p-1 text-xs">{nombrePuesto}</td>
-                                <td
+                              <td
                                   className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${puestoSeleccionado?.puesto === nombrePuesto && puestoSeleccionado?.año === 2024 ? 'bg-blue-100' : ''}`}
                                   onClick={() => { mostrarEventosPorPuesto(nombrePuesto, 2024); setShowModal(true); }}
-                                >
-                                  {total2024}
-                                </td>
-                                <td
+                              >
+                                {total2024}
+                              </td>
+                              <td
                                   className={`border border-black p-1 text-center cursor-pointer hover:bg-gray-100 text-xs ${puestoSeleccionado?.puesto === nombrePuesto && puestoSeleccionado?.año === 2025 ? 'bg-blue-100' : ''}`}
                                   onClick={() => { mostrarEventosPorPuesto(nombrePuesto, 2025); setShowModal(true); }}
-                                >
-                                  {total2025}
-                                </td>
-                              </tr>
-                            )
+                              >
+                                {total2025}
+                              </td>
+                            </tr>
+                          )
                           })
                         })()}
                         <tr>
