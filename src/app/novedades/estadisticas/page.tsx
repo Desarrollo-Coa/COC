@@ -21,7 +21,7 @@ import ChartDataLabels from 'chartjs-plugin-datalabels'
 import { Bar, Line } from 'react-chartjs-2'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Fragment } from "react";
-import EstadisticasGeneralesPage from '@/components/novedades/EstadisticasGeneralesCementos';
+import EstadisticasGeneralesPage from '@/components/novedades/EstadisticasGenerales';
 import { useRef } from 'react';
 import { GraficoCard } from '@/components/novedades/GraficoCard';
 import EstadisticasGeneralesTodos from '@/components/novedades/EstadisticasGeneralesTodos';
