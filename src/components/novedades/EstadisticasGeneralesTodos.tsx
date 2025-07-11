@@ -168,6 +168,10 @@ export default function EstadisticasGeneralesTodos() {
                       align: 'center',
                     },
                   },
+                  y: {
+                    beginAtZero: true,
+                    suggestedMax: Math.max(...graficoPorNegocio.datasets[0].data, 1) * 1.3,
+                  },
                 },
               }}
             />
@@ -190,6 +194,10 @@ export default function EstadisticasGeneralesTodos() {
                       maxRotation: 90,
                       align: 'center',
                     },
+                  },
+                  y: {
+                    beginAtZero: true,
+                    suggestedMax: Math.max(...graficoPorTipo.datasets[0].data, 1) * 1.3,
                   },
                 },
               }}
@@ -214,6 +222,10 @@ export default function EstadisticasGeneralesTodos() {
                       align: 'center',
                     },
                   },
+                  y: {
+                    beginAtZero: true,
+                    suggestedMax: Math.max(...graficoPorMes.datasets[0].data, 1) * 1.3,
+                  },
                 },
               }}
             />
@@ -236,6 +248,10 @@ export default function EstadisticasGeneralesTodos() {
                       maxRotation: 90,
                       align: 'center',
                     },
+                  },
+                  y: {
+                    beginAtZero: true,
+                    suggestedMax: Math.max(...graficoPorUnidad.datasets[0].data, 1) * 1.3,
                   },
                 },
               }}
