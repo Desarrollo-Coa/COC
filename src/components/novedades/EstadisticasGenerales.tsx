@@ -60,7 +60,7 @@ interface Evento {
 
 type UnidadNegocio = 'TODOS' | string;
 
-interface EstadisticasGeneralesPageProps {
+interface EstadisticasGeneralesProps {
   id_negocio: number;
   id_unidad?: number;
   id_puesto?: number;
@@ -375,10 +375,10 @@ function EstadisticasLayoutCementos({
   );
 }
 
-export default function EstadisticasGeneralesPage({ id_negocio, id_unidad, id_puesto }: EstadisticasGeneralesPageProps) {
+export default function EstadisticasGenerales({ id_negocio, id_unidad, id_puesto }: EstadisticasGeneralesProps) {
   const { toast } = useToast();
 
-  console.log('EstadisticasGeneralesPage recibió:', { id_negocio, id_unidad, id_puesto });
+  console.log('EstadisticasGenerales recibió:', { id_negocio, id_unidad, id_puesto });
 
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
