@@ -5,7 +5,7 @@ export interface Negocio {
   nombre_negocio: string;
 }
 
-interface SelectorNegocioProps {
+interface selectorNegocioGeneralesProps {
   negocios: Negocio[];
   negocioSeleccionado: { id: number; nombre: string } | null;
   onSeleccionar: (negocio: { id: number; nombre: string } | null) => void;
@@ -13,7 +13,7 @@ interface SelectorNegocioProps {
   setOpcionGenerales: (v: boolean) => void;
 }
 
-const SelectorNegocio: React.FC<SelectorNegocioProps> = ({
+const selectorNegocioGenerales: React.FC<selectorNegocioGeneralesProps> = ({
   negocios,
   negocioSeleccionado,
   onSeleccionar,
@@ -146,4 +146,4 @@ const SelectorNegocio: React.FC<SelectorNegocioProps> = ({
   );
 };
 
-export default SelectorNegocio; 
+export default selectorNegocioGenerales; 
