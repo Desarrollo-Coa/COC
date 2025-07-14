@@ -106,6 +106,7 @@ export default function RegistrarNovedades() {
 
         setTiposReporte(tiposReporteData)
         setNegocios(negociosData)
+        console.log('Negocios cargados para selector:', negociosData)
       } catch (error) {
         console.error("Error cargando datos:", error)
         toast({

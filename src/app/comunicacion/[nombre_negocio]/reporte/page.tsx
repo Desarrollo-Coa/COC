@@ -77,7 +77,7 @@ export default function ReporteDiarioPage() {
               <CumplidoNegocioTable negocioId={negocio.id_negocio} negocioNombre={negocio.nombre_negocio} />
             ) : null}
             </div>
-        </main>
+          </main>
       </div>
     </div>
   );
