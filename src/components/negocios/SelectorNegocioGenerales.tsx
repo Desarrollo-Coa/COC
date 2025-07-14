@@ -76,7 +76,7 @@ const selectorNegocioGenerales: React.FC<selectorNegocioGeneralesProps> = ({
           onBlur={() => setTimeout(() => setMostrarSugerencias(false), 120)}
         />
         {mostrarSugerencias && (
-          <ul className="absolute z-10 bg-white border border-gray-200 rounded shadow w-full mt-1 max-h-48 overflow-y-auto">
+          <ul className="absolute z-50 bg-white border border-gray-200 rounded shadow w-full mt-1 max-h-48 overflow-y-auto">
             {sugerenciasNegocio.map(n => (
               <li
                 key={n.id_negocio}

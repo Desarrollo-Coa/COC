@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { CumplidoNegocioTable } from '@/components/cumplido';
 import MainSidebar from '@/components/main-sidebar';
+import SelectorNegocioGenerales, { Negocio } from '@/components/negocios/SelectorNegocioGenerales';
+import { useRouter } from 'next/navigation';
 
 export default function CumplidoNegocio() {
   const params = useParams();
@@ -10,6 +12,14 @@ export default function CumplidoNegocio() {
   const [negocio, setNegocio] = useState<{ id_negocio: number; nombre_negocio: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [negocios, setNegocios] = useState<Negocio[]>([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    fetch('/api/negocios')
+      .then(res => res.json())
+      .then(data => setNegocios(data));
+  }, []);
 
   useEffect(() => {
     const fetchNegocio = async () => {
@@ -49,6 +59,24 @@ export default function CumplidoNegocio() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
           <div className="container mx-auto px-6 py-8">
+            {negocios.length > 0 && negocio && (
+              <div className="mb-6">
+                <SelectorNegocioGenerales
+                  negocios={negocios}
+                  negocioSeleccionado={{
+                    id: negocio.id_negocio,
+                    nombre: negocio.nombre_negocio
+                  }}
+                  onSeleccionar={(nuevoNegocio) => {
+                    if (nuevoNegocio) {
+                      router.push(`/programacion/cumplido/${encodeURIComponent(nuevoNegocio.nombre.replace(/ /g, '_'))}`);
+                    }
+                  }}
+                  opcionGenerales={false}
+                  setOpcionGenerales={() => {}}
+                />
+              </div>
+            )}
             {loading ? (
               <div className="text-center text-gray-500">Cargando negocio...</div>
             ) : error ? (
