@@ -212,7 +212,7 @@ export async function POST(
                     <table width="100%" cellpadding="0" cellspacing="0" border="0">
                       <tr>
                         <td width="50%" align="left" style="font-size: 14px; color: #666666;">
-                          Reporte: <span style="color: #FF7E70; font-weight: bold;">${novedad.nombre_tipo_reporte}</span>
+                          Reporte: <span style="color:rgb(17, 3, 121); font-weight: bold;">${novedad.nombre_tipo_reporte}</span>
                         </td>
                         <td width="50%" align="right">
                           <span style="background-color: #ffebee; color: #d32f2f; font-size: 12px; font-weight: bold; padding: 4px 8px; border-radius: 12px;">
