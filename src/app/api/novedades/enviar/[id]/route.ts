@@ -196,7 +196,7 @@ export async function POST(
               <table width="800" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                 <!-- HEADER -->
                 <tr>
-                  <td style="background-color: #FF7E70; padding: 20px;">
+                  <td style="background-color:#0c088b; padding: 20px;">
                     <table width="100%" cellpadding="0" cellspacing="0" border="0">
                       <tr>
                         <td align="center">
@@ -348,11 +348,11 @@ export async function POST(
                 </tr>
                 <!-- FOOTER -->
                 <tr>
-                  <td style="background-color: #FF7E70; padding: 20px;">
+                  <td style="background-color: #003087; padding: 20px;">
                     <table width="100%">
                       <tr>
                         <td align="center">
-                          <p style="margin: 0; font-size: 14px; color: #ffffff;">© ${new Date().getFullYear()} Desarrollo COA - Todos los derechos reservados</p>
+                          <p style="margin: 0; font-size: 14px; color: #ffffff;">© ${new Date().getFullYear()} RENOA - CENTRAL OPERACIONES COSTA - Todos los derechos reservados</p>
                           <p style="margin: 8px 0 0 0; font-size: 12px; color: #ffffff;">
                             Reporte generado: ${format(new Date(), 'dd/MM/yyyy')}
                           </p>
