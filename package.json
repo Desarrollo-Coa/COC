@@ -53,6 +53,7 @@
     "embla-carousel-react": "^8.6.0",
     "exceljs": "^4.4.0",
     "framer-motion": "^12.23.0",
+    "hashids": "^2.3.0",
     "input-otp": "1.4.1",
     "jose": "latest",
     "lucide-react": "^0.454.0",

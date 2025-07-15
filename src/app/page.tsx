@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Modules } from "@/components/modules";
 import { useAuth } from "@/hooks/useAuth";
 import Skeleton from "@/components/ui/skeleton";
-import { Calendar, MessageSquare, Bell } from "lucide-react";
+import { Calendar, MessageSquare, Bell, Key } from "lucide-react";
 
 const dashboardTitle = typeof window !== 'undefined' && process.env.NEXT_PUBLIC_DASHBOARD_TITLE
   ? process.env.NEXT_PUBLIC_DASHBOARD_TITLE
@@ -37,6 +37,13 @@ export default function Home() {
       icon: <Bell className="h-6 w-6 text-muted-foreground" />,
       image: "/img/modulos/novedades/LOGO-RENOA.jpeg",
       link: "/novedades",
+    },
+     {
+      title: "Accesos",
+      description: "Gestión de accesos y links para colaboradores",
+      icon: <Key className="h-6 w-6 text-muted-foreground" />,
+      image: "/img/modulos/esquema/dasboard-esquema.jpeg",  
+      link: "/accesos",
     },
   ];
 

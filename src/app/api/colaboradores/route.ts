@@ -12,14 +12,20 @@ export async function GET() {
         id,
         cedula,
         placa,
-        nombres,
-        apellidos,
+        nombre,
+        apellido,
         activo,
         foto_url
       FROM colaboradores
-      ORDER BY nombres ASC`
+      ORDER BY nombre ASC`
     );
-    return NextResponse.json(rows, {
+    // Mapear para exponer 'nombres' y 'apellidos' en el JSON
+    const colaboradores = (rows as any[]).map(c => ({
+      ...c,
+      nombres: c.nombre,
+      apellidos: c.apellido,
+    }));
+    return NextResponse.json(colaboradores, {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
@@ -43,8 +49,8 @@ export async function POST(request: Request) {
     }
     connection = await pool.getConnection();
     const [result] = await connection.execute(
-      `INSERT INTO colaboradores (cedula, placa, nombres, apellidos, activo, foto_url)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO colaboradores (cedula, placa, nombre, apellido, activo, foto_url)
+       VALUES (?, ?, ?, ?, ?, ?)` ,
       [cedula, placa, nombres, apellidos, activo !== undefined ? activo : true, foto_url || null]
     );
     return NextResponse.json({ message: 'Colaborador creado exitosamente', id: (result as any).insertId });
