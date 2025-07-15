@@ -1,53 +1,64 @@
-import { NextRequest, NextResponse } from 'next/server'
-import pool from '@/lib/db'
-import { RowDataPacket, ResultSetHeader } from 'mysql2'
-import nodemailer from 'nodemailer'
-import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
-import { getTokenFromRequest, verifyToken } from '@/lib/auth'
-import { generateStatsChart } from '@/utils/canvasService.ts'
+import { NextRequest, NextResponse } from 'next/server';
+import pool from '@/lib/db';
+import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import nodemailer from 'nodemailer';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { getTokenFromRequest, verifyToken } from '@/lib/auth';
+import validator from 'validator';
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // Use TLS
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-} as nodemailer.TransportOptions)
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 type RouteContext = {
-  params: Promise<{ id: string }>
-}
+  params: Promise<{ id: string }>;
+};
 
-export async function POST(
-  request: NextRequest,
-  context: RouteContext
-) {
+/**
+ * Endpoint para enviar una novedad por correo electrónico a múltiples destinatarios.
+ * - Envía un solo correo a todos los destinatarios.
+ * - Adjunta gráfico estadístico y evidencias.
+ * - Registra el historial de envíos y el estado individual de cada destinatario.
+ */
+export async function POST(request: NextRequest, context: RouteContext) {
+  const connection = await pool.getConnection();
   try {
-    const params = await context.params
-    const { destinatarios } = await request.json()
+    await connection.beginTransaction();
 
-    // Verificar autenticación
-    const token = getTokenFromRequest(request as any)
+    // Obtener parámetros y destinatarios del request
+    const params = await context.params;
+    const { destinatarios } = await request.json();
+
+    // --- Autenticación ---
+    const token = getTokenFromRequest(request);
     if (!token) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-
-    const payload = await verifyToken(token)
+    const payload = await verifyToken(token);
     if (!payload || !payload.id) {
-      return NextResponse.json(
-        { error: 'Token inválido' },
-        { status: 401 }
-      )
+      return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
     }
+    const id_usuario = payload.id;
 
-    const id_usuario = payload.id
+    // --- Validar destinatarios ---
+    const validDestinatarios = destinatarios.filter((d: { email: string }) =>
+      validator.isEmail(d.email)
+    );
+    if (validDestinatarios.length === 0) {
+      throw new Error('No valid email addresses provided');
+    }
+    const destinatariosEmails = validDestinatarios.map((d: { email: string }) => d.email);
+    console.log('Valid Recipients:', destinatariosEmails);
 
-    // Obtener información de la novedad
-    const [novedadResult] = await pool.query<RowDataPacket[]>(`
+    // --- Obtener información de la novedad ---
+    const [novedadResult] = await connection.query<RowDataPacket[]>(`
       SELECT n.*, 
         tr.nombre_tipo_reporte, 
         te.nombre_tipo_evento, 
@@ -66,20 +77,16 @@ export async function POST(
       LEFT JOIN imagenes_novedades i ON n.id_novedad = i.id_novedad
       WHERE n.id_novedad = ?
       GROUP BY n.id_novedad
-    `, [params.id])
+    `, [params.id]);
 
     if (novedadResult.length === 0) {
-      return NextResponse.json(
-        { error: 'Novedad no encontrada' },
-        { status: 404 }
-      )
+      throw new Error('Novedad no encontrada');
     }
+    const novedad = novedadResult[0];
+    const imagenes = novedad.imagenes ? novedad.imagenes.split(',') : [];
 
-    const novedad = novedadResult[0]
-    const imagenes = novedad.imagenes ? novedad.imagenes.split(',') : []
-
-    // Obtener estadísticas
-    const [estadisticas] = await pool.query<RowDataPacket[]>(`
+    // --- Obtener estadísticas para el gráfico ---
+    const [estadisticas] = await connection.query<RowDataPacket[]>(`
       WITH RECURSIVE meses AS (
         SELECT 1 as mes_numero, 'Enero' as mes_nombre
         UNION ALL SELECT 2, 'Febrero'
@@ -120,42 +127,41 @@ export async function POST(
       WHERE n.id_novedad = ?
       GROUP BY m.mes_numero, m.mes_nombre, p.id_puesto, p.id_unidad, n.id_tipo_evento
       ORDER BY m.mes_numero
-    `, [params.id])
+    `, [params.id]);
 
-    // Obtener nombre de la unidad de negocio y negocio
-    const [unidadNegocioResult] = await pool.query<RowDataPacket[]>(`
+    // --- Obtener nombre de la unidad de negocio y negocio ---
+    const [unidadNegocioResult] = await connection.query<RowDataPacket[]>(`
       SELECT un.nombre_unidad, n.nombre_negocio
       FROM puestos p
       JOIN unidades_negocio un ON p.id_unidad = un.id_unidad
       JOIN negocios n ON un.id_negocio = n.id_negocio
       WHERE p.id_puesto = ?
       LIMIT 1
-    `, [novedad.id_puesto])
-    const nombreUnidad = unidadNegocioResult.length > 0 ? unidadNegocioResult[0].nombre_unidad : ''
-    const nombreNegocio = unidadNegocioResult.length > 0 ? unidadNegocioResult[0].nombre_negocio : ''
+    `, [novedad.id_puesto]);
+    const nombreUnidad = unidadNegocioResult.length > 0 ? unidadNegocioResult[0].nombre_unidad : '';
 
-    // Llamar al microservicio de gráficos general
-    const graficoBase64 = await fetch(`${process.env.CANVAS_SERVICE_URL}/api/generate-stats-chart`, {
+    // --- Llamar microservicio para generar gráfico estadístico ---
+    const graficoResponse = await fetch(`${process.env.CANVAS_SERVICE_URL}/api/generate-stats-chart`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         estadisticas,
         tipoNovedad: novedad.nombre_tipo_evento,
         puesto: novedad.nombre_puesto,
-        unidadNegocio: nombreUnidad
-      })
-    }).then(async res => {
-      if (!res.ok) {
-        const errorText = await res.text()
-        console.error('Respuesta microservicio:', errorText)
-        throw new Error('Error al generar el gráfico')
-      }
-      const data = await res.json()
-      return data.image
-    })
+        unidadNegocio: nombreUnidad,
+      }),
+    });
 
-    // Registrar el envío en el historial
-    const [result] = await pool.query<ResultSetHeader>(`
+    if (!graficoResponse.ok) {
+      const errorText = await graficoResponse.text();
+      console.error('Canvas Service Error:', errorText);
+      throw new Error('Error al generar el gráfico');
+    }
+    const { image: graficoBase64 } = await graficoResponse.json();
+    console.log('Canvas Service Success: Graph generated');
+
+    // --- Registrar el envío en el historial (estado inicial: error) ---
+    const [result] = await connection.query<ResultSetHeader>(`
       INSERT INTO historial_envios (
         id_novedad,
         operador_id,
@@ -167,14 +173,14 @@ export async function POST(
     `, [
       params.id,
       id_usuario,
-      JSON.stringify(destinatarios),
+      JSON.stringify(validDestinatarios),
       'error',
-      'En proceso de envío'
-    ])
+      'En proceso de envío',
+    ]);
+    const idHistorialEnvio = result.insertId;
+    console.log('Historial Envio ID:', idHistorialEnvio);
 
-    const idHistorialEnvio = result.insertId
-
-    // HTML profesional con imagen inline (cid:estadisticas)
+    // --- Preparar HTML y adjuntos del correo ---
     const htmlContent = `
       <!DOCTYPE html>
       <html lang="es">
@@ -367,77 +373,120 @@ export async function POST(
         </table>
       </body>
       </html>
-    `
+    `;
 
-    // Solo un attachment: el gráfico principal como imagen inline (cid:estadisticas)
+    // Adjuntos: gráfico y evidencias
     const attachments = [
       {
         filename: 'estadisticas.png',
         content: Buffer.from(graficoBase64, 'base64'),
-        cid: 'estadisticas'
+        cid: 'estadisticas',
       },
       ...imagenes.map((url: string, index: number) => ({
         filename: `imagen_${index + 1}.jpg`,
-        path: url
-      }))
-    ]
+        path: url,
+      })),
+    ];
 
-    // Enviar correos a los destinatarios
-    const emailPromises = destinatarios.map(async (destinatario: { email: string, nombre: string }) => {
-      try {
-        await transporter.sendMail({
-          from: `"RENOA" <${process.env.EMAIL_USER}>`,
-          to: destinatario.email,
-          subject: `${novedad.nombre_negocio}: Reporte de Novedades - ${novedad.nombre_tipo_evento}`,
-          html: htmlContent,
-          attachments
-        })
-
-        await pool.query(
-          'INSERT INTO destinatarios_envio (id_historial, email, nombre, estado) VALUES (?, ?, ?, ?)',
-          [idHistorialEnvio, destinatario.email, destinatario.nombre, 'enviado']
-        )
-
-        return { email: destinatario.email, success: true }
-      } catch (error) {
-        console.error('Error enviando correo a', destinatario.email, error)
-        await pool.query(
-          'INSERT INTO destinatarios_envio (id_historial, email, nombre, estado, error) VALUES (?, ?, ?, ?, ?)',
-          [idHistorialEnvio, destinatario.email, destinatario.nombre, 'error', error instanceof Error ? error.message : 'Error desconocido']
-        )
-        return { email: destinatario.email, success: false, error }
-      }
-    })
-
-    const resultados = await Promise.all(emailPromises)
-    const errores = resultados.filter(r => !r.success)
-
-    if (errores.length > 0) {
-      console.error('Errores en el envío:', errores)
-      await pool.query(
-        'UPDATE historial_envios SET estado = ?, mensaje_error = ? WHERE id_envio = ?',
-        ['error', JSON.stringify(errores.map(e => ({ email: e.email, error: e.error }))), idHistorialEnvio]
-      )
-      return NextResponse.json({
-        message: 'Error al enviar la novedad',
-        errores: errores.map(e => ({ email: e.email, error: e.error }))
-      }, { status: 500 })
+    // --- Enviar correo a todos los destinatarios ---
+    let envioExitoso = false;
+    let errorEnvio: any = null;
+    let info: any = null;
+    try {
+      info = await transporter.sendMail({
+        from: `"RENOA" <${process.env.EMAIL_USER}>`,
+        to: destinatariosEmails.join(','),
+        subject: `${novedad.nombre_negocio}: Reporte de Novedades - ${novedad.nombre_tipo_evento}`,
+        html: htmlContent,
+        attachments,
+      });
+      envioExitoso = true;
+      console.log('Email sent successfully:', {
+        messageId: info.messageId,
+        accepted: info.accepted,
+        rejected: info.rejected,
+        response: info.response,
+      });
+    } catch (error: any) {
+      errorEnvio = error;
+      console.error('Email sending failed:', {
+        message: error.message,
+        stack: error.stack,
+        code: error.code,
+        response: error.response,
+        responseCode: error.responseCode,
+      });
     }
 
-    await pool.query(
-      'UPDATE historial_envios SET estado = ?, mensaje_error = NULL WHERE id_envio = ?',
-      ['enviado', idHistorialEnvio]
-    )
+    // --- Registrar el estado de envío para cada destinatario ---
+    for (const destinatario of validDestinatarios) {
+      if (envioExitoso) {
+        await connection.query(
+          'INSERT INTO destinatarios_envio (id_historial, email, nombre, estado) VALUES (?, ?, ?, ?)',
+          [idHistorialEnvio, destinatario.email, destinatario.nombre, 'enviado']
+        );
+      } else {
+        await connection.query(
+          'INSERT INTO destinatarios_envio (id_historial, email, nombre, estado, error) VALUES (?, ?, ?, ?, ?)',
+          [
+            idHistorialEnvio,
+            destinatario.email,
+            destinatario.nombre,
+            'error',
+            errorEnvio?.message || 'Error desconocido',
+          ]
+        );
+      }
+    }
 
+    // --- Actualizar historial_envios con información final ---
+    if (!envioExitoso) {
+      await connection.query(
+        'UPDATE historial_envios SET estado = ?, mensaje_error = ?, destinatarios = ? WHERE id_envio = ?',
+        [
+          'error',
+          errorEnvio?.message || 'Error desconocido',
+          JSON.stringify(validDestinatarios),
+          idHistorialEnvio,
+        ]
+      );
+      await connection.commit();
+      return NextResponse.json({
+        message: 'Error al enviar la novedad',
+        errores: validDestinatarios.map((d: any) => ({
+          email: d.email,
+          error: errorEnvio?.message || 'Error desconocido',
+        })),
+      }, { status: 500 });
+    }
+
+    await connection.query(
+      'UPDATE historial_envios SET estado = ?, mensaje_error = NULL, destinatarios = ? WHERE id_envio = ?',
+      ['enviado', JSON.stringify(validDestinatarios), idHistorialEnvio]
+    );
+
+    await connection.commit();
     return NextResponse.json({
       success: true,
-      message: 'Novedad enviada correctamente'
-    })
-  } catch (error) {
-    console.error('Error al enviar novedad:', error)
+      message: 'Novedad enviada correctamente',
+      destinatarios: destinatariosEmails,
+      nodemailerInfo: {
+        messageId: info.messageId,
+        accepted: info.accepted,
+        rejected: info.rejected,
+      },
+    });
+  } catch (error: any) {
+    await connection.rollback();
+    console.error('Error al enviar novedad:', {
+      message: error.message,
+      stack: error.stack,
+    });
     return NextResponse.json(
-      { error: 'Error al procesar la solicitud' },
+      { error: error.message || 'Error al procesar la solicitud' },
       { status: 500 }
-    )
+    );
+  } finally {
+    connection.release();
   }
-} 
+}
