@@ -1,11 +1,11 @@
 export async function generateStatsChart(
   estadisticas: any[],
   tipoNovedad: string,
-  sede: string,
-  zona: string
+  puesto: string,
+  unidadNegocio: string
 ): Promise<string> {
   try {
-    const response = await fetch(`${process.env.CANVAS_SERVICE_URL}/api/generate-stats-chart-cementos`, {
+    const response = await fetch(`${process.env.CANVAS_SERVICE_URL}/api/generate-stats-chart`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -13,8 +13,8 @@ export async function generateStatsChart(
       body: JSON.stringify({
         estadisticas,
         tipoNovedad,
-        sede,
-        zona
+        puesto,
+        unidadNegocio
       })
     });
 

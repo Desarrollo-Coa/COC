@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getTokenFromRequest, verifyToken } from '@/lib/auth';
 import validator from 'validator';
+import { generateStatsChart } from '@/utils/canvasService';
 
 const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
@@ -141,23 +142,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const nombreUnidad = unidadNegocioResult.length > 0 ? unidadNegocioResult[0].nombre_unidad : '';
 
     // --- Llamar microservicio para generar gráfico estadístico ---
-    const graficoResponse = await fetch(`${process.env.CANVAS_SERVICE_URL}/api/generate-stats-chart`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        estadisticas,
-        tipoNovedad: novedad.nombre_tipo_evento,
-        puesto: novedad.nombre_puesto,
-        unidadNegocio: nombreUnidad,
-      }),
-    });
-
-    if (!graficoResponse.ok) {
-      const errorText = await graficoResponse.text();
-      console.error('Canvas Service Error:', errorText);
-      throw new Error('Error al generar el gráfico');
-    }
-    const { image: graficoBase64 } = await graficoResponse.json();
+    const graficoBase64 = await generateStatsChart(
+      estadisticas,
+      novedad.nombre_tipo_evento,
+      novedad.nombre_puesto,
+      nombreUnidad
+    );
     console.log('Canvas Service Success: Graph generated');
 
     // --- Registrar el envío en el historial (estado inicial: error) ---
