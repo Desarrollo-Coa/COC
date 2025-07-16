@@ -1,7 +1,7 @@
 // app/api/users/password/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { jwtVerify } from "jose";
 import { decrypt } from "@/lib/encryption";
 import { RowDataPacket } from "mysql2"; // Añadimos RowDataPacket
