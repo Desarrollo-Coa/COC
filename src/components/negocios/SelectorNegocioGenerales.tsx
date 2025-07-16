@@ -49,12 +49,6 @@ const selectorNegocioGenerales: React.FC<selectorNegocioGeneralesProps> = ({
     onSeleccionar({ id: negocio.id_negocio, nombre: negocio.nombre_negocio });
     setBusquedaNegocio('');
     setMostrarSugerencias(false);
-    setTimeout(() => {
-      const tabEl = negocioTabRefs.current[negocio.id_negocio];
-      if (tabEl) {
-        tabEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-      }
-    }, 100);
   };
 
   const scrollTabs = (dir: 'left' | 'right') => {
