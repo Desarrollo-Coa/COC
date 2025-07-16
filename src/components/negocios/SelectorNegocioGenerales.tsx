@@ -39,6 +39,12 @@ const selectorNegocioGenerales: React.FC<selectorNegocioGeneralesProps> = ({
     setMostrarSugerencias(sugerencias.length > 0);
   }, [busquedaNegocio, negocios]);
 
+  useEffect(() => {
+    if (negocioSeleccionado && negocioTabRefs.current[negocioSeleccionado.id]) {
+      negocioTabRefs.current[negocioSeleccionado.id]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [negocioSeleccionado]);
+
   const seleccionarNegocioBusqueda = (negocio: Negocio) => {
     onSeleccionar({ id: negocio.id_negocio, nombre: negocio.nombre_negocio });
     setBusquedaNegocio('');
