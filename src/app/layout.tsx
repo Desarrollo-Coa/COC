@@ -11,7 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Central Op",
+  title: "Central Op " + process.env.NEXT_PUBLIC_OPERACION || "Central Op",
   description: "Plataforma de gestión operativa",
 };
 
