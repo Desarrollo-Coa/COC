@@ -133,13 +133,15 @@ export default function EstadisticasGeneralesTodos() {
     setModalNegociosOpen(true);
   };
 
+  const nombreOperacion = process.env.NEXT_PUBLIC_OPERACION || "";
+
   return (
     <div className="h-[90dvh] overflow-y-auto bg-gray-50 w-full">
       <div className="w-full px-0 py-6">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 space-y-4 md:space-y-0 px-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Estadísticas Generales</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Estadísticas Generales - {nombreOperacion}</h1>
             <p className="mt-2 text-sm text-gray-600">Visualización y análisis de novedades por período</p>
           </div>
         </div>
