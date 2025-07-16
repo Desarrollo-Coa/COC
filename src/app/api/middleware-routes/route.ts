@@ -1,4 +1,3 @@
-// app/api/middleware-routes/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getTokenFromRequest, verifyToken } from '@/lib/auth';
 import pool from '@/lib/db';
@@ -29,71 +28,101 @@ async function getUserModules(userId: number) {
 }
 
 export async function GET(request: NextRequest) {
-  // Obtener la ruta del parámetro de búsqueda
   const requestedPath = request.nextUrl.searchParams.get('path');
+  console.log('=== [middleware-routes] ===');
   console.log('Verificando acceso para ruta:', requestedPath);
 
   if (!requestedPath) {
-    console.error('No se proporcionó una ruta en los parámetros');
+    console.error('[middleware-routes] No se proporcionó una ruta en los parámetros');
     return new NextResponse(null, { status: 403 });
   }
 
   const url = normalizePath(requestedPath);
-  console.log('Ruta normalizada:', url);
+  console.log('[middleware-routes] Ruta normalizada:', url);
 
   const token = getTokenFromRequest(request);
   if (!token) {
+    console.log('[middleware-routes] No token');
     return new NextResponse(null, { status: 401 });
   }
 
   const payload = await verifyToken(token);
   if (!payload) {
+    console.log('[middleware-routes] Token inválido');
     return new NextResponse(null, { status: 401 });
   }
 
-  // Si es administrador, permitir acceso
   const role = (payload.role as string | undefined)?.toLowerCase() || '';
+  console.log('[middleware-routes] Rol:', role);
+
+  // Si es administrador, permitir acceso a todas las rutas
   if (role === 'administrador') {
+    console.log('[middleware-routes] Es administrador, acceso permitido');
     return new NextResponse(null, { status: 200 });
   }
 
-  // Si la ruta es / o /users/dashboard, permitir acceso
-  if (url === '/' || url === '/users/dashboard') {
+  // Permitir rutas públicas para usuarios autenticados
+  const publicRoutes = ['/', '/users/dashboard', '/users/settings', '/novedades/estadisticas-generales'];
+  if (publicRoutes.includes(url)) {
+    console.log('[middleware-routes] Ruta pública para autenticados:', url);
     return new NextResponse(null, { status: 200 });
   }
 
   // Obtener módulos asignados al usuario
   const userId = payload.id as number;
   const modules = await getUserModules(userId);
+  console.log('[middleware-routes] Módulos asignados:', modules);
 
-  console.log('Módulos asignados:', modules);
+  // Si no hay módulos asignados, denegar acceso
+  if (!modules.length) {
+    console.log('[middleware-routes] No hay módulos asignados para el usuario:', userId);
+    return new NextResponse(null, { status: 403 });
+  }
 
   // Verificar si la ruta actual está permitida
   const isAllowed = modules.some((module) => {
     const modulePath = module.ruta;
     const acceptsSubroutes = module.acepta_subrutas;
 
-    // Si la ruta coincide exactamente
-    if (url === modulePath) {
-      console.log('Ruta coincide exactamente:', modulePath);
+    // Normalizar la ruta del módulo para comparación
+    const normalizedModulePath = normalizePath(modulePath);
+
+    // Coincidencia exacta
+    if (url === normalizedModulePath) {
+      console.log('[middleware-routes] Ruta coincide exactamente:', normalizedModulePath);
       return true;
     }
 
-    // Si la ruta es una subruta y se permiten subrutas
-    if (acceptsSubroutes && url.startsWith(modulePath + '/')) {
-      console.log('Ruta es subruta permitida de:', modulePath);
+    // Verificar si la ruta es una subruta válida
+    if (acceptsSubroutes && url.startsWith(normalizedModulePath + '/')) {
+      console.log('[middleware-routes] Ruta es subruta permitida de:', normalizedModulePath);
       return true;
+    }
+
+    // Manejo de rutas dinámicas (ejemplo: /novedades/estadisticas/:id)
+    const modulePathSegments = normalizedModulePath.split('/');
+    const urlSegments = url.split('/');
+    if (modulePathSegments.length === urlSegments.length) {
+      const isDynamicMatch = modulePathSegments.every((segment, index) => {
+        // Considerar parámetros dinámicos (como :id)
+        if (segment.startsWith(':')) return true;
+        return segment === urlSegments[index];
+      });
+      if (isDynamicMatch) {
+        console.log('[middleware-routes] Ruta dinámica coincide:', normalizedModulePath);
+        return true;
+      }
     }
 
     return false;
   });
 
   if (!isAllowed) {
-    console.log('Acceso denegado a:', url);
-    console.log('Rutas permitidas:', modules.map(m => m.ruta));
+    console.log('[middleware-routes] Acceso denegado a:', url, 'para usuario:', userId);
+    console.log('[middleware-routes] Rutas permitidas:', modules.map(m => m.ruta));
     return new NextResponse(null, { status: 403 });
   }
 
-  console.log('Acceso permitido a:', url);
+  console.log('[middleware-routes] Acceso permitido a:', url);
   return new NextResponse(null, { status: 200 });
-} 
+}
