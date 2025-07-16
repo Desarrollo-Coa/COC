@@ -27,13 +27,6 @@ export default function SettingsPage() {
       color: "text-yellow-500"
     },
     {
-      title: "Gestionar Novedades",
-      description: "Gestionar categorías y tipos de novedades",
-      icon: Settings2,
-      href: "/settings/tipos-novedades",
-      color: "text-purple-500"
-    },
-    {
       title: "Gestionar Rutas del Sistema",
       description: "Gestionar rutas y permisos del sistema",
       icon: Route,
