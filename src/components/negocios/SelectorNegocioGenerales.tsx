@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, Fragment } from 'react';
+import { XCircle } from 'lucide-react';
 
 export interface Negocio {
   id_negocio: number;
@@ -91,6 +92,18 @@ const selectorNegocioGenerales: React.FC<selectorNegocioGeneralesProps> = ({
             )}
           </ul>
         )}
+        {/* Botón limpiar filtro */}
+        <button
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full text-gray-400 hover:text-red-500 focus:outline-none"
+          title="Limpiar filtro y volver a GENERALES"
+          onClick={() => {
+            setOpcionGenerales(true);
+            onSeleccionar(null);
+            setBusquedaNegocio('');
+          }}
+        >
+          <XCircle className="w-5 h-5" />
+        </button>
       </div>
       <button
         className="px-2 py-1 text-xl font-bold text-gray-500 hover:text-blue-600 focus:outline-none"

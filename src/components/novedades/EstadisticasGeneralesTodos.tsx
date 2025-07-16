@@ -36,7 +36,7 @@ export default function EstadisticasGeneralesTodos() {
     return hoy.toISOString().split('T')[0];
   });
   const [modalNegociosOpen, setModalNegociosOpen] = useState(false);
-  const [negociosDeTipo, setNegociosDeTipo] = useState<{ nombre: string, id: number }[]>([]);
+  const [negociosDeTipo, setNegociosDeTipo] = useState<{ nombre: string, id: number, cantidad: number }[]>([]);
   const [tipoSeleccionado, setTipoSeleccionado] = useState<string | null>(null);
 
   useEffect(() => {
@@ -117,13 +117,19 @@ export default function EstadisticasGeneralesTodos() {
     setTipoSeleccionado(tipo);
     // Filtra los eventos de ese tipo
     const eventosTipo = eventosGenerales.filter((e: any) => e.tipo_novedad === tipo);
-    // Obtén negocios únicos con su id
-    const negociosUnicos = Array.from(
-      new Map(
-        eventosTipo.map((e: any) => [e.nombre_negocio, { nombre: e.nombre_negocio, id: e.id_negocio }])
-      ).values()
-    );
-    setNegociosDeTipo(negociosUnicos as { nombre: string; id: number }[]);
+    // Obtén negocios únicos con su id y cantidad de novedades
+    const negociosMap = new Map<string, { nombre: string; id: number; cantidad: number }>();
+    eventosTipo.forEach((e: any) => {
+      if (e.nombre_negocio && e.id_negocio) {
+        if (!negociosMap.has(e.nombre_negocio)) {
+          negociosMap.set(e.nombre_negocio, { nombre: e.nombre_negocio, id: e.id_negocio, cantidad: 1 });
+        } else {
+          negociosMap.get(e.nombre_negocio)!.cantidad++;
+        }
+      }
+    });
+    const negociosUnicos = Array.from(negociosMap.values());
+    setNegociosDeTipo(negociosUnicos as { nombre: string; id: number; cantidad: number }[]);
     setModalNegociosOpen(true);
   };
 
@@ -289,29 +295,33 @@ export default function EstadisticasGeneralesTodos() {
       {/* MODAL de negocios por tipo de evento */}
       {modalNegociosOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
-            <h2 className="text-lg font-bold mb-4">
-              Negocios con novedades de tipo "{tipoSeleccionado}"
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full border border-gray-200">
+            <h2 className="text-xl font-bold mb-4 text-gray-900 flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-blue-500"></span>
+              Negocios con novedades de tipo
+              <span className="text-blue-700 ml-1">{tipoSeleccionado}</span>
             </h2>
-            <ul>
+            <ul className="divide-y divide-gray-100 mb-2">
               {negociosDeTipo.map((negocio) => (
-                <li key={negocio.id}>
+                <li key={negocio.id} className="py-2 flex items-center justify-between group">
                   <button
-                    className="w-full text-left px-4 py-2 rounded hover:bg-blue-100"
+                    className="flex-1 text-left px-4 py-2 rounded-lg hover:bg-blue-50 transition font-medium text-gray-800 group-hover:text-blue-700"
                     onClick={() => {
-                      // Dispara un evento personalizado para que el padre cambie el negocio seleccionado
-                      const event = new CustomEvent('seleccionarNegocioGeneral', { detail: negocio });
+                      const event = new CustomEvent('seleccionarNegocioGeneral', { detail: { id: negocio.id, nombre: negocio.nombre } });
                       window.dispatchEvent(event);
                       setModalNegociosOpen(false);
                     }}
                   >
                     {negocio.nombre}
                   </button>
+                  <span className="ml-4 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold shadow-sm">
+                    {negocio.cantidad} novedad{negocio.cantidad !== 1 ? 'es' : ''}
+                  </span>
                 </li>
               ))}
             </ul>
             <button
-              className="mt-4 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+              className="mt-4 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 font-semibold text-gray-700 w-full"
               onClick={() => setModalNegociosOpen(false)}
             >
               Cerrar
