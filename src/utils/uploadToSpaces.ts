@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
-const spacesEndpoint = process.env.DO_SPACES_ENDPOINT!;
+const rawEndpoint = process.env.DO_SPACES_ENDPOINT!;
+const spacesEndpoint = rawEndpoint.startsWith('http') ? rawEndpoint : `https://${rawEndpoint}`;
 const s3 = new S3Client({
   region: "us-east-1", // DigitalOcean Spaces usa us-east-1, pero puedes poner cualquier región
   endpoint: spacesEndpoint,
