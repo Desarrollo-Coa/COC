@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GraficoCard } from '@/components/novedades/GraficoCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart as BarChartIcon, Flame as HeatmapIcon } from 'lucide-react';
@@ -35,6 +35,9 @@ export default function EstadisticasGeneralesTodos() {
     const hoy = new Date();
     return hoy.toISOString().split('T')[0];
   });
+  const [modalNegociosOpen, setModalNegociosOpen] = useState(false);
+  const [negociosDeTipo, setNegociosDeTipo] = useState<{ nombre: string, id: number }[]>([]);
+  const [tipoSeleccionado, setTipoSeleccionado] = useState<string | null>(null);
 
   useEffect(() => {
     setLoadingGenerales(true);
@@ -106,6 +109,22 @@ export default function EstadisticasGeneralesTodos() {
       stack: 'a',
       borderRadius: 2,
     })),
+  };
+
+  // Función para manejar el click en la barra de "Novedades por Tipo de Evento"
+  const handleBarTipoClick = (_: any, index: number) => {
+    const tipo = graficoPorTipo.labels[index];
+    setTipoSeleccionado(tipo);
+    // Filtra los eventos de ese tipo
+    const eventosTipo = eventosGenerales.filter((e: any) => e.tipo_novedad === tipo);
+    // Obtén negocios únicos con su id
+    const negociosUnicos = Array.from(
+      new Map(
+        eventosTipo.map((e: any) => [e.nombre_negocio, { nombre: e.nombre_negocio, id: e.id_negocio }])
+      ).values()
+    );
+    setNegociosDeTipo(negociosUnicos as { nombre: string; id: number }[]);
+    setModalNegociosOpen(true);
   };
 
   return (
@@ -200,6 +219,11 @@ export default function EstadisticasGeneralesTodos() {
                     suggestedMax: Math.max(...graficoPorTipo.datasets[0].data, 1) * 1.3,
                   },
                 },
+                onClick: (event: any, elements: any[]) => {
+                  if (elements && elements.length > 0) {
+                    handleBarTipoClick(event, elements[0].index);
+                  }
+                }
               }}
             />
             <GraficoCard
@@ -289,6 +313,39 @@ export default function EstadisticasGeneralesTodos() {
           </motion.div>
         </div>
       </div>
+      {/* MODAL de negocios por tipo de evento */}
+      {modalNegociosOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
+            <h2 className="text-lg font-bold mb-4">
+              Negocios con novedades de tipo "{tipoSeleccionado}"
+            </h2>
+            <ul>
+              {negociosDeTipo.map((negocio) => (
+                <li key={negocio.id}>
+                  <button
+                    className="w-full text-left px-4 py-2 rounded hover:bg-blue-100"
+                    onClick={() => {
+                      // Dispara un evento personalizado para que el padre cambie el negocio seleccionado
+                      const event = new CustomEvent('seleccionarNegocioGeneral', { detail: negocio });
+                      window.dispatchEvent(event);
+                      setModalNegociosOpen(false);
+                    }}
+                  >
+                    {negocio.nombre}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button
+              className="mt-4 px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
+              onClick={() => setModalNegociosOpen(false)}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
