@@ -1,14 +1,56 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, FileText, Shield, TrendingUp } from "lucide-react"
 
 export function AdminDashboard() {
-  const stats = [
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    activePercentage: 0,
+    loading: true,
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("/api/stats/active-users", { credentials: "include" });
+        const data = await res.json();
+        console.log("Respuesta de /api/stats/active-users:", data);
+        setStats({
+          totalUsers: data.totalUsers ?? 0,
+          activeUsers: data.activeUsers ?? 0,
+          activePercentage: data.activePercentage ?? 0,
+          loading: false,
+        });
+      } catch (error) {
+        console.error("Error al obtener estadísticas:", error);
+        setStats((prev) => ({ ...prev, loading: false }));
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const cards = [
     {
-      title: "Total Usuarios",
-      value: "24",
-      description: "Usuarios activos en el sistema",
+      title: "Usuarios registrados",
+      value: stats.loading ? "..." : stats.totalUsers,
+      description: "Usuarios registrados en el sistema",
       icon: Users,
       color: "text-blue-600",
+    },
+    {
+      title: "Usuarios activos (24h)",
+      value: stats.loading ? "..." : stats.activeUsers,
+      description: "Usuarios activos en las últimas 24 horas",
+      icon: TrendingUp,
+      color: "text-green-600",
+    },
+    {
+      title: "% de actividad",
+      value: stats.loading ? "..." : `${stats.activePercentage}%`,
+      description: "Porcentaje de usuarios activos",
+      icon: TrendingUp,
+      color: "text-purple-600",
     },
     {
       title: "Documentos",
@@ -17,21 +59,7 @@ export function AdminDashboard() {
       icon: FileText,
       color: "text-green-600",
     },
-    {
-      title: "Reportes SST",
-      value: "8",
-      description: "Reportes pendientes",
-      icon: Shield,
-      color: "text-orange-600",
-    },
-    {
-      title: "Actividad",
-      value: "92%",
-      description: "Nivel de actividad del sistema",
-      icon: TrendingUp,
-      color: "text-purple-600",
-    },
-  ]
+  ];
 
   return (
     <div className="space-y-6">
@@ -41,7 +69,7 @@ export function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
+        {cards.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>

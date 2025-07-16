@@ -27,8 +27,12 @@ export function ActiveUsersModal({ isOpen, onClose, users: initialUsers }: Activ
       });
       if (!response.ok) throw new Error("Error al obtener usuarios activos");
       const data = await response.json();
-      if (Array.isArray(data)) {
-        setUsers(data);
+      if (Array.isArray(data.users)) {
+        setUsers(data.users);
+      } else if (Array.isArray(data)) {
+        setUsers(data); 
+      } else {
+        setUsers([]);
       }
     } catch (error) {
       console.error("Error al obtener usuarios activos:", error);

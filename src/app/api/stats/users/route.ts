@@ -26,19 +26,19 @@ export async function GET(request: Request) {
       new TextEncoder().encode(process.env.JWT_SECRET || 'tu_clave_secreta_aqui')
     );
 
-    // Obtener total de usuarios registrados y activos
+    // Obtener y mostrar la cantidad total de usuarios y usuarios activos en las últimas 24 horas
     const query = `
       SELECT 
-        (SELECT COUNT(*) FROM users) as total_users,
-        (SELECT COUNT(*) FROM user_sessions WHERE last_activity >= DATE_SUB(NOW(), INTERVAL 24 HOUR)) as active_users
+        (SELECT COUNT(*) FROM users) AS cantidad_total_usuarios,
+        (SELECT COUNT(*) FROM user_sessions WHERE last_activity >= DATE_SUB(NOW(), INTERVAL 24 HOUR)) AS cantidad_usuarios_activos
     `;
-    
-    console.log('Query de estadísticas:', query);
-    const [result] = await db.query<UserCount[]>(query);
-    console.log('Resultados de estadísticas:', JSON.stringify(result, null, 2));
 
-    const totalUsers = result[0].total_users;
-    const activeUsers = result[0].active_users;
+    const [result] = await db.query<UserCount[]>(query);
+    console.log('Cantidad total de usuarios:', result[0].cantidad_total_usuarios);
+    console.log('Cantidad de usuarios activos (últimas 24h):', result[0].cantidad_usuarios_activos);
+
+    const totalUsers = result[0].cantidad_total_usuarios;
+    const activeUsers = result[0].cantidad_usuarios_activos;
     const activePercentage = totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0;
 
     console.log('Estadísticas procesadas:', {

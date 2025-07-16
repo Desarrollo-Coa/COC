@@ -14,10 +14,11 @@ export async function GET() {
   try {
     connection = await db.getConnection();
     
-    // Log para ver la hora actual del servidor
+    // Hora actual del servidor (debug)
     console.log('Hora actual del servidor:', new Date().toISOString());
-    
-    const query = `SELECT 
+
+    // Usuarios activos en las últimas 24 horas
+    const activeUsersQuery = `SELECT 
       u.id,
       u.nombre,
       r.nombre as rol,
@@ -27,28 +28,32 @@ export async function GET() {
     JOIN user_sessions us ON u.id = us.user_id
     WHERE us.last_activity >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
     ORDER BY us.last_activity DESC`;
+    const [activeRows] = await connection.execute<ActiveUserRow[]>(activeUsersQuery);
+    const activeUsers = activeRows.length;
 
-    console.log('Ejecutando query:', query);
-    
-    const [rows] = await connection.execute<ActiveUserRow[]>(query);
-    
-    // Log para ver los resultados
-    console.log('Resultados de la consulta:', JSON.stringify(rows, null, 2));
-    
-    // Log para verificar la última actividad de todas las sesiones
-    const [allSessions] = await connection.execute(
-      'SELECT user_id, last_activity FROM user_sessions'
+    // Total de usuarios
+    const [totalUsersResult] = await connection.execute(
+      'SELECT COUNT(*) as total FROM users'
     );
-    console.log('Todas las sesiones activas:', JSON.stringify(allSessions, null, 2));
+    const totalUsers = (totalUsersResult as any)[0]?.total ?? 0;
 
-    return NextResponse.json(rows);
+    // Porcentaje de usuarios activos
+    const activePercentage = totalUsers > 0 ? Math.round((activeUsers / totalUsers) * 100) : 0;
+
+    // Respuesta profesional
+    return NextResponse.json({
+      totalUsers,
+      activeUsers,
+      activePercentage,
+      users: activeRows
+    });
   } catch (error) {
     console.error("Error detallado en active-users:", error);
     return NextResponse.json(
-      { error: "Error al obtener usuarios activos" },
+      { error: "Error al obtener usuarios activos", details: error instanceof Error ? error.message : error },
       { status: 500 }
     );
   } finally {
-    if (connection) connection.release();
+    if (connection) try { connection.release(); } catch {}
   }
 } 
