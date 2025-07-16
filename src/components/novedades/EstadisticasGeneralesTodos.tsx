@@ -266,21 +266,11 @@ export default function EstadisticasGeneralesTodos() {
                 const eventosHora = eventosGenerales.filter((e: any) =>
                   e.hora_novedad?.slice(0, 2) === hora && (!tipo || e.tipo_novedad === tipo)
                 );
-                // setModalData({ // This state is not defined in the original file, so it's commented out.
-                //   show: true,
-                //   title: tipo ? `Novedades de tipo ${tipo} a las ${hora}:00` : `Novedades a las ${hora}:00`,
-                //   data: eventosHora,
-                // });
               }}
               onCellClick={(hora, tipo) => {
                 const eventosCelda = eventosGenerales.filter(
                   (e: any) => e.hora_novedad?.slice(0, 2) === hora && e.tipo_novedad === tipo
                 );
-                // setModalData({ // This state is not defined in the original file, so it's commented out.
-                //   show: true,
-                //   title: `Novedades de tipo ${tipo} a las ${hora}:00`,
-                //   data: eventosCelda,
-                // });
               }}
             />
           </motion.div>
