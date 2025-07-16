@@ -253,33 +253,6 @@ export default function EstadisticasGeneralesTodos() {
                 },
               }}
             />
-            <GraficoCard
-              titulo="Novedades por Unidad de Negocio"
-              descripcion="Cantidad de novedades agrupadas por unidad de negocio."
-              datos={{
-                ...graficoPorUnidad,
-                datasets: [{
-                  ...graficoPorUnidad.datasets[0],
-                  backgroundColor: graficoPorUnidad.labels.map((_: any, i: number) => PALETA[i % PALETA.length]) as any,
-                }],
-              }}
-              loading={loadingGenerales}
-              opciones={{
-                scales: {
-                  x: {
-                    ticks: {
-                      minRotation: 90,
-                      maxRotation: 90,
-                      align: 'center',
-                    },
-                  },
-                  y: {
-                    beginAtZero: true,
-                    suggestedMax: Math.max(...graficoPorUnidad.datasets[0].data, 1) * 1.3,
-                  },
-                },
-              }}
-            />
           </div>
           {/* Segunda fila: Distribución Horaria */}
           <motion.div

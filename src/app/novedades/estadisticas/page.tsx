@@ -1,6 +1,5 @@
 'use client'
-import React from "react";
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
@@ -21,7 +20,6 @@ import ChartDataLabels from 'chartjs-plugin-datalabels'
 import { Bar, Line } from 'react-chartjs-2'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
  import EstadisticasGeneralesPage from '@/components/novedades/EstadisticasGenerales';
-import { useRef } from 'react';
 import SelectorNegocio from '@/components/negocios/SelectorNegocioGenerales';
 import EstadisticasGeneralesTodos from '@/components/novedades/EstadisticasGeneralesTodos';
 
@@ -728,6 +726,19 @@ export default function EstadisticasPage() {
       }
     }, 100);
   };
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      // Buscar el negocio completo en la lista de negocios
+      const negocio = negocios.find(n => n.id_negocio === e.detail.id);
+      if (negocio) {
+        setNegocioSeleccionado({ id: negocio.id_negocio, nombre: negocio.nombre_negocio });
+        setOpcionGenerales(false);
+      }
+    };
+    window.addEventListener('seleccionarNegocioGeneral', handler);
+    return () => window.removeEventListener('seleccionarNegocioGeneral', handler);
+  }, [negocios]);
 
   if (authLoading) {
     return (
