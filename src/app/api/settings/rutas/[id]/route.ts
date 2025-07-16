@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { uploadFile } from '@/lib/uploadFile';
-import { deleteFileDigitalOcean } from '@/lib/deleteFileDigitalOcean';
+import { uploadToSpacesV2 } from '@/utils/uploadToSpacesV2';
+import { deleteFromSpaces } from '@/utils/deleteFromSpaces';
 import { ResultSetHeader } from 'mysql2';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
@@ -77,11 +77,11 @@ export async function PUT(
       console.log('Procesando nueva imagen...');
       const buffer = Buffer.from(await file.arrayBuffer());
       const key = `${Date.now()}-${file.name}`;
-      imagen_url = await uploadFile(
+      imagen_url = await uploadToSpacesV2(
         buffer,
         key,
         file.type,
-        { folder: 'modulos/rutas' }
+        'modulos/rutas'
       );
       console.log('Nueva imagen subida:', imagen_url);
 
@@ -90,7 +90,7 @@ export async function PUT(
         try {
           // Extraer la clave del archivo de la URL
           const oldKey = oldImageUrl.split('/').slice(-3).join('/');
-          await deleteFileDigitalOcean(oldKey);
+          await deleteFromSpaces(oldKey);
           console.log('Imagen anterior eliminada:', oldKey);
         } catch (error) {
           console.error('Error al eliminar imagen anterior:', error);
@@ -173,7 +173,7 @@ export async function DELETE(
       try {
         // Extraer la clave del archivo de la URL
         const key = rows[0].imagen_url.split('/').slice(-3).join('/');
-        await deleteFileDigitalOcean(key);
+        await deleteFromSpaces(key);
         console.log('Imagen eliminada:', key);
       } catch (error) {
         console.error('Error al eliminar imagen:', error);
