@@ -117,6 +117,7 @@ export default function CustomersPage() {
     activo: true,
     acepta_subrutas: false
   });
+  const [roles, setRoles] = useState<string[]>([]);
 
   const fetchAvailableModules = async () => {
     try {
@@ -143,6 +144,12 @@ export default function CustomersPage() {
     fetchUserStats();
     fetchActiveUsers();
     fetchAvailableModules();
+
+    // Obtener roles dinámicamente
+    fetch('/api/roles')
+      .then(res => res.json())
+      .then(data => setRoles(data.map((r: any) => r.nombre)))
+      .catch(() => setRoles([]));
     
     // Actualizar cada 5 minutos
     const interval = setInterval(() => {
@@ -706,16 +713,7 @@ export default function CustomersPage() {
                                       <SelectValue placeholder="Rol" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {[
-                                        "Administrador",
-                                        "Baru",
-                                        "Sator",
-                                        "LPRZNC",
-                                        "LPRZO",
-                                        "administrador",
-                                        "Coordinador",
-                                        "Gerente RC",
-                                      ].map((role) => (
+                                      {roles.map((role) => (
                                         <SelectItem key={role} value={role}>
                                           {role}
                                         </SelectItem>
