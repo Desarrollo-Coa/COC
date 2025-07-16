@@ -91,7 +91,7 @@ export async function GET(request: Request) {
     // Eventos detallados (para modales)
     const sqlEventos = `SELECT novedades.id_novedad, novedades.consecutivo, novedades.fecha_hora_novedad as fecha_novedad, TIME_FORMAT(novedades.fecha_hora_novedad, '%H:%i:%s') as hora_novedad, 
               novedades.descripcion, novedades.gestion, tipos_evento.nombre_tipo_evento as tipo_novedad, 
-              unidades_negocio.nombre_unidad as unidad_negocio, negocios.nombre_negocio, puestos.nombre_puesto as puesto,
+              unidades_negocio.nombre_unidad as unidad_negocio, negocios.id_negocio, negocios.nombre_negocio, puestos.nombre_puesto as puesto,
               GROUP_CONCAT(imagenes_novedades.url_imagen) as archivos
        FROM novedades
        JOIN puestos ON novedades.id_puesto = puestos.id_puesto

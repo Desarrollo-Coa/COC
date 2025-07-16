@@ -729,11 +729,15 @@ export default function EstadisticasPage() {
 
   useEffect(() => {
     const handler = (e: any) => {
-      // Buscar el negocio completo en la lista de negocios
+      console.log('Evento recibido seleccionarNegocioGeneral:', e.detail);
       const negocio = negocios.find(n => n.id_negocio === e.detail.id);
+      console.log('Negocio encontrado en lista:', negocio);
       if (negocio) {
         setNegocioSeleccionado({ id: negocio.id_negocio, nombre: negocio.nombre_negocio });
         setOpcionGenerales(false);
+        console.log('Estado negocioSeleccionado actualizado:', { id: negocio.id_negocio, nombre: negocio.nombre_negocio });
+      } else {
+        console.warn('No se encontró el negocio con id:', e.detail.id, 'en la lista de negocios:', negocios);
       }
     };
     window.addEventListener('seleccionarNegocioGeneral', handler);

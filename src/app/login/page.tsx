@@ -67,8 +67,7 @@ export default function LoginPage() {
       toast.success('¡Bienvenido!', {
         description: `Has iniciado sesión como ${data.user.email || data.user.username}`,
       });
-
-      console.log('Usuario:', data.user);
+ 
 
       // Redirigir según el rol del usuario
       try {
