@@ -192,6 +192,16 @@ export default function EstadisticasGeneralesTodos() {
                     suggestedMax: Math.max(...graficoPorNegocio.datasets[0].data, 1) * 1.3,
                   },
                 },
+                onClick: (event: any, elements: any[]) => {
+                  if (elements && elements.length > 0) {
+                    const index = elements[0].index;
+                    const negocio = datosPorNegocio[index];
+                    if (negocio) {
+                      const event = new CustomEvent('seleccionarNegocioGeneral', { detail: { id: negocio.id_negocio, nombre: negocio.negocio } });
+                      window.dispatchEvent(event);
+                    }
+                  }
+                }
               }}
             />
             <GraficoCard
