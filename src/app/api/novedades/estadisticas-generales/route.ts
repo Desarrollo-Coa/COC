@@ -92,7 +92,7 @@ export async function GET(request: Request) {
     const [porUnidad] = await pool.query(sqlPorUnidad, params);
 
     // Total novedades y días analizados
-    const sqlTotales = `SELECT COUNT(*) as total, DATEDIFF(LEAST(?, MAX(DATE(novedades.fecha_hora_novedad))), GREATEST(?, MIN(DATE(novedades.fecha_hora_novedad)))) + 1 as dias
+    const sqlTotales = `SELECT COUNT(*) as total, DATEDIFF(?, ?) + 1 as dias
        FROM novedades
        JOIN puestos ON novedades.id_puesto = puestos.id_puesto
        JOIN unidades_negocio ON puestos.id_unidad = unidades_negocio.id_unidad

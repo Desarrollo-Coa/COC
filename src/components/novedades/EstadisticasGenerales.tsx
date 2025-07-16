@@ -398,9 +398,10 @@ export default function EstadisticasGenerales({ id_negocio, id_unidad, id_puesto
 
   useEffect(() => {
     const hoy = new Date();
-    const año = hoy.getFullYear();
-    const desdeDefault = new Date(año, 0, 1).toISOString().split('T')[0];
     const hastaDefault = hoy.toISOString().split('T')[0];
+    const hace7dias = new Date(hoy);
+    hace7dias.setDate(hoy.getDate() - 7 + 1); // Incluye el día actual
+    const desdeDefault = hace7dias.toISOString().split('T')[0];
     setDesde(desdeDefault);
     setHasta(hastaDefault);
   }, []);
