@@ -68,11 +68,13 @@ export const config = {
   matcher: [
     '/',
     '/usuarios',
+    '/users/dashboard',
     '/users/dashboard/:path*',
     '/users/settings/:path*',
     '/settings/:path*',
     '/novedades/:path*',
     '/comunicacion/:path*',
     '/programacion/:path*',
+    
   ]
 };
