@@ -2,7 +2,7 @@
 
 import MainSidebar from '@/components/main-sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState, useEffect } from "react"; // Eliminamos 'useRouter' de aquí
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -96,7 +96,7 @@ export default function CustomersPage() {
   const [userStats, setUserStats] = useState<UserStats>({
     activeUsers: 0,
     totalUsers: 0,
-    activePercentage: 0
+    activePercentage: 0,
   });
   const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
   const [isActiveUsersModalOpen, setIsActiveUsersModalOpen] = useState(false);
@@ -115,61 +115,121 @@ export default function CustomersPage() {
     imagen_url: '',
     icono: '',
     activo: true,
-    acepta_subrutas: false
+    acepta_subrutas: false,
   });
   const [roles, setRoles] = useState<string[]>([]);
 
-  const fetchAvailableModules = async () => {
+  const fetchAvailableModules = useCallback(async () => {
     try {
-      const response = await fetch('/api/modules');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new TypeError("La respuesta no es JSON!");
-      }
+      const response = await fetch('/api/modules', { credentials: 'include' });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
+      if (!Array.isArray(data)) throw new TypeError("La respuesta no es JSON!");
       setAvailableModules(data);
     } catch (error) {
       console.error('Error al cargar módulos:', error);
       toast.error('Error al cargar los módulos');
       setAvailableModules([]);
     }
-  };
+  }, []);
+
+  const fetchRequests = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/solicitudes", {
+        method: "GET",
+        credentials: "include",
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(`API error: ${data.error}`);
+      if (!Array.isArray(data)) throw new TypeError("La respuesta no es un arreglo!");
+      setRequests(data);
+    } catch (error) {
+      console.error("Error en fetchRequests:", error);
+      setError("Ocurrió un error al cargar las solicitudes");
+      setRequests([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const response = await fetch("/api/users", {
+        method: "GET",
+        credentials: "include",
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(`API error: ${data.error}`);
+      if (!Array.isArray(data)) throw new TypeError("La respuesta no es un arreglo!");
+      setUsers(data);
+    } catch (error) {
+      console.error("Error en fetchUsers:", error);
+      setUsers([]);
+      toast.error('Error al cargar los usuarios');
+    }
+  }, []);
+
+  const fetchUserStats = useCallback(async () => {
+    try {
+      const response = await fetch('/api/stats/users', { credentials: 'include' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(`API error: ${data.error}`);
+      setUserStats(data);
+    } catch (error) {
+      console.error('Error al obtener estadísticas:', error);
+      toast.error('Error al cargar estadísticas');
+    }
+  }, []);
+
+  const fetchActiveUsers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/stats/active-users', { credentials: 'include' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(`API error: ${data.error}`);
+      setActiveUsers(data);
+    } catch (error) {
+      console.error('Error al obtener usuarios activos:', error);
+      toast.error('Error al cargar usuarios activos');
+    }
+  }, []);
+
+  const fetchRoles = useCallback(async () => {
+    try {
+      const response = await fetch('/api/roles', { credentials: 'include' });
+      if (!response.ok) throw new Error('Error al cargar roles');
+      const data = await response.json();
+      setRoles(data.map((r: any) => r.nombre));
+    } catch (error) {
+      console.error('Error al cargar roles:', error);
+      setRoles([]);
+      toast.error('Error al cargar roles');
+    }
+  }, []);
 
   useEffect(() => {
-    fetchRequests();
-    fetchUsers();
-    fetchUserStats();
-    fetchActiveUsers();
-    fetchAvailableModules();
+    Promise.all([
+      fetchRequests(),
+      fetchUsers(),
+      fetchUserStats(),
+      fetchActiveUsers(),
+      fetchAvailableModules(),
+      fetchRoles(),
+    ]).catch(() => toast.error('Error al cargar datos iniciales'));
 
-    // Obtener roles dinámicamente con async/await
-    const fetchRoles = async () => {
-      try {
-        const response = await fetch('/api/roles');
-        if (!response.ok) throw new Error('Error al cargar roles');
-        const data = await response.json();
-        setRoles(data.map((r: any) => r.nombre));
-      } catch (error) {
-        setRoles([]);
-      }
-    };
-    fetchRoles();
-    // Actualizar cada 5 minutos
     const interval = setInterval(() => {
       fetchUserStats();
       fetchActiveUsers();
     }, 5 * 60 * 1000);
-    
+
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchRequests, fetchUsers, fetchUserStats, fetchActiveUsers, fetchAvailableModules, fetchRoles]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (contextMenu && !(event.target as HTMLElement).closest('.context-menu')) {
-        closeContextMenu();
+        setContextMenu(null);
       }
     };
 
@@ -182,85 +242,7 @@ export default function CustomersPage() {
     };
   }, [contextMenu]);
 
-  const fetchRequests = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/solicitudes", {
-        method: "GET",
-        credentials: "include",
-      });
-      const data = await response.json();
-      if (response.ok) {
-        if (Array.isArray(data)) {
-          setRequests(data);
-        } else {
-          console.error("API returned non-array data:", data);
-          setRequests([]);
-        }
-      } else {
-        console.error("API error:", data);
-        setError("No se pudieron cargar las solicitudes");
-        setRequests([]);
-      }
-    } catch (error) {
-      console.error("Error en fetchRequests:", error);
-      setError("Ocurrió un error inesperado");
-      setRequests([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch("/api/users", {
-        method: "GET",
-        credentials: "include",
-      });
-      const data = await response.json();
-      if (response.ok) {
-        if (Array.isArray(data)) {
-          setUsers(data);
-        } else {
-          console.error("API returned non-array data:", data);
-          setUsers([]);
-        }
-      } else {
-        console.error("API error:", data);
-        setUsers([]);
-      }
-    } catch (error) {
-      console.error("Error en fetchUsers:", error);
-      setUsers([]);
-    }
-  };
-
-  const fetchUserStats = async () => {
-    try {
-      const response = await fetch('/api/stats/users', {
-        credentials: 'include'
-      });
-      const data = await response.json();
-      setUserStats(data);
-    } catch (error) {
-      console.error('Error al obtener estadísticas:', error);
-    }
-  };
-
-  const fetchActiveUsers = async () => {
-    try {
-      const response = await fetch('/api/stats/active-users', {
-        credentials: 'include'
-      });
-      const data = await response.json();
-      setActiveUsers(data);
-    } catch (error) {
-      console.error('Error al obtener usuarios activos:', error);
-    }
-  };
-
-  const handleApprove = async (requestId: string) => {
+  const handleApprove = useCallback(async (requestId: string) => {
     try {
       const response = await fetch("/api/solicitudes", {
         method: "PATCH",
@@ -268,19 +250,19 @@ export default function CustomersPage() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
-      if (response.ok) {
-        fetchRequests();
-        fetchUsers();
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error al aprobar:", errorData.error);
+        throw new Error(`Error al aprobar: ${errorData.error}`);
       }
+      await Promise.all([fetchRequests(), fetchUsers()]);
+      toast.success('Solicitud aprobada exitosamente');
     } catch (error) {
       console.error("Error en handleApprove:", error);
+      toast.error('Error al aprobar la solicitud');
     }
-  };
+  }, [selectedRole, fetchRequests, fetchUsers]);
 
-  const handleReject = async (requestId: string) => {
+  const handleReject = useCallback(async (requestId: string) => {
     try {
       const response = await fetch("/api/solicitudes", {
         method: "DELETE",
@@ -288,18 +270,19 @@ export default function CustomersPage() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
       });
-      if (response.ok) {
-        fetchRequests();
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error al rechazar:", errorData.error);
+        throw new Error(`Error al rechazar: ${errorData.error}`);
       }
+      await fetchRequests();
+      toast.success('Solicitud rechazada exitosamente');
     } catch (error) {
       console.error("Error en handleReject:", error);
+      toast.error('Error al rechazar la solicitud');
     }
-  };
+  }, [fetchRequests]);
 
-  const handleViewPassword = async () => {
+  const handleViewPassword = useCallback(async () => {
     if (!selectedUserId || !currentUserPassword) {
       setUserPassword("Por favor, completa todos los campos");
       return;
@@ -312,120 +295,106 @@ export default function CustomersPage() {
         credentials: "include",
       });
       const data = await response.json();
-      if (response.ok) {
-        setUserPassword(data.password);
-      } else {
-        console.log("Error response from server:", data);
-        setUserPassword(data.error || "No autorizado o contraseña incorrecta");
+      if (!response.ok) {
+        throw new Error(data.error || "No autorizado o contraseña incorrecta");
       }
+      setUserPassword(data.password);
+      toast.success('Contraseña obtenida exitosamente');
     } catch (error) {
       console.error("Error en handleViewPassword:", error);
       setUserPassword("Error al obtener la contraseña");
+      toast.error('Error al obtener la contraseña');
     }
-  };
+  }, [selectedUserId, currentUserPassword]);
 
-  // Cambiar openPasswordModal a async y esperar a que fetchUsers termine
-  const openPasswordModal = async (requestId: string) => {
-    await fetchUsers(); // Espera a que la lista de usuarios esté actualizada
+  const openPasswordModal = useCallback((requestId: string) => {
     const approvedRequest = requests.find((req) => req.id === requestId);
-    const user = users.find(
-      (u) => u.email.trim().toLowerCase() === approvedRequest?.email.trim().toLowerCase()
-    );
+    const user = users.find((u) => u.email === approvedRequest?.email);
     if (user) {
       setSelectedUserId(user.id);
+      setCurrentUserPassword("");
+      setUserPassword(null);
+      setIsPasswordModalOpen(true);
     } else {
       console.error("No se encontró un usuario para la solicitud:", requestId);
-      setSelectedUserId(null);
+      toast.error('No se encontró el usuario para esta solicitud');
     }
-    setCurrentUserPassword("");
-    setUserPassword(null);
-    setIsPasswordModalOpen(true);
-  };
+  }, [requests, users]);
 
-  const handleManageRoutes = async (requestId: string) => {
+  const handleManageRoutes = useCallback(async (requestId: string) => {
     try {
-      // Encontrar el usuario correspondiente a la solicitud
       const approvedRequest = requests.find((req) => req.id === requestId);
       const user = users.find((u) => u.email === approvedRequest?.email);
       
       if (!user) {
-        toast.error('No se encontró el usuario');
-        return;
+        throw new Error('No se encontró el usuario');
       }
       
       setSelectedUserId(user.id);
-      
-      const response = await fetch(`/api/modules/user/${user.id}`);
-      const data = await response.json();
-      if (response.ok) {
-        setAvailableModules(data.availableModules);
-        setSelectedModules(data.assignedModules);
-      } else {
-        toast.error('Error al cargar los módulos');
+      const response = await fetch(`/api/modules/user/${user.id}`, { credentials: 'include' });
+      if (!response.ok) {
+        throw new Error('Error al cargar los módulos');
       }
+      const data = await response.json();
+      setAvailableModules(data.availableModules);
+      setSelectedModules(data.assignedModules);
     } catch (error) {
       console.error('Error al cargar módulos:', error);
       toast.error('Error al cargar los módulos');
     }
-  };
+  }, [requests, users]);
 
-  const handleModuleToggle = (moduleId: string, checked: boolean) => {
-    setSelectedModules(prev => 
-      checked 
-        ? [...prev, moduleId]
-        : prev.filter(id => id !== moduleId)
+  const handleModuleToggle = useCallback((moduleId: string, checked: boolean) => {
+    setSelectedModules(prev =>
+      checked ? [...prev, moduleId] : prev.filter(id => id !== moduleId)
     );
-  };
+  }, []);
 
-  const handleSaveRoutes = async () => {
+  const handleSaveRoutes = useCallback(async () => {
+    if (!selectedUserId) return;
     try {
       const response = await fetch(`/api/modules/user/${selectedUserId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          selectedModules
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selectedModules }),
+        credentials: 'include',
       });
-
-      if (response.ok) {
-        toast.success('Rutas actualizadas exitosamente');
-        // Cerrar el diálogo
-        const dialogTrigger = document.querySelector('[data-state="open"]');
-        if (dialogTrigger) {
-          (dialogTrigger as HTMLElement).click();
-        }
-      } else {
-        toast.error('Error al actualizar las rutas');
+      if (!response.ok) {
+        throw new Error('Error al actualizar las rutas');
       }
+      toast.success('Rutas actualizadas exitosamente');
+      setSelectedUserId(null);
+      setSelectedModules([]);
     } catch (error) {
       console.error('Error al guardar rutas:', error);
       toast.error('Error al guardar los cambios');
     }
-  };
+  }, [selectedUserId, selectedModules]);
 
-  const handleContextMenu = (e: React.MouseEvent, module: Module | null) => {
-    // Verificar si el clic fue en el panel de Rutas Disponibles
+  const handleContextMenu = useCallback((e: React.MouseEvent, module: Module | null) => {
     const target = e.target as HTMLElement;
-    const isInAvailablePanel = target.closest('.available-panel');
-    
-    if (!isInAvailablePanel) {
-      return;
-    }
-
+    if (!target.closest('.available-panel')) return;
     e.preventDefault();
     e.stopPropagation();
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      module
+    setContextMenu({ x: e.clientX, y: e.clientY, module });
+  }, []);
+
+  const handleCreateModule = useCallback(() => {
+    setModuleForm({
+      nombre: '',
+      descripcion: '',
+      ruta: '',
+      imagen_url: '',
+      icono: '',
+      activo: true,
+      acepta_subrutas: false,
     });
-  };
+    setIsCreateModalOpen(true);
+    setIsEditModalOpen(false);
+    setContextMenu(null);
+  }, []);
 
-  const closeContextMenu = () => setContextMenu(null);
-
-  const handleEditModule = (module: Module) => {
+  const handleEditModule = useCallback((module: Module) => {
     setSelectedModule(module);
     setModuleForm({
       nombre: module.nombre,
@@ -434,89 +403,74 @@ export default function CustomersPage() {
       imagen_url: module.imagen_url || '',
       icono: module.icono || '',
       activo: module.activo,
-      acepta_subrutas: module.acepta_subrutas
+      acepta_subrutas: module.acepta_subrutas,
     });
     setIsEditModalOpen(true);
     setIsCreateModalOpen(false);
-    closeContextMenu();
-  };
+    setContextMenu(null);
+  }, []);
 
-  const handleDeleteModule = async (module: Module) => {
+  const handleDeleteModule = useCallback(async (module: Module) => {
     try {
       const response = await fetch(`/api/modules/${module.id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
-      if (response.ok) {
-        await fetchAvailableModules();
-        toast.success('Ruta eliminada exitosamente');
-      } else {
-        toast.error('Error al eliminar la ruta');
+      if (!response.ok) {
+        throw new Error('Error al eliminar la ruta');
       }
+      await fetchAvailableModules();
+      toast.success('Ruta eliminada exitosamente');
     } catch (error) {
+      console.error('Error al eliminar la ruta:', error);
       toast.error('Error al eliminar la ruta');
     }
-    closeContextMenu();
-  };
+    setContextMenu(null);
+  }, [fetchAvailableModules]);
 
-  const handleCreateModule = () => {
-    window.location.href = '/settings/rutas';
-  };
-
-  const handleSubmitModule = async (e: React.FormEvent) => {
+  const handleSubmitModule = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const url = selectedModule 
-        ? `/api/modules/${selectedModule.id}`
-        : '/api/modules';
-      
+      const url = selectedModule ? `/api/modules/${selectedModule.id}` : '/api/modules';
       const response = await fetch(url, {
         method: selectedModule ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(moduleForm),
+        credentials: 'include',
       });
-
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new TypeError("La respuesta no es JSON!");
-      }
-
-      await response.json();
       await fetchAvailableModules();
       toast.success(selectedModule ? 'Ruta actualizada exitosamente' : 'Ruta creada exitosamente');
       setIsCreateModalOpen(false);
       setIsEditModalOpen(false);
+      setSelectedModule(null);
     } catch (error) {
       console.error('Error al procesar la ruta:', error);
       toast.error('Error al procesar la ruta');
     }
-  };
+  }, [selectedModule, moduleForm, fetchAvailableModules]);
 
-  const filteredRequests =
-    requestFilter === "todos"
-      ? requests
-      : Array.isArray(requests)
-      ? requests.filter((request) => request.estado === requestFilter)
-      : [];
+  const filteredRequests = useMemo(() => 
+    requestFilter === "todos" ? requests : requests.filter(r => r.estado === requestFilter),
+    [requests, requestFilter]
+  );
 
-  const pendingCount = Array.isArray(requests)
-    ? requests.filter((r) => r.estado === "pendiente").length
-    : 0;
+  const pendingCount = useMemo(() => 
+    requests.filter(r => r.estado === "pendiente").length,
+    [requests]
+  );
 
-  const handleNotificationClick = () => {
+  const handleNotificationClick = useCallback(() => {
     setRequestFilter("pendiente");
-  };
+  }, []);
 
   return (
     <div className="flex h-screen bg-gray-100">
       <MainSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setIsActiveUsersModalOpen(true)}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -524,9 +478,7 @@ export default function CustomersPage() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-16" />
-                ) : (
+                {isLoading ? <Skeleton className="h-8 w-16" /> : (
                   <div className="text-2xl font-bold">{userStats.activeUsers}</div>
                 )}
               </CardContent>
@@ -537,9 +489,7 @@ export default function CustomersPage() {
                 <BarChart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                {isLoading ? (
-                  <Skeleton className="h-8 w-16" />
-                ) : (
+                {isLoading ? <Skeleton className="h-8 w-16" /> : (
                   <div className="text-2xl font-bold">{userStats.totalUsers}</div>
                 )}
               </CardContent>
@@ -567,9 +517,7 @@ export default function CustomersPage() {
               <Select
                 value={requestFilter}
                 onValueChange={(value) =>
-                  setRequestFilter(
-                    value as "pendiente" | "aprobado" | "rechazado" | "todos"
-                  )
+                  setRequestFilter(value as "pendiente" | "aprobado" | "rechazado" | "todos")
                 }
               >
                 <SelectTrigger className="w-[120px]">
@@ -747,46 +695,41 @@ export default function CustomersPage() {
                                 </>
                               ) : request.estado === "aprobado" ? (
                                 <>
-                                <Dialog
-                                  open={isPasswordModalOpen}
-                                  onOpenChange={setIsPasswordModalOpen}
-                                >
-                                  <DialogTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={async () => await openPasswordModal(request.id)}
-                                    >
-                                      <Eye className="h-4 w-4 mr-2" /> Ver contraseña
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="sm:max-w-[425px]">
-                                    <DialogHeader>
-                                      <DialogTitle>Verificar identidad</DialogTitle>
-                                    </DialogHeader>
-                                    <div className="grid gap-4 py-4">
-                                      <Input
-                                        type="password"
-                                        placeholder="Ingresa tu contraseña"
-                                        value={currentUserPassword}
-                                        onChange={(e) =>
-                                          setCurrentUserPassword(e.target.value)
-                                        }
-                                      />
-                                      <Button onClick={handleViewPassword}>
-                                        Verificar
+                                  <Dialog
+                                    open={isPasswordModalOpen}
+                                    onOpenChange={setIsPasswordModalOpen}
+                                  >
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => openPasswordModal(request.id)}
+                                      >
+                                        <Eye className="h-4 w-4 mr-2" /> Ver contraseña
                                       </Button>
-                                      {userPassword && (
-                                        <p className="text-sm text-gray-600">
-                                          Contraseña:{" "}
-                                          <span className="font-mono">
-                                            {userPassword}
-                                          </span>
-                                        </p>
-                                      )}
-                                    </div>
-                                  </DialogContent>
-                                </Dialog>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[425px]">
+                                      <DialogHeader>
+                                        <DialogTitle>Verificar identidad</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="grid gap-4 py-4">
+                                        <Input
+                                          type="password"
+                                          placeholder="Ingresa tu contraseña"
+                                          value={currentUserPassword}
+                                          onChange={(e) => setCurrentUserPassword(e.target.value)}
+                                        />
+                                        <Button onClick={handleViewPassword}>
+                                          Verificar
+                                        </Button>
+                                        {userPassword && (
+                                          <p className="text-sm text-gray-600">
+                                            Contraseña: <span className="font-mono">{userPassword}</span>
+                                          </p>
+                                        )}
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
                                   <Dialog>
                                     <DialogTrigger asChild>
                                       <Button
@@ -802,7 +745,6 @@ export default function CustomersPage() {
                                         <DialogTitle>Gestionar Rutas</DialogTitle>
                                       </DialogHeader>
                                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 py-4 overflow-y-auto max-h-[70vh]">
-                                        {/* Panel izquierdo: Información del usuario y rutas asignadas */}
                                         <div className="space-y-4 md:space-y-6">
                                           <div className="bg-gray-50 p-4 rounded-lg">
                                             <h3 className="text-lg font-semibold mb-2 md:mb-4">Información del Usuario</h3>
@@ -838,9 +780,7 @@ export default function CustomersPage() {
                                             </div>
                                           </div>
                                         </div>
-
-                                        {/* Panel derecho: Rutas disponibles */}
-                                        <div>
+                                        <div className="available-panel" onContextMenu={(e) => handleContextMenu(e, null)}>
                                           <h3 className="text-lg font-semibold mb-2 md:mb-4">Rutas Disponibles</h3>
                                           <div className="space-y-2 max-h-[250px] md:max-h-[500px] overflow-y-auto">
                                             {availableModules
@@ -849,6 +789,7 @@ export default function CustomersPage() {
                                                 <div
                                                   key={module.id}
                                                   className="flex items-center justify-between bg-white p-2 md:p-3 rounded-lg border hover:bg-gray-50 cursor-pointer"
+                                                  onContextMenu={(e) => handleContextMenu(e, module)}
                                                 >
                                                   <div className="pr-2 overflow-hidden">
                                                     <p className="font-medium text-sm md:text-base truncate">{module.nombre}</p>
@@ -893,67 +834,43 @@ export default function CustomersPage() {
             users={activeUsers}
           />
 
-          {/* Menú contextual */}
           {contextMenu && (
             <div
               className="fixed z-[300] bg-white border rounded-lg shadow-lg py-1 min-w-[200px] context-menu"
-              style={{
-                top: contextMenu.y,
-                left: contextMenu.x,
-              }}
+              style={{ top: contextMenu.y, left: contextMenu.x }}
             >
               <div className="px-2 py-1.5 text-sm font-medium text-gray-900">
-                Nueva ruta
+                Opciones de Ruta
               </div>
               <div className="h-px bg-gray-200 my-1" />
               <button
                 className="w-full px-2 py-1.5 text-sm text-left hover:bg-gray-100 flex items-center"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleCreateModule();
-                }}
+                onClick={handleCreateModule}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Crear nueva ruta
               </button>
+              {contextMenu.module && (
+                <>
+                  <button
+                    className="w-full px-2 py-1.5 text-sm text-left hover:bg-gray-100 flex items-center"
+                    onClick={() => handleEditModule(contextMenu.module!)}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Editar ruta
+                  </button>
+                  <button
+                    className="w-full px-2 py-1.5 text-sm text-left hover:bg-gray-100 flex items-center text-red-500"
+                    onClick={() => handleDeleteModule(contextMenu.module!)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Eliminar ruta
+                  </button>
+                </>
+              )}
             </div>
           )}
 
-          {/* Modal de eliminación */}
-          <Dialog>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Confirmar eliminación</DialogTitle>
-              </DialogHeader>
-              <div className="py-4">
-                <p>¿Estás seguro de que deseas eliminar la ruta "{contextMenu?.module?.nombre}"?</p>
-                <p className="text-sm text-gray-500 mt-2">Esta acción no se puede deshacer.</p>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    closeContextMenu();
-                  }}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    if (contextMenu?.module) {
-                      handleDeleteModule(contextMenu.module);
-                    }
-                  }}
-                >
-                  Eliminar
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* Modal de creación/edición */}
           <Dialog 
             open={isCreateModalOpen || isEditModalOpen} 
             onOpenChange={(open) => {
@@ -961,6 +878,15 @@ export default function CustomersPage() {
                 setIsCreateModalOpen(false);
                 setIsEditModalOpen(false);
                 setSelectedModule(null);
+                setModuleForm({
+                  nombre: '',
+                  descripcion: '',
+                  ruta: '',
+                  imagen_url: '',
+                  icono: '',
+                  activo: true,
+                  acepta_subrutas: false,
+                });
               }
             }}
           >
@@ -978,7 +904,6 @@ export default function CustomersPage() {
                     required
                   />
                 </div>
-                
                 <div className="space-y-2">
                   <Label htmlFor="descripcion">Descripción</Label>
                   <Textarea
@@ -987,7 +912,6 @@ export default function CustomersPage() {
                     onChange={(e) => setModuleForm({ ...moduleForm, descripcion: e.target.value })}
                   />
                 </div>
-                
                 <div className="space-y-2">
                   <Label htmlFor="ruta">Ruta</Label>
                   <Input
@@ -997,7 +921,6 @@ export default function CustomersPage() {
                     required
                   />
                 </div>
-                
                 <div className="space-y-2">
                   <Label htmlFor="imagen_url">URL de Imagen</Label>
                   <Input
@@ -1006,7 +929,6 @@ export default function CustomersPage() {
                     onChange={(e) => setModuleForm({ ...moduleForm, imagen_url: e.target.value })}
                   />
                 </div>
-                
                 <div className="space-y-2">
                   <Label htmlFor="icono">Icono</Label>
                   <Input
@@ -1015,7 +937,6 @@ export default function CustomersPage() {
                     onChange={(e) => setModuleForm({ ...moduleForm, icono: e.target.value })}
                   />
                 </div>
-                
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="activo"
@@ -1026,7 +947,6 @@ export default function CustomersPage() {
                   />
                   <Label htmlFor="activo">Activo</Label>
                 </div>
-                
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="acepta_subrutas"
@@ -1037,7 +957,6 @@ export default function CustomersPage() {
                   />
                   <Label htmlFor="acepta_subrutas">Acepta Subrutas</Label>
                 </div>
-                
                 <div className="flex justify-end space-x-2">
                   <Button
                     type="button"
