@@ -145,12 +145,18 @@ export default function CustomersPage() {
     fetchActiveUsers();
     fetchAvailableModules();
 
-    // Obtener roles dinámicamente
-    fetch('/api/roles')
-      .then(res => res.json())
-      .then(data => setRoles(data.map((r: any) => r.nombre)))
-      .catch(() => setRoles([]));
-    
+    // Obtener roles dinámicamente con async/await
+    const fetchRoles = async () => {
+      try {
+        const response = await fetch('/api/roles');
+        if (!response.ok) throw new Error('Error al cargar roles');
+        const data = await response.json();
+        setRoles(data.map((r: any) => r.nombre));
+      } catch (error) {
+        setRoles([]);
+      }
+    };
+    fetchRoles();
     // Actualizar cada 5 minutos
     const interval = setInterval(() => {
       fetchUserStats();
