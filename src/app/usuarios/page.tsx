@@ -324,9 +324,13 @@ export default function CustomersPage() {
     }
   };
 
-  const openPasswordModal = (requestId: string) => {
+  // Cambiar openPasswordModal a async y esperar a que fetchUsers termine
+  const openPasswordModal = async (requestId: string) => {
+    await fetchUsers(); // Espera a que la lista de usuarios esté actualizada
     const approvedRequest = requests.find((req) => req.id === requestId);
-    const user = users.find((u) => u.email === approvedRequest?.email);
+    const user = users.find(
+      (u) => u.email.trim().toLowerCase() === approvedRequest?.email.trim().toLowerCase()
+    );
     if (user) {
       setSelectedUserId(user.id);
     } else {
@@ -751,7 +755,7 @@ export default function CustomersPage() {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      onClick={() => openPasswordModal(request.id)}
+                                      onClick={async () => await openPasswordModal(request.id)}
                                     >
                                       <Eye className="h-4 w-4 mr-2" /> Ver contraseña
                                     </Button>
