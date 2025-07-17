@@ -69,7 +69,7 @@ export default function CumplidoNegocio() {
                   }}
                   onSeleccionar={(nuevoNegocio) => {
                     if (nuevoNegocio) {
-                      router.push(`/programacion/cumplido/${encodeURIComponent(nuevoNegocio.nombre.replace(/ /g, '_'))}`);
+                      router.replace(`/programacion/cumplido/${encodeURIComponent(nuevoNegocio.nombre.replace(/ /g, '_'))}`);
                     }
                   }}
                   opcionGenerales={false}

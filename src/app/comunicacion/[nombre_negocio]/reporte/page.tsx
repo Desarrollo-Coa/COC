@@ -63,7 +63,7 @@ export default function ReporteDiarioPage() {
                   }}
                   onSeleccionar={(nuevoNegocio) => {
                     if (nuevoNegocio) {
-                      router.push(`/comunicacion/${encodeURIComponent(nuevoNegocio.nombre.replace(/ /g, '_'))}/reporte`);
+                      router.replace(`/comunicacion/${encodeURIComponent(nuevoNegocio.nombre.replace(/ /g, '_'))}/reporte`);
                     }
                   }}
                   opcionGenerales={false}
