@@ -1,12 +1,11 @@
 "use client"
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
-import { useRouter, useParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label" 
 import { ChevronDown, User, ArrowLeft, Menu, Moon, Sun, List, Grid } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -19,12 +18,10 @@ import {
 } from "@/components/ui/chart"
 import { toast } from "sonner"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { motion, AnimatePresence } from "framer-motion" // Added for animations
-import { Skeleton } from "@/components/ui/skeleton"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { DetailModal } from "@/components/cumplidos/DetailModal"
-import { Empleado, ReporteComunicacion } from "@/types/cumplidos"
-import { DetailCementoModal } from "@/components/cementos/DetailCementoModal"
+import { motion, AnimatePresence } from "framer-motion"  
+import  Skeleton  from "@/components/ui/skeleton"  
+import { DetailModal } from "@/components/DetailModal"
+import { useParams } from "next/navigation";
 
 // Interfaces remain unchanged
 interface Personnel {
@@ -32,7 +29,7 @@ interface Personnel {
   name: string
   position: string
   shift: "diurno" | "nocturno"
-  unit: string // Puede ser cualquier id de unidad de negocio o "zona"
+  unit: string
   isPresent: boolean
   fecha?: string
   foto_url?: string | null
@@ -70,45 +67,14 @@ interface PuestoData {
     }
   }
 }
+  
 
-interface ProyeccionColaborador {
-  placa: string
-  nombre: string
-  turnos: { [key: string]: string }
+interface Negocio {
+  id_negocio: number
+  nombre_negocio: string
 }
 
-interface Proyeccion {
-  id: number
-  year: number
-  mes: number
-  puesto_id: number
-  proyeccion: { [key: string]: ProyeccionColaborador }
-}
-
-interface Sede {
-  id_sede: number
-  nombre_sede: string
-  diurno: null | { colaborador: string, operador_coa: string }
-  nocturno: null | { colaborador: string, operador_coa: string }
-}
-
-interface Zona {
-  id_zona: number
-  nombre_zona: string
-}
-
-const units: Unit[] = [
-  { id: "terrenos-ndu", name: "Terrenos NDU", percentage: 0, color: "#3B82F6" },
-  { id: "baru", name: "Barú", percentage: 0, color: "#10B981" },
-  { id: "sator", name: "Sator", percentage: 0, color: "#8B5CF6" },
-]
-
-const unidadToId: Record<string, string> = {
-  "terrenos-ndu": "1",
-  baru: "2",
-  sator: "3",
-}
-
+ 
 const chartConfig: ChartConfig = {
   percentage: { label: "Porcentaje" },
   "terrenos-ndu": { label: "Terrenos NDU", color: "#3B82F6" },
@@ -238,12 +204,6 @@ function PersonnelListSkeleton() {
 
 export default function CumplimientoServiciosCementos() {
   const router = useRouter()
-  const params = useParams();
-  // Obtener el parámetro de la URL (puede ser string o array)
-  const zonasParam = typeof params.id === "string" ? params.id : Array.isArray(params.id) ? params.id[0] : "";
-  // Array de ids permitidos (como string)
-  const zonasIds = zonasParam ? zonasParam.split('-').filter(Boolean) : [];
-
   const carruselRef = useRef<HTMLDivElement>(null)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -259,21 +219,26 @@ export default function CumplimientoServiciosCementos() {
   const [loadingPersonnel, setLoadingPersonnel] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [personnel, setPersonnel] = useState<Personnel[]>([])
-  const [puestos, setPuestos] = useState<Puesto[]>([])
+  const [puestos, setPuestos] = useState<any[]>([])
   const [dateRange, setDateRange] = useState<string>("")
   const [viewMode, setViewMode] = useState<"list" | "grid">("list")
   const [isViewModeLoaded, setIsViewModeLoaded] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedPersonnel, setSelectedPersonnel] = useState<Personnel | null>(null)
   const [modalSelectedDay, setModalSelectedDay] = useState<number | null>(null)
-  const [reporteComunicacion, setReporteComunicacion] = useState<ReporteComunicacion | null>(null)
-  const [unitsState, setUnitsState] = useState<Unit[]>([])
-  const [zonas, setZonas] = useState<Zona[]>([])
-  const [zonaId, setZonaId] = useState<string>(zonasIds[0] || "")
+   const [unitsState, setUnitsState] = useState<Unit[]>([])
+  const [negocios, setNegocios] = useState<Negocio[]>([])
+  const [negocioId, setNegocioId] = useState<string>("")
   const [cumplimiento, setCumplimiento] = useState<number>(0)
   const [zonesCompliance, setZonesCompliance] = useState<{ id: string, name: string, percentage: number, color: string }[]>([])
   const [isCementoModalOpen, setIsCementoModalOpen] = useState(false)
   const [cementoModalData, setCementoModalData] = useState<{ colaboradorId: string | null, fecha: string | null, puestoId: number | null }>({ colaboradorId: null, fecha: null, puestoId: null })
+
+  // Nuevo estado para unidades y puestos
+  const [unidadesRaw, setUnidadesRaw] = useState<any[]>([])
+  const [unidades, setUnidades] = useState<any[]>([])
+  const [unidadId, setUnidadId] = useState<string>("")
+  const [puestoId, setPuestoId] = useState<string>("")
 
   const months = [
     "enero", "febrero", "marzo", "abril", "mayo", "junio",
@@ -340,7 +305,7 @@ export default function CumplimientoServiciosCementos() {
   }, [])
 
   const loadInitialData = useCallback(async () => {
-    if (!zonaId) {
+    if (!negocioId) {
       setPersonnel([])
       setPuestos([])
       return
@@ -356,7 +321,7 @@ export default function CumplimientoServiciosCementos() {
         const promises = []
         for (let day = startDay; day <= endDay; day++) {
           const fecha = `${selectedYear}-${(months.indexOf(selectedMonth) + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`
-          let reporteUrl = `/api/cumplimiento-servicios?fecha=${fecha}&zonaId=${zonaId}`
+          let reporteUrl = `/api/cumplimiento-servicios?fecha=${fecha}&negocioId=${negocioId}`
           if (unidadNegocioId) reporteUrl += `&unidadNegocioId=${unidadNegocioId}`
           promises.push(fetch(reporteUrl, { cache: 'no-store' }))
         }
@@ -396,15 +361,15 @@ export default function CumplimientoServiciosCementos() {
       } else {
         // Cargar datos para un solo día (comportamiento original)
         const fecha = `${selectedYear}-${(months.indexOf(selectedMonth) + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`
-        let reporteUrl = `/api/cumplimiento-servicios?fecha=${fecha}&zonaId=${zonaId}`
+        let reporteUrl = `/api/cumplimiento-servicios?fecha=${fecha}&negocioId=${negocioId}`
         if (unidadNegocioId) reporteUrl += `&unidadNegocioId=${unidadNegocioId}`
         const reporteRes = await fetch(reporteUrl, { cache: 'no-store' })
         if (!reporteRes.ok) throw new Error(`Error al cargar datos: ${await reporteRes.text()}`)
         const reporteData = await reporteRes.json()
         const reportePuestos = reporteData.puestos || {}
-        const allPuestosData: Puesto[] = []
+        const allPuestosData: any[] = []
         Object.entries(reportePuestos).forEach(([id, data]: [string, any]) => {
-          const unidadId = data.unidad_negocio_id?.toString() || unidadNegocioId || zonaId
+          const unidadId = data.unidad_negocio_id?.toString() || unidadNegocioId || negocioId
           allPuestosData.push({
             id: parseInt(id),
             puesto: data.nombre_puesto,
@@ -442,7 +407,7 @@ export default function CumplimientoServiciosCementos() {
     } finally {
       setLoadingPersonnel(false)
     }
-  }, [zonaId, selectedYear, selectedMonth, selectedDay, selectedEndDay, selectedPosition, selectedUnit])
+  }, [negocioId, selectedYear, selectedMonth, selectedDay, selectedEndDay, selectedPosition, selectedUnit])
 
   useEffect(() => {
     loadInitialData()
@@ -485,7 +450,7 @@ export default function CumplimientoServiciosCementos() {
     if (value) {
       const puesto = puestos.find(p => p.puesto === value)
       if (puesto) {
-        const unidadId = Object.entries(unidadToId).find(([_, id]) => id === puesto.unidad_negocio_id)?.[0]
+        const unidadId = puesto.unidad_negocio_id;
         if (unidadId) {
           setSelectedUnit(unidadId)
         }
@@ -535,6 +500,7 @@ export default function CumplimientoServiciosCementos() {
     setSelectedUnit(null)
     setExpandedPositions(new Set())
     setIsMobileMenuOpen(false)
+    setNegocioId("")
   }, [])
 
   const filteredPersonnel = useMemo(() => 
@@ -621,28 +587,17 @@ export default function CumplimientoServiciosCementos() {
     return ["terrenos-ndu", "baru", "sator"].includes(unit)
       }
 
-  // Cargar solo las zonas permitidas al inicio
+  // Cargar zonas al inicio
   useEffect(() => {
-    if (zonasIds.length === 0) {
-      setZonas([])
-      setZonaId("")
-      return
-    }
-    fetch(`/api/zonas-filtradas?zonas=${zonasIds.join('-')}`)
+    fetch("/api/negocios")
       .then(res => res.json())
-      .then(data => {
-        setZonas(data)
-        // Si la zona seleccionada no está en la lista, seleccionar la primera
-        if (!data.find((z: Zona) => z.id_zona.toString() === zonaId)) {
-          setZonaId(data[0]?.id_zona?.toString() || "")
-        }
-      })
-      .catch(() => toast.error("Error al cargar zonas"))
-  }, [zonasParam])
+      .then(data => setNegocios(data))
+      .catch(() => toast.error("Error al cargar negocios"))
+  }, [])
 
   // Calcular cumplimiento al cambiar personnel
   useEffect(() => {
-    if (!zonaId) {
+    if (!negocioId) {
       setCumplimiento(0)
       return
     }
@@ -650,25 +605,27 @@ export default function CumplimientoServiciosCementos() {
     const totalTurnos = personnel.length
     const turnosCubiertos = personnel.filter(p => p.isPresent).length
     setCumplimiento(totalTurnos > 0 ? Math.round((turnosCubiertos / totalTurnos) * 100) : 0)
-  }, [personnel, zonaId])
+  }, [personnel, negocioId])
 
   // Cargar unidades de negocio al cambiar zona y fecha
   useEffect(() => {
-    if (!zonaId) {
-      setUnitsState([])
-      setSelectedUnit(null)
+    if (!negocioId) {
+      setUnidadesRaw([])
+      setUnidades([])
+      setUnidadId("")
       setSelectedPosition("")
       return
     }
-    fetch(`/api/unidades-negocio?zonaId=${zonaId}`)
+    fetch(`/api/settings/unidades-negocio?id_negocio=${negocioId}`)
       .then(res => res.json())
       .then(async data => {
         if (Array.isArray(data)) {
+          setUnidadesRaw(data)
           const colores = ["#3B82F6", "#10B981", "#8B5CF6", "#F59E42", "#F43F5E", "#6366F1"]
           const fecha = `${selectedYear}-${(months.indexOf(selectedMonth) + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`
           const unidadesConCumplimiento = await Promise.all(
             data.map(async (unidad, idx) => {
-              const res = await fetch(`/api/cumplimiento-servicios?fecha=${fecha}&zonaId=${zonaId}&unidadNegocioId=${unidad.id_unidad}`)
+              const res = await fetch(`/api/cumplimiento-servicios?fecha=${fecha}&negocioId=${negocioId}&unidadNegocioId=${unidad.id_unidad}`)
               const datos = await res.json()
               let porcentaje = 0
               if (datos && datos.puestos) {
@@ -689,26 +646,52 @@ export default function CumplimientoServiciosCementos() {
               }
             })
           )
-          setUnitsState(unidadesConCumplimiento)
+          setUnidades(unidadesConCumplimiento)
           setSelectedUnit(null)
           setSelectedPosition("")
         }
       })
       .catch(() => {
-        setUnitsState([])
+        setUnidadesRaw([])
+        setUnidades([])
         toast.error("Error al cargar unidades de negocio")
       })
-  }, [zonaId, selectedYear, selectedMonth, selectedDay])
+  }, [negocioId, selectedYear, selectedMonth, selectedDay])
+
+  // Cargar puestos dinámicamente al seleccionar unidad
+  useEffect(() => {
+    if (!unidadId) {
+      setPuestos([])
+      setPuestoId("")
+      return
+    }
+    fetch(`/api/puestos?unidadId=${unidadId}`)
+      .then(res => res.json())
+      .then(data => setPuestos(data))
+      .catch(() => toast.error("Error al cargar puestos"))
+  }, [unidadId])
+
+  const params = useParams();
+  const idsParam = params?.id as string; // puede ser "1" o "1-2-3"
+  const negocioIds = useMemo(
+    () => idsParam ? idsParam.split("-").map(id => id.trim()).filter(Boolean) : [],
+    [idsParam]
+  );
+
+  const negociosFiltrados = useMemo(
+    () => negocios.filter(n => negocioIds.includes(n.id_negocio.toString())),
+    [negocios, negocioIds]
+  );
 
   // Calcular cumplimiento general por zona al inicio o cuando cambian fechas
   useEffect(() => {
-    if (zonaId) return // Solo si NO hay zona seleccionada
-    if (zonas.length === 0) return
+    if (negocioId) return // Solo si NO hay zona seleccionada
+    if (negociosFiltrados.length === 0) return
     const colores = ["#3B82F6", "#10B981", "#8B5CF6", "#F59E42", "#F43F5E", "#6366F1"]
     const fecha = `${selectedYear}-${(months.indexOf(selectedMonth) + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`
     Promise.all(
-      zonas.map(async (zona, idx) => {
-        const res = await fetch(`/api/cumplimiento-servicios?fecha=${fecha}&zonaId=${zona.id_zona}`)
+      negociosFiltrados.map(async (negocio, idx) => {
+        const res = await fetch(`/api/cumplimiento-servicios?fecha=${fecha}&negocioId=${negocio.id_negocio}`)
         const datos = await res.json()
         let porcentaje = 0
         if (datos && datos.puestos) {
@@ -722,14 +705,14 @@ export default function CumplimientoServiciosCementos() {
           porcentaje = totalTurnos > 0 ? Math.round((turnosCubiertos / totalTurnos) * 100) : 0
         }
         return {
-          id: zona.id_zona.toString(),
-          name: zona.nombre_zona,
+          id: negocio.id_negocio.toString(),
+          name: negocio.nombre_negocio,
           percentage: porcentaje,
           color: colores[idx % colores.length]
         }
       })
     ).then(setZonesCompliance)
-  }, [zonas, zonaId, selectedYear, selectedMonth, selectedDay])
+  }, [negociosFiltrados, negocioId, selectedYear, selectedMonth, selectedDay])
 
   return (
     <div className={cn("min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300", isDarkMode && "dark")}>
@@ -748,7 +731,7 @@ export default function CumplimientoServiciosCementos() {
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">
-                Cumplimiento de Servicios (Cementos)
+                Cumplimiento de Servicios
               </h1>
             </div>
             <Button
@@ -790,14 +773,14 @@ export default function CumplimientoServiciosCementos() {
               </CardHeader>
               <CardContent className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="zona" className="text-sm font-medium text-gray-700 dark:text-gray-300">Zona</Label>
-                  <Select value={zonaId} onValueChange={setZonaId}>
+                  <Label htmlFor="negocio" className="text-sm font-medium text-gray-700 dark:text-gray-300">Negocio</Label>
+                  <Select value={negocioId} onValueChange={setNegocioId}>
                     <SelectTrigger className="h-10 bg-white dark:bg-gray-700">
-                      <SelectValue placeholder="Seleccionar zona" />
+                      <SelectValue placeholder="Seleccionar negocio" />
                     </SelectTrigger>
                     <SelectContent>
-                      {zonas.map(z => (
-                        <SelectItem key={z.id_zona} value={z.id_zona.toString()}>{z.nombre_zona}</SelectItem>
+                      {negociosFiltrados.map(n => (
+                        <SelectItem key={n.id_negocio} value={n.id_negocio.toString()}>{n.nombre_negocio}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -902,18 +885,18 @@ export default function CumplimientoServiciosCementos() {
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 justify-items-center">
-                  {zonaId
+                  {negocioId
                     ? (
-                      unitsState.length === 0 && zonas.length > 0 ? (
+                      unidades.length === 0 && negociosFiltrados.length > 0 ? (
                         <motion.div className="w-full flex gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                           {[1,2,3].map(i => (
                             <CircularProgressSkeleton key={i} />
                           ))}
                         </motion.div>
-                      ) : unitsState.length === 0 && zonas.length === 0 ? (
-                        <span className="text-gray-500">No hay unidades para la zona seleccionada</span>
+                      ) : unidades.length === 0 && negociosFiltrados.length === 0 ? (
+                        <span className="text-gray-500">No hay unidades para el negocio seleccionado</span>
                       ) : (
-                        unitsState.map((unit) => (
+                        unidades.map((unit) => (
                           <CircularProgress
                             key={unit.id}
                             percentage={unit.percentage}
@@ -924,7 +907,7 @@ export default function CumplimientoServiciosCementos() {
                         ))
                       )
                     ) : (
-                      zonas.length === 0 ? (
+                      negociosFiltrados.length === 0 ? (
                         <motion.div className="w-full flex gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                           {[1,2,3].map(i => (
                             <CircularProgressSkeleton key={i} />
@@ -937,13 +920,13 @@ export default function CumplimientoServiciosCementos() {
                           ))}
                         </motion.div>
                       ) : (
-                        zonesCompliance.map((zona) => (
+                        zonesCompliance.map((negocio) => (
                           <CircularProgress
-                            key={zona.id}
-                            percentage={zona.percentage}
+                            key={negocio.id}
+                            percentage={negocio.percentage}
                             isSelected={false}
-                            onClick={() => setZonaId(zona.id)}
-                            unit={{ id: zona.id, name: zona.name, percentage: zona.percentage, color: zona.color }}
+                            onClick={() => setNegocioId(negocio.id)}
+                            unit={{ id: negocio.id, name: negocio.name, percentage: negocio.percentage, color: negocio.color }}
                           />
                         ))
                       )
@@ -956,8 +939,8 @@ export default function CumplimientoServiciosCementos() {
               <CardContent className="p-4 sm:p-6">
                 {loadingPersonnel ? (
                   <PersonnelListSkeleton />
-                ) : !zonaId ? (
-                  <div className="text-center text-gray-500 py-8">Seleccione una zona para ver el cumplimiento</div>
+                ) : !negocioId ? (
+                  <div className="text-center text-gray-500 py-8">Seleccione un negocio para ver el cumplimiento</div>
                 ) : personnel.length === 0 ? (
                   <div className="text-center text-gray-500 py-8">No hay datos para la zona y fecha seleccionadas</div>
                 ) : (
@@ -1193,7 +1176,7 @@ export default function CumplimientoServiciosCementos() {
             transition={{ duration: 0.5 }}
           >
             <div className="flex space-x-6 py-4 w-max">
-              {unitsState.map((unit) => (
+              {unidades.map((unit) => (
                 <div 
                   key={unit.id} 
                   data-unit-id={unit.id}
@@ -1378,17 +1361,49 @@ export default function CumplimientoServiciosCementos() {
                     </div>
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Zona</Label>
-                        <Select value={zonaId} onValueChange={setZonaId}>
+                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Negocio</Label>
+                        <Select value={negocioId} onValueChange={setNegocioId}>
                           <SelectTrigger className="h-10 bg-white dark:bg-gray-700">
-                            <SelectValue placeholder="Seleccionar zona" />
+                            <SelectValue placeholder="Seleccionar negocio" />
                           </SelectTrigger>
                           <SelectContent>
-                            {zonas.map(z => (
-                              <SelectItem key={z.id_zona} value={z.id_zona.toString()}>{z.nombre_zona}</SelectItem>
+                            {negociosFiltrados.map(n => (
+                              <SelectItem key={n.id_negocio} value={n.id_negocio.toString()}>{n.nombre_negocio}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Unidad</Label>
+                        {negocioId && (
+                          <Select value={unidadId} onValueChange={setUnidadId}>
+                            <SelectTrigger className="h-10 bg-white dark:bg-gray-700">
+                              <SelectValue placeholder="Seleccionar unidad de negocio" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {unidadesRaw
+                                .filter(u => u && u.id_unidad !== undefined && u.nombre_unidad !== undefined)
+                                .map(u => (
+                                  <SelectItem key={u.id_unidad} value={u.id_unidad.toString()}>{u.nombre_unidad}</SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Puesto</Label>
+                        {unidadId && (
+                          <Select value={puestoId} onValueChange={setPuestoId}>
+                            <SelectTrigger className="h-10 bg-white dark:bg-gray-700">
+                              <SelectValue placeholder="Seleccionar puesto" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {puestos.map(p => (
+                                <SelectItem key={p.id_puesto} value={p.id_puesto.toString()}>{p.nombre_puesto}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">Día</Label>
@@ -1444,7 +1459,7 @@ export default function CumplimientoServiciosCementos() {
                 </SheetContent>
               </Sheet>
 
-              {unitsState.map((unit) => (
+              {unidades.map((unit) => (
                 <button
                   key={unit.id}
                   className={cn(
@@ -1476,7 +1491,7 @@ export default function CumplimientoServiciosCementos() {
         </div>
       </main>
 
-      <DetailCementoModal
+      <DetailModal
         isOpen={isCementoModalOpen}
         onClose={() => setIsCementoModalOpen(false)}
         colaboradorId={cementoModalData.colaboradorId}
