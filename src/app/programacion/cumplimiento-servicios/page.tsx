@@ -1081,7 +1081,12 @@ export default function CumplimientoServiciosCementos() {
                               <div className="space-y-4">
                                 <div className="bg-gray-50 dark:bg-gray-600 p-3 rounded-lg border border-gray-100 dark:border-gray-500">
                                   <div className="flex items-center gap-2 mb-3">
-                                    <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
+                                    <div className={cn(
+                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                      hasDiurno ? "bg-yellow-400 border-yellow-500" : "bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500"
+                                    )}>
+                                      {hasDiurno && <div className="w-2 h-2 bg-yellow-600 rounded-full"></div>}
+                                    </div>
                                     <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200">Diurno</h4>
                                   </div>
                                   {shifts.diurno.length > 0 ? (
@@ -1112,7 +1117,12 @@ export default function CumplimientoServiciosCementos() {
                                 </div>
                                 <div className="bg-gray-50 dark:bg-gray-600 p-3 rounded-lg border border-gray-100 dark:border-gray-500">
                                   <div className="flex items-center gap-2 mb-3">
-                                    <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+                                    <div className={cn(
+                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                      hasNocturno ? "bg-blue-400 border-blue-500" : "bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500"
+                                    )}>
+                                      {hasNocturno && <div className="w-2 h-2 bg-blue-600 rounded-full"></div>}
+                                    </div>
                                     <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200">Nocturno</h4>
                                   </div>
                                   {shifts.nocturno.length > 0 ? (
