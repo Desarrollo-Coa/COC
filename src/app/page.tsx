@@ -45,6 +45,13 @@ export default function Home() {
       image: "/img/modulos/esquema/dasboard-esquema.jpeg",  
       link: "/accesos",
     },
+     {
+      title: "Ausencias",
+      description: "Registro y gestión de ausencias del personal.",
+      icon: <Calendar className="h-6 w-6 text-muted-foreground" />,
+      image: "/img/modulos/asuencias/MODULO.jpg",
+      link: "/ausencias",
+    },
   ];
 
   useEffect(() => {
