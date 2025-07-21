@@ -62,7 +62,8 @@ export async function GET(request: Request) {
           activo: !!row.activo,
           unidad_negocio_id: row.id_unidad?.toString() || null,
           diurno: null,
-          nocturno: null
+          nocturno: null,
+          turno_b: null 
         };
       });
 
@@ -81,6 +82,10 @@ export async function GET(request: Request) {
             };
           } else if (row.id_tipo_turno === 2) {
             puestos[row.id_puesto].nocturno = {
+              colaborador
+            };
+          } else if (row.id_tipo_turno === 3) {
+            puestos[row.id_puesto].turno_b = {
               colaborador
             };
           }

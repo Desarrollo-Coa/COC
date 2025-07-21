@@ -27,7 +27,7 @@ interface Personnel {
   id: string
   name: string
   position: string
-  shift: "diurno" | "nocturno"
+  shift: "diurno" | "nocturno" | "turno_b"
   unit: string
   isPresent: boolean
   fecha?: string
@@ -59,6 +59,13 @@ interface PuestoData {
     }
   }
   nocturno?: {
+    colaborador?: {
+      placa: string
+      nombre: string
+      foto_url?: string
+    }
+  }
+  turno_b?: {
     colaborador?: {
       placa: string
       nombre: string
@@ -271,29 +278,33 @@ export default function CumplimientoServiciosCementos() {
       if (!acc[person.position]) {
         acc[person.position] = {
           diurno: false,
-          nocturno: false
+          nocturno: false,
+          turno_b: false
         }
       }
       if (person.shift === "diurno") {
         acc[person.position].diurno = person.isPresent
       } else if (person.shift === "nocturno") {
         acc[person.position].nocturno = person.isPresent
+      } else if (person.shift === "turno_b") {
+        acc[person.position].turno_b = person.isPresent
       }
       return acc
-    }, {} as Record<string, { diurno: boolean; nocturno: boolean }>)
+    }, {} as Record<string, { diurno: boolean; nocturno: boolean; turno_b: boolean }>)
 
     // Calcular el porcentaje total
     const totalPuestos = Object.keys(puestosPorUnidad).length
     if (totalPuestos === 0) return 0
 
-    // Cada puesto tiene 2 turnos posibles (diurno y nocturno)
-    const totalTurnosPosibles = totalPuestos * 2
+    // Cada puesto tiene 3 turnos posibles (diurno, nocturno, turno_b)
+    const totalTurnosPosibles = totalPuestos * 3
     let turnosAsignados = 0
 
     // Contar los turnos asignados
-    Object.values(puestosPorUnidad).forEach(({ diurno, nocturno }) => {
+    Object.values(puestosPorUnidad).forEach(({ diurno, nocturno, turno_b }) => {
       if (diurno) turnosAsignados++
       if (nocturno) turnosAsignados++
+      if (turno_b) turnosAsignados++
     })
 
     // Calcular el porcentaje final
@@ -302,6 +313,13 @@ export default function CumplimientoServiciosCementos() {
 
     return Math.round(porcentajeTotal)
   }, [])
+
+  // Definir los turnos a mostrar
+  const turnos = [
+    { key: "diurno", label: "Diurno", color: "yellow" },
+    { key: "turno_b", label: "Turno B", color: "green" },
+    { key: "nocturno", label: "Nocturno", color: "blue" }
+  ];
 
   const loadInitialData = useCallback(async () => {
     if (!negocioId) {
@@ -344,6 +362,19 @@ export default function CumplimientoServiciosCementos() {
               fecha: fecha,
               foto_url: typeof puestoData?.diurno?.colaborador === 'object' ? puestoData?.diurno?.colaborador?.foto_url || null : null
             })
+            // Turno B
+            if (puestoData?.turno_b?.colaborador) {
+              personnelData.push({
+                id: typeof puestoData?.turno_b?.colaborador === 'object' ? puestoData?.turno_b?.colaborador?.placa || `empty-turno_b-${day}` : puestoData?.turno_b?.colaborador || `empty-turno_b-${day}`,
+                name: typeof puestoData?.turno_b?.colaborador === 'object' ? puestoData?.turno_b?.colaborador?.nombre || "Sin asignar" : puestoData?.turno_b?.colaborador || "Sin asignar",
+                position: selectedPosition,
+                shift: "turno_b",
+                unit: unidadNegocioId || "zona",
+                isPresent: !!puestoData?.turno_b?.colaborador,
+                fecha: fecha,
+                foto_url: typeof puestoData?.turno_b?.colaborador === 'object' ? puestoData?.turno_b?.colaborador?.foto_url || null : null
+              })
+            }
             personnelData.push({
               id: typeof puestoData?.nocturno?.colaborador === 'object' ? puestoData?.nocturno?.colaborador?.placa || `empty-nocturno-${day}` : puestoData?.nocturno?.colaborador || `empty-nocturno-${day}`,
               name: typeof puestoData?.nocturno?.colaborador === 'object' ? puestoData?.nocturno?.colaborador?.nombre || "Sin asignar" : puestoData?.nocturno?.colaborador || "Sin asignar",
@@ -385,6 +416,19 @@ export default function CumplimientoServiciosCementos() {
             fecha: fecha,
             foto_url: typeof data?.diurno?.colaborador === 'object' ? data?.diurno?.colaborador?.foto_url || null : null
           })
+          // Turno B
+          if (data?.turno_b?.colaborador) {
+            personnelData.push({
+              id: typeof data?.turno_b?.colaborador === 'object' ? data?.turno_b?.colaborador?.placa || `empty-turno_b-${id}` : data?.turno_b?.colaborador || `empty-turno_b-${id}`,
+              name: typeof data?.turno_b?.colaborador === 'object' ? data?.turno_b?.colaborador?.nombre || "Sin asignar" : data?.turno_b?.colaborador || "Sin asignar",
+              position: data.nombre_puesto,
+              shift: "turno_b",
+              unit: unidadId,
+              isPresent: !!data?.turno_b?.colaborador,
+              fecha: fecha,
+              foto_url: typeof data?.turno_b?.colaborador === 'object' ? data?.turno_b?.colaborador?.foto_url || null : null
+            })
+          }
           personnelData.push({
             id: typeof data?.nocturno?.colaborador === 'object' ? data?.nocturno?.colaborador?.placa || `empty-nocturno-${id}` : data?.nocturno?.colaborador || `empty-nocturno-${id}`,
             name: typeof data?.nocturno?.colaborador === 'object' ? data?.nocturno?.colaborador?.nombre || "Sin asignar" : data?.nocturno?.colaborador || "Sin asignar",
@@ -510,12 +554,13 @@ export default function CumplimientoServiciosCementos() {
     [personnel, selectedUnit, selectedPosition]
   )
 
+  // Agrupación de personal por puesto y turno (incluyendo turno_b)
   const groupedPersonnel = useMemo(() => 
     filteredPersonnel.reduce((acc, person) => {
-      acc[person.position] = acc[person.position] || { diurno: [], nocturno: [] }
+      acc[person.position] = acc[person.position] || { diurno: [], turno_b: [], nocturno: [] }
       acc[person.position][person.shift].push(person)
       return acc
-    }, {} as Record<string, { diurno: Personnel[]; nocturno: Personnel[] }>),
+    }, {} as Record<string, { diurno: Personnel[]; turno_b: Personnel[]; nocturno: Personnel[] }>),
     [filteredPersonnel]
   )
 
@@ -629,10 +674,11 @@ export default function CumplimientoServiciosCementos() {
               let porcentaje = 0
               if (datos && datos.puestos) {
                 const puestos = Object.values(datos.puestos)
-                const totalTurnos = puestos.length * 2
+                const totalTurnos = puestos.length * 3 // Ajustado para 3 turnos
                 let turnosCubiertos = 0
                 puestos.forEach((p: any) => {
                   if (p.diurno?.colaborador) turnosCubiertos++
+                  if (p.turno_b?.colaborador) turnosCubiertos++
                   if (p.nocturno?.colaborador) turnosCubiertos++
                 })
                 porcentaje = totalTurnos > 0 ? Math.round((turnosCubiertos / totalTurnos) * 100) : 0
@@ -683,10 +729,11 @@ export default function CumplimientoServiciosCementos() {
         let porcentaje = 0
         if (datos && datos.puestos) {
           const puestos = Object.values(datos.puestos)
-          const totalTurnos = puestos.length * 2
+          const totalTurnos = puestos.length * 3 // Ajustado para 3 turnos
           let turnosCubiertos = 0
           puestos.forEach((p: any) => {
             if (p.diurno?.colaborador) turnosCubiertos++
+            if (p.turno_b?.colaborador) turnosCubiertos++
             if (p.nocturno?.colaborador) turnosCubiertos++
           })
           porcentaje = totalTurnos > 0 ? Math.round((turnosCubiertos / totalTurnos) * 100) : 0
@@ -938,6 +985,7 @@ export default function CumplimientoServiciosCementos() {
                       Object.entries(groupedPersonnel).map(([position, shifts]) => {
                         const isExpanded = expandedPositions.has(position)
                         const hasDiurno = shifts.diurno.some((p) => p.isPresent)
+                        const hasTurnoB = shifts.turno_b.some((p) => p.isPresent)
                         const hasNocturno = shifts.nocturno.some((p) => p.isPresent)
                         return (
                           <motion.div
@@ -979,6 +1027,17 @@ export default function CumplimientoServiciosCementos() {
                                   <div
                                     className={cn(
                                       "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                      hasTurnoB ? "bg-green-400 border-green-500" : "bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500"
+                                    )}
+                                  >
+                                    {hasTurnoB && <div className="w-2 h-2 bg-green-600 rounded-full"></div>}
+                                  </div>
+                                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">Turno B</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div
+                                    className={cn(
+                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
                                       hasNocturno ? "bg-blue-400 border-blue-500" : "bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500"
                                     )}
                                   >
@@ -1005,6 +1064,37 @@ export default function CumplimientoServiciosCementos() {
                                     {shifts.diurno.length > 0 ? (
                                       shifts.diurno.map((person) => (
                                         <div key={`diurno-${person.id}-${person.fecha}`} className="flex flex-col gap-2 mb-3">
+                                          {person.fecha && (
+                                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                              {new Date(person.fecha.replace(/-/g, '/')).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
+                                            </div>
+                                          )}
+                                          <div className="flex items-center gap-3">
+                                            <User className="w-4 h-4 text-gray-400 dark:text-gray-300" />
+                                            <span 
+                                              className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-500"
+                                              onClick={() => handlePersonnelClick(person)}
+                                            >
+                                              {person.isPresent ? person.name : "Sin asignar"}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <div className="flex items-center gap-3">
+                                        <User className="w-4 h-4 text-gray-400 dark:text-gray-300" />
+                                        <span className="text-sm text-gray-600 dark:text-gray-300">Sin asignar</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="bg-gray-50 dark:bg-gray-600 p-4 rounded-lg">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                                      <h4 className="text-sm sm:text-md font-medium text-gray-700 dark:text-gray-200">Turno B</h4>
+                                    </div>
+                                    {shifts.turno_b.length > 0 ? (
+                                      shifts.turno_b.map((person) => (
+                                        <div key={`turno_b-${person.id}-${person.fecha}`} className="flex flex-col gap-2 mb-3">
                                           {person.fecha && (
                                             <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
                                               {new Date(person.fecha.replace(/-/g, '/')).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
@@ -1069,6 +1159,7 @@ export default function CumplimientoServiciosCementos() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {Object.entries(groupedPersonnel).map(([puesto, shifts]) => {
                           const hasDiurno = shifts.diurno.some((p) => p.isPresent)
+                          const hasTurnoB = shifts.turno_b.some((p) => p.isPresent)
                           const hasNocturno = shifts.nocturno.some((p) => p.isPresent)
                           return (
                             <div
@@ -1092,6 +1183,42 @@ export default function CumplimientoServiciosCementos() {
                                   {shifts.diurno.length > 0 ? (
                                     shifts.diurno.map((person) => (
                                       <div key={`diurno-${person.id}-${person.fecha}`} className="flex flex-col gap-2 mb-3">
+                                        {person.fecha && (
+                                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                            {new Date(person.fecha.replace(/-/g, '/')).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
+                                          </div>
+                                        )}
+                                        <div className="flex items-center gap-3">
+                                          <User className="w-4 h-4 text-gray-400 dark:text-gray-300" />
+                                          <span 
+                                            className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-500"
+                                            onClick={() => handlePersonnelClick(person)}
+                                          >
+                                            {person.isPresent ? person.name : "Sin asignar"}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className="flex items-center gap-3">
+                                      <User className="w-4 h-4 text-gray-400 dark:text-gray-300" />
+                                      <span className="text-sm text-gray-600 dark:text-gray-300">Sin asignar</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="bg-gray-50 dark:bg-gray-600 p-3 rounded-lg border border-gray-100 dark:border-gray-500">
+                                  <div className="flex items-center gap-2 mb-3">
+                                    <div className={cn(
+                                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                      hasTurnoB ? "bg-green-400 border-green-500" : "bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500"
+                                    )}>
+                                      {hasTurnoB && <div className="w-2 h-2 bg-green-600 rounded-full"></div>}
+                                    </div>
+                                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200">Turno B</h4>
+                                  </div>
+                                  {shifts.turno_b.length > 0 ? (
+                                    shifts.turno_b.map((person) => (
+                                      <div key={`turno_b-${person.id}-${person.fecha}`} className="flex flex-col gap-2 mb-3">
                                         {person.fecha && (
                                           <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
                                             {new Date(person.fecha.replace(/-/g, '/')).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
@@ -1201,6 +1328,7 @@ export default function CumplimientoServiciosCementos() {
                 {Object.entries(groupedPersonnel).map(([position, shifts]) => {
                   const isExpanded = expandedPositions.has(position)
                   const hasDiurno = shifts.diurno.some((p) => p.isPresent)
+                  const hasTurnoB = shifts.turno_b.some((p) => p.isPresent)
                   const hasNocturno = shifts.nocturno.some((p) => p.isPresent)
 
                   return (
@@ -1240,6 +1368,17 @@ export default function CumplimientoServiciosCementos() {
                             <div
                               className={cn(
                                 "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                                hasTurnoB ? "bg-green-400 border-green-500" : "bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500"
+                              )}
+                            >
+                              {hasTurnoB && <div className="w-2 h-2 bg-green-600 rounded-full"></div>}
+                            </div>
+                            <span className="text-xs text-gray-600 dark:text-gray-300">Turno B</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={cn(
+                                "w-4 h-4 rounded-full border-2 flex items-center justify-center",
                                 hasNocturno ? "bg-blue-400 border-blue-500" : "bg-gray-100 dark:bg-gray-600 border-gray-300 dark:border-gray-500"
                               )}
                             >
@@ -1266,6 +1405,37 @@ export default function CumplimientoServiciosCementos() {
                               {shifts.diurno.length > 0 ? (
                                 shifts.diurno.map((person) => (
                                   <div key={`diurno-${person.id}-${person.fecha}`} className="flex flex-col gap-2 mb-3">
+                                    {person.fecha && (
+                                      <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                        {new Date(person.fecha.replace(/-/g, '/')).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-3">
+                                      <User className="w-4 h-4 text-gray-400 dark:text-gray-300" />
+                                      <span 
+                                        className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer hover:text-blue-500"
+                                        onClick={() => handlePersonnelClick(person)}
+                                      >
+                                        {person.isPresent ? person.name : "Sin asignar"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="flex items-center gap-3">
+                                  <User className="w-4 h-4 text-gray-400 dark:text-gray-300" />
+                                  <span className="text-sm text-gray-600 dark:text-gray-300">Sin asignar</span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="bg-gray-50 dark:bg-gray-600 p-3 rounded-lg">
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200">Turno B</h4>
+                              </div>
+                              {shifts.turno_b.length > 0 ? (
+                                shifts.turno_b.map((person) => (
+                                  <div key={`turno_b-${person.id}-${person.fecha}`} className="flex flex-col gap-2 mb-3">
                                     {person.fecha && (
                                       <div className="text-xs font-medium text-gray-500 dark:text-gray-400">
                                         {new Date(person.fecha.replace(/-/g, '/')).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
@@ -1498,6 +1668,7 @@ export default function CumplimientoServiciosCementos() {
         colaboradorId={cementoModalData.colaboradorId}
         fecha={cementoModalData.fecha}
         puestoId={cementoModalData.puestoId}
+        tipoTurno={selectedPersonnel?.shift || null}
       />
     </div>
   )

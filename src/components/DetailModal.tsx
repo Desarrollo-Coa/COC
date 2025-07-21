@@ -27,9 +27,10 @@ interface DetailModalProps {
   colaboradorId: string | null;
   fecha: string | null;
   puestoId: number | null;
+  tipoTurno?: string | null;
 }
 
-export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId }: DetailModalProps) {
+export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, tipoTurno }: DetailModalProps) {
   const [data, setData] = useState<DetailData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +42,9 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId }:
     setError(null);
     setData(null);
     setReportesArray([]);
-    fetch(`/api/reporte-comunicacion/por-colaborador?colaboradorId=${colaboradorId}&fecha=${fecha}&puestoId=${puestoId}`)
+    // Incluir tipoTurno en la petición si está definido
+    const url = `/api/reporte-comunicacion/por-colaborador?colaboradorId=${colaboradorId}&fecha=${fecha}&puestoId=${puestoId}` + (tipoTurno ? `&tipoTurno=${tipoTurno}` : "");
+    fetch(url)
       .then(async (res) => {
         if (!res.ok) {
           const errorData = await res.json();
@@ -74,7 +77,7 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId }:
         setError(e.message);
       })
       .finally(() => setLoading(false));
-  }, [isOpen, colaboradorId, fecha, puestoId]);
+  }, [isOpen, colaboradorId, fecha, puestoId, tipoTurno]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
