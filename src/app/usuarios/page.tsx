@@ -635,171 +635,142 @@ export default function CustomersPage() {
                         filteredRequests.map((request) => {
                           const user = users.find((u) => u.email === request.email);
                           return (
-                            <tr key={request.id}>
-                              <td className="px-6 py-4 whitespace-nowrap">{`${request.nombre} ${request.apellido}`}</td>
+                          <tr key={request.id}>
+                            <td className="px-6 py-4 whitespace-nowrap">{`${request.nombre} ${request.apellido}`}</td>
                               <td className="px-6 py-4 whitespace-nowrap">{user ? user.username : '-'}</td>
-                              <td className="px-6 py-4 whitespace-nowrap">{request.email}</td>
-                              <td className="px-6 py-4 whitespace-nowrap">{request.cargo}</td>
-                              <td className="px-6 py-4">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="block max-w-[150px] truncate">
-                                        {request.comentario?.length > 20
-                                          ? `${request.comentario.substring(0, 20)}...`
-                                          : request.comentario}
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>{request.comentario}</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                    request.estado === "aprobado"
-                                      ? "bg-green-100 text-green-800"
-                                      : request.estado === "rechazado"
-                                      ? "bg-red-100 text-red-800"
-                                      : "bg-yellow-100 text-yellow-800"
-                                  }`}
-                                >
-                                  {request.estado}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap flex gap-2">
-                                {request.estado === "pendiente" ? (
-                                  <>
-                                    <Select
-                                      value={selectedRole}
-                                      onValueChange={setSelectedRole}
-                                    >
-                                      <SelectTrigger className="w-[120px]">
-                                        <SelectValue placeholder="Rol" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {roles.map((role) => (
-                                          <SelectItem key={role} value={role}>
-                                            {role}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <Button
-                                      onClick={() => handleApprove(request.id)}
-                                      variant="default"
-                                      size="sm"
-                                    >
-                                      Aprobar
-                                    </Button>
-                                    <Button
-                                      onClick={() => handleReject(request.id)}
-                                      variant="destructive"
-                                      size="sm"
-                                    >
-                                      Rechazar
-                                    </Button>
-                                  </>
-                                ) : request.estado === "aprobado" ? (
-                                  <>
-                                    <Dialog
-                                      open={isPasswordModalOpen}
-                                      onOpenChange={setIsPasswordModalOpen}
-                                    >
-                                      <DialogTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => openPasswordModal(request.id)}
-                                        >
-                                          <Eye className="h-4 w-4 mr-2" /> Ver contraseña
+                            <td className="px-6 py-4 whitespace-nowrap">{request.email}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">{request.cargo}</td>
+                            <td className="px-6 py-4">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="block max-w-[150px] truncate">
+                                      {request.comentario?.length > 20
+                                        ? `${request.comentario.substring(0, 20)}...`
+                                        : request.comentario}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{request.comentario}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  request.estado === "aprobado"
+                                    ? "bg-green-100 text-green-800"
+                                    : request.estado === "rechazado"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-yellow-100 text-yellow-800"
+                                }`}
+                              >
+                                {request.estado}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap flex gap-2">
+                              {request.estado === "pendiente" ? (
+                                <>
+                                  <Select
+                                    value={selectedRole}
+                                    onValueChange={setSelectedRole}
+                                  >
+                                    <SelectTrigger className="w-[120px]">
+                                      <SelectValue placeholder="Rol" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {roles.map((role) => (
+                                        <SelectItem key={role} value={role}>
+                                          {role}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <Button
+                                    onClick={() => handleApprove(request.id)}
+                                    variant="default"
+                                    size="sm"
+                                  >
+                                    Aprobar
+                                  </Button>
+                                  <Button
+                                    onClick={() => handleReject(request.id)}
+                                    variant="destructive"
+                                    size="sm"
+                                  >
+                                    Rechazar
+                                  </Button>
+                                </>
+                              ) : request.estado === "aprobado" ? (
+                                <>
+                                  <Dialog
+                                    open={isPasswordModalOpen}
+                                    onOpenChange={setIsPasswordModalOpen}
+                                  >
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => openPasswordModal(request.id)}
+                                      >
+                                        <Eye className="h-4 w-4 mr-2" /> Ver contraseña
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[425px]">
+                                      <DialogHeader>
+                                        <DialogTitle>Verificar identidad</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="grid gap-4 py-4">
+                                        <Input
+                                          type="password"
+                                          placeholder="Ingresa tu contraseña"
+                                          value={currentUserPassword}
+                                          onChange={(e) => setCurrentUserPassword(e.target.value)}
+                                        />
+                                        <Button onClick={handleViewPassword}>
+                                          Verificar
                                         </Button>
-                                      </DialogTrigger>
-                                      <DialogContent className="sm:max-w-[425px]">
-                                        <DialogHeader>
-                                          <DialogTitle>Verificar identidad</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="grid gap-4 py-4">
-                                          <Input
-                                            type="password"
-                                            placeholder="Ingresa tu contraseña"
-                                            value={currentUserPassword}
-                                            onChange={(e) => setCurrentUserPassword(e.target.value)}
-                                          />
-                                          <Button onClick={handleViewPassword}>
-                                            Verificar
-                                          </Button>
-                                          {userPassword && (
+                                        {userPassword && (
+                                          <p className="text-sm text-gray-600">
+                                            Contraseña: <span className="font-mono">{userPassword}</span>
+                                          </p>
+                                        )}
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleManageRoutes(request.id)}
+                                      >
+                                        <Map className="h-4 w-4 mr-2" /> Gestionar Rutas
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="w-[90vw] max-w-[95vw] md:max-w-[90vw] lg:max-w-[925px] h-auto max-h-[90vh] overflow-hidden z-[150]">
+                                      <DialogHeader>
+                                        <DialogTitle>Gestionar Rutas</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 py-4 overflow-y-auto max-h-[70vh]">
+                                        <div className="space-y-4 md:space-y-6">
+                                          <div className="bg-gray-50 p-4 rounded-lg">
+                                            <h3 className="text-lg font-semibold mb-2 md:mb-4">Información del Usuario</h3>
                                             <p className="text-sm text-gray-600">
-                                              Contraseña: <span className="font-mono">{userPassword}</span>
+                                              {`${request.nombre} ${request.apellido}`}
                                             </p>
-                                          )}
-                                        </div>
-                                      </DialogContent>
-                                    </Dialog>
-                                    <Dialog>
-                                      <DialogTrigger asChild>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => handleManageRoutes(request.id)}
-                                        >
-                                          <Map className="h-4 w-4 mr-2" /> Gestionar Rutas
-                                        </Button>
-                                      </DialogTrigger>
-                                      <DialogContent className="w-[90vw] max-w-[95vw] md:max-w-[90vw] lg:max-w-[925px] h-auto max-h-[90vh] overflow-hidden z-[150]">
-                                        <DialogHeader>
-                                          <DialogTitle>Gestionar Rutas</DialogTitle>
-                                        </DialogHeader>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 py-4 overflow-y-auto max-h-[70vh]">
-                                          <div className="space-y-4 md:space-y-6">
-                                            <div className="bg-gray-50 p-4 rounded-lg">
-                                              <h3 className="text-lg font-semibold mb-2 md:mb-4">Información del Usuario</h3>
-                                              <p className="text-sm text-gray-600">
-                                                {`${request.nombre} ${request.apellido}`}
-                                              </p>
-                                              <p className="text-sm text-gray-500 mt-1">
-                                                {request.email}
-                                              </p>
-                                            </div>
-                                            <div>
-                                              <h3 className="text-lg font-semibold mb-2 md:mb-4">Rutas Asignadas</h3>
-                                              <div className="space-y-2 max-h-[250px] md:max-h-[400px] overflow-y-auto">
-                                                {selectedModules.map((moduleId) => {
-                                                  const module = availableModules.find(m => m.id === moduleId);
-                                                  return module ? (
-                                                    <div key={module.id} className="flex items-center justify-between bg-white p-2 md:p-3 rounded-lg border">
-                                                      <div className="pr-2 overflow-hidden">
-                                                        <p className="font-medium text-sm md:text-base truncate">{module.nombre}</p>
-                                                        <p className="text-xs md:text-sm text-gray-500 truncate">{module.ruta}</p>
-                                                      </div>
-                                                      <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0"
-                                                        onClick={() => handleModuleToggle(module.id, false)}
-                                                      >
-                                                        <X className="h-4 w-4" />
-                                                      </Button>
-                                                    </div>
-                                                  ) : null;
-                                                })}
-                                              </div>
-                                            </div>
+                                            <p className="text-sm text-gray-500 mt-1">
+                                              {request.email}
+                                            </p>
                                           </div>
-                                          <div className="available-panel" onContextMenu={(e) => handleContextMenu(e, null)}>
-                                            <h3 className="text-lg font-semibold mb-2 md:mb-4">Rutas Disponibles</h3>
-                                            <div className="space-y-2 max-h-[250px] md:max-h-[500px] overflow-y-auto">
-                                              {availableModules
-                                                .filter(module => !selectedModules.includes(module.id))
-                                                .map((module) => (
-                                                  <div
-                                                    key={module.id}
-                                                    className="flex items-center justify-between bg-white p-2 md:p-3 rounded-lg border hover:bg-gray-50 cursor-pointer"
-                                                    onContextMenu={(e) => handleContextMenu(e, module)}
-                                                  >
+                                          <div>
+                                            <h3 className="text-lg font-semibold mb-2 md:mb-4">Rutas Asignadas</h3>
+                                            <div className="space-y-2 max-h-[250px] md:max-h-[400px] overflow-y-auto">
+                                              {selectedModules.map((moduleId) => {
+                                                const module = availableModules.find(m => m.id === moduleId);
+                                                return module ? (
+                                                  <div key={module.id} className="flex items-center justify-between bg-white p-2 md:p-3 rounded-lg border">
                                                     <div className="pr-2 overflow-hidden">
                                                       <p className="font-medium text-sm md:text-base truncate">{module.nombre}</p>
                                                       <p className="text-xs md:text-sm text-gray-500 truncate">{module.ruta}</p>
@@ -807,27 +778,56 @@ export default function CustomersPage() {
                                                     <Button
                                                       variant="ghost"
                                                       size="sm"
-                                                      className="text-green-500 hover:text-green-700 hover:bg-green-50 shrink-0"
-                                                      onClick={() => handleModuleToggle(module.id, true)}
+                                                      className="text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0"
+                                                      onClick={() => handleModuleToggle(module.id, false)}
                                                     >
-                                                      <Plus className="h-4 w-4" />
+                                                      <X className="h-4 w-4" />
                                                     </Button>
                                                   </div>
-                                                ))}
+                                                ) : null;
+                                              })}
                                             </div>
                                           </div>
                                         </div>
-                                        <div className="flex justify-end mt-2 md:mt-4">
-                                          <Button onClick={handleSaveRoutes}>
-                                            Guardar Cambios
-                                          </Button>
+                                        <div className="available-panel" onContextMenu={(e) => handleContextMenu(e, null)}>
+                                          <h3 className="text-lg font-semibold mb-2 md:mb-4">Rutas Disponibles</h3>
+                                          <div className="space-y-2 max-h-[250px] md:max-h-[500px] overflow-y-auto">
+                                            {availableModules
+                                              .filter(module => !selectedModules.includes(module.id))
+                                              .map((module) => (
+                                                <div
+                                                  key={module.id}
+                                                  className="flex items-center justify-between bg-white p-2 md:p-3 rounded-lg border hover:bg-gray-50 cursor-pointer"
+                                                  onContextMenu={(e) => handleContextMenu(e, module)}
+                                                >
+                                                  <div className="pr-2 overflow-hidden">
+                                                    <p className="font-medium text-sm md:text-base truncate">{module.nombre}</p>
+                                                    <p className="text-xs md:text-sm text-gray-500 truncate">{module.ruta}</p>
+                                                  </div>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-green-500 hover:text-green-700 hover:bg-green-50 shrink-0"
+                                                    onClick={() => handleModuleToggle(module.id, true)}
+                                                  >
+                                                    <Plus className="h-4 w-4" />
+                                                  </Button>
+                                                </div>
+                                              ))}
+                                          </div>
                                         </div>
-                                      </DialogContent>
-                                    </Dialog>
-                                  </>
-                                ) : null}
-                              </td>
-                            </tr>
+                                      </div>
+                                      <div className="flex justify-end mt-2 md:mt-4">
+                                        <Button onClick={handleSaveRoutes}>
+                                          Guardar Cambios
+                                        </Button>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                </>
+                              ) : null}
+                            </td>
+                          </tr>
                           );
                         })
                       )}

@@ -16,7 +16,7 @@ export async function GET(request: Request) {
 
     // 1. Buscar los cumplidos de ese negocio y fecha, con info de colaborador y notas
     const [cumplidosRows] = await pool.query(
-      `SELECT c.id_cumplido, c.id_puesto, c.id_tipo_turno, c.id_colaborador, col.nombre AS colaborador_nombre, col.apellido AS colaborador_apellido, c.fecha,
+      `SELECT c.id_cumplido, c.id_puesto, p.nombre_puesto, c.id_tipo_turno, c.id_colaborador, col.nombre AS colaborador_nombre, col.apellido AS colaborador_apellido, c.fecha,
               n.nota, n.id_nota
        FROM cumplidos c
        JOIN puestos p ON c.id_puesto = p.id_puesto
@@ -93,6 +93,7 @@ export async function GET(request: Request) {
       return {
         id_cumplido,
         id_puesto: row.id_puesto,
+        nombre_puesto: row.nombre_puesto,
         id_tipo_turno: row.id_tipo_turno,
         id_colaborador: row.id_colaborador,
         colaborador_nombre,
@@ -103,6 +104,32 @@ export async function GET(request: Request) {
         calificaciones: reporte ? reporte.calificaciones : {},
       };
     });
+
+    // --- MINI INFORME DE DEPURACIÓN ---
+    console.log('\n========= MINI INFORME DE CALIFICACIONES =========');
+    const turnosNombres = { 1: 'DIURNO', 2: 'NOCTURNO', 3: 'TURNO B' } as Record<number, string>;
+    resultado.forEach(r => {
+      console.log(`\nNOMBRE DEL PUESTO: ${r.nombre_puesto || r.id_puesto}`);
+      const turno = turnosNombres[r.id_tipo_turno] || `TURNO ${r.id_tipo_turno}`;
+      console.log(`TURNO: ${turno}`);
+      if (r.colaborador) {
+        console.log(`COLABORADOR: ${r.colaborador}`);
+      }
+      if (r.calificaciones && Object.keys(r.calificaciones).length > 0) {
+        console.log('CALIFICACIONES:');
+        Object.entries(r.calificaciones).forEach(([rKey, horasObj]) => {
+          if (horasObj && typeof horasObj === 'object' && !Array.isArray(horasObj)) {
+            Object.entries(horasObj).forEach(([hora, val]) => {
+              const valor = typeof val === 'object' && val !== null && 'valor' in val ? val.valor : val;
+              console.log(`    ${rKey}: ${hora} >: ${valor}`);
+            });
+          }
+        });
+      } else {
+        console.log('SIN CALIFICACIONES');
+      }
+    });
+    console.log('==============================================\n');
 
     return NextResponse.json(resultado);
   } catch (error) {

@@ -172,3 +172,14 @@ export async function POST(request: Request) {
     );
   }
 } 
+
+// Endpoint para obtener los tipos de turno
+export async function GET_TIPOS_TURNO(request: Request) {
+  try {
+    const [rows] = await pool.query('SELECT id_tipo_turno, nombre_tipo_turno FROM tipos_turno ORDER BY id_tipo_turno ASC');
+    return NextResponse.json(rows);
+  } catch (error) {
+    console.error('Error al obtener tipos de turno:', error);
+    return NextResponse.json({ error: 'Error al obtener tipos de turno' }, { status: 500 });
+  }
+} 

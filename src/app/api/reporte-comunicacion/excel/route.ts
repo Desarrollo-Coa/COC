@@ -48,14 +48,14 @@ export async function POST(request: Request) {
     let hojasConDatos = 0;
 
     for (const fecha of [...fechas].reverse()) {
-      // Obtener configuración para la fecha
       const { cantidad_diurno, cantidad_nocturno } = await getConfiguracion(negocioId, fecha);
 
-      // Obtener datos de la API de reporte de comunicación
       const [cumplidosRows] = await pool.query(
-        `SELECT c.*, p.*, u.* FROM cumplidos c
+        `SELECT c.*, p.*, u.*, col.nombre AS colaborador_nombre, col.apellido AS colaborador_apellido
+         FROM cumplidos c
          JOIN puestos p ON c.id_puesto = p.id_puesto
          JOIN unidades_negocio u ON p.id_unidad = u.id_unidad
+         LEFT JOIN colaboradores col ON c.id_colaborador = col.id
          WHERE c.fecha = ? AND u.id_negocio = ?`,
         [fecha, parseInt(negocioId)]
       ) as any[];
@@ -65,7 +65,6 @@ export async function POST(request: Request) {
         continue;
       }
 
-      // Obtener reportes de comunicación
       const idsCumplido = cumplidosArray.map((c: any) => c.id_cumplido);
       let reportes: any[] = [];
       if (idsCumplido.length > 0) {
@@ -89,14 +88,12 @@ export async function POST(request: Request) {
         });
       }
 
-      // Agrupar por unidad de negocio y puesto
       const unidades: Record<string, any[]> = {};
       cumplidosArray.forEach((c: any) => {
         if (!unidades[c.nombre_unidad]) unidades[c.nombre_unidad] = [];
         unidades[c.nombre_unidad].push(c);
       });
 
-      // Función para separar por turno
       const getPorTurno = (turno: number) => {
         const res: Record<string, any[]> = {};
         for (const unidad in unidades) {
@@ -109,8 +106,8 @@ export async function POST(request: Request) {
       };
       const diuo = getPorTurno(1);
       const nocturno = getPorTurno(2);
+      const turnoB = getPorTurno(3);
 
-      // Determinar todas las claves de reportes (R1, R2, ...), diurno y nocturno, y sus horas
       let clavesDiurno: string[] = [];
       let clavesNocturno: string[] = [];
       let horasDiurno: string[] = [];
@@ -120,10 +117,10 @@ export async function POST(request: Request) {
         const tipoTurno = (cumplidosArray.find((c: any) => c.id_cumplido === r.id_cumplido) as { id_tipo_turno?: number } | undefined)?.id_tipo_turno;
         for (const key of Object.keys(cal)) {
           for (const hora of Object.keys(cal[key])) {
-            if (tipoTurno === 1) {
+            if (tipoTurno === 1 || tipoTurno === 3) { // Include Turno B in Diurno
               if (!clavesDiurno.includes(key)) clavesDiurno.push(key);
               if (!horasDiurno.includes(hora)) horasDiurno.push(hora);
-            } else {
+            } else if (tipoTurno === 2) {
               if (!clavesNocturno.includes(key)) clavesNocturno.push(key);
               if (!horasNocturno.includes(hora)) horasNocturno.push(hora);
             }
@@ -135,7 +132,6 @@ export async function POST(request: Request) {
       horasDiurno.sort();
       horasNocturno.sort();
 
-      // Asegurar que las claves coincidan con la configuración
       clavesDiurno = Array.from({ length: cantidad_diurno }, (_, i) => `R${i + 1}`);
       clavesNocturno = Array.from({ length: cantidad_nocturno }, (_, i) => `R${i + 1}`);
       if (horasDiurno.length < cantidad_diurno) {
@@ -145,13 +141,11 @@ export async function POST(request: Request) {
         horasNocturno = [...horasNocturno, ...Array(cantidad_nocturno - horasNocturno.length).fill('')];
       }
 
-      // Crear hoja
       const sheet = workbook.addWorksheet(fecha);
       hojasConDatos++;
 
-      // Encabezado azul corporativo
       const totalCols = 5 + clavesDiurno.length + clavesNocturno.length;
-      sheet.mergeCells(1, 1, 1, totalCols); // Merge toda la fila para el título
+      sheet.mergeCells(1, 1, 1, totalCols);
       sheet.getCell(1, 1).value = `REPORTE DE COMUNICACION ${String(nombreNegocio).toUpperCase()}`;
       sheet.getCell(1, 1).fill = {
         type: 'pattern',
@@ -161,9 +155,7 @@ export async function POST(request: Request) {
       sheet.getCell(1, 1).font = { color: { argb: 'FFFFFF' }, bold: true, size: 16 };
       sheet.getCell(1, 1).alignment = { vertical: 'middle', horizontal: 'center' };
 
-      // Fecha grande
-      sheet.mergeCells(2, 1, 2, totalCols); // Merge toda la fila para la fecha
-      // Mostrar la fecha de la hoja en formato DD-MM-YYYY
+      sheet.mergeCells(2, 1, 2, totalCols);
       const [yyyy, mm, dd] = fecha.split('-');
       sheet.getCell(2, 1).value = `${dd}-${mm}-${yyyy}`;
       sheet.getCell(2, 1).font = { bold: true, size: 13 };
@@ -175,12 +167,11 @@ export async function POST(request: Request) {
       };
       sheet.getCell(2, 1).font = { color: { argb: 'FFFFFF' }, bold: true, size: 13 };
 
-      // Subencabezados
-      // Encabezados fijos en la fila 3 (combinados con la fila 4)
       const encabezadosPrincipales = [
         'UNIDAD DE NEGOCIO',
         'PUESTO',
         'COLABORADOR DIURNO',
+        'COLABORADOR TURNO B',
         'COLABORADOR NOCTURNO',
         'NIVEL DE COMUNICACIÓN'
       ];
@@ -196,7 +187,7 @@ export async function POST(request: Request) {
         };
         sheet.getCell(3, c).border = { bottom: { style: 'thin' }, right: { style: 'thin' }, left: { style: 'thin' }, top: { style: 'thin' } };
       }
-      // Encabezados de reportes en la fila 4
+
       let col = encabezadosPrincipales.length + 1;
       const diurnoStartCol = col;
       for (let i = 0; i < clavesDiurno.length; i++) {
@@ -211,22 +202,17 @@ export async function POST(request: Request) {
       }
       const nocturnoEndCol = col - 1;
 
-      // Fila superior para Turno Diurno y Turno Nocturno
-      if (clavesDiurno.length > 0) {
-        if (diurnoEndCol >= diurnoStartCol) {
-          sheet.mergeCells(3, diurnoStartCol, 3, diurnoEndCol);
-          sheet.getCell(3, diurnoStartCol).value = 'Turno Diurno';
-          sheet.getCell(3, diurnoStartCol).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-        }
+      if (clavesDiurno.length > 0 && diurnoEndCol >= diurnoStartCol) {
+        sheet.mergeCells(3, diurnoStartCol, 3, diurnoEndCol);
+        sheet.getCell(3, diurnoStartCol).value = 'Turno Diurno';
+        sheet.getCell(3, diurnoStartCol).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
       }
-      if (clavesNocturno.length > 0) {
-        if (nocturnoEndCol >= nocturnoStartCol) {
-          sheet.mergeCells(3, nocturnoStartCol, 3, nocturnoEndCol);
-          sheet.getCell(3, nocturnoStartCol).value = 'Turno Nocturno';
-          sheet.getCell(3, nocturnoStartCol).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
-        }
+      if (clavesNocturno.length > 0 && nocturnoEndCol >= nocturnoStartCol) {
+        sheet.mergeCells(3, nocturnoStartCol, 3, nocturnoEndCol);
+        sheet.getCell(3, nocturnoStartCol).value = 'Turno Nocturno';
+        sheet.getCell(3, nocturnoStartCol).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
       }
-      // Estilo encabezados de reportes
+
       for (let c = 6; c <= totalCols; c++) {
         sheet.getCell(4, c).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
         sheet.getCell(4, c).font = { color: { argb: 'FFFFFF' }, bold: true };
@@ -237,7 +223,6 @@ export async function POST(request: Request) {
         };
         sheet.getCell(4, c).border = { bottom: { style: 'thin' }, right: { style: 'thin' }, left: { style: 'thin' }, top: { style: 'thin' } };
       }
-      // Bordes y fondo para fila de Turno Diurno/Nocturno
       for (let c = 6; c <= totalCols; c++) {
         sheet.getCell(3, c).border = { bottom: { style: 'thin' }, right: { style: 'thin' }, left: { style: 'thin' }, top: { style: 'thin' } };
         sheet.getCell(3, c).fill = {
@@ -248,29 +233,54 @@ export async function POST(request: Request) {
         sheet.getCell(3, c).font = { color: { argb: 'FFFFFF' }, bold: true };
       }
 
-      // Nuevo ciclo agrupando por unidad de negocio
       let row = 5;
       for (const unidad of Object.keys(unidades)) {
         const puestosDiurno = diuo[unidad] || [];
         const puestosNocturno = nocturno[unidad] || [];
-        const maxPuestos = Math.max(puestosDiurno.length, puestosNocturno.length);
+        const puestosTurnoB = turnoB[unidad] || [];
+        const puestosUnidad = [
+          ...new Set([
+            ...puestosDiurno.map(p => p.id_puesto),
+            ...puestosTurnoB.map(p => p.id_puesto),
+            ...puestosNocturno.map(p => p.id_puesto)
+          ])
+        ];
         const startRow = row;
-        for (let i = 0; i < maxPuestos; i++) {
+        for (const idPuesto of puestosUnidad) {
           let col = 1;
-          if (i === 0) {
+          if (idPuesto === puestosUnidad[0]) {
             sheet.getCell(row, col).value = unidad;
           }
           col++;
-          const diurnoData = puestosDiurno[i] || { nombre_puesto: '', colaborador: '', id_cumplido: null };
-          const nocturnoData = puestosNocturno[i] || { nombre_puesto: '', colaborador: '', id_cumplido: null };
-          sheet.getCell(row, col++).value = diurnoData.nombre_puesto || nocturnoData.nombre_puesto || '';
-          sheet.getCell(row, col++).value = diurnoData.colaborador || '';
-          sheet.getCell(row, col++).value = nocturnoData.colaborador || '';
+          const diurnoData = puestosDiurno.find(p => p.id_puesto === idPuesto) || { nombre_puesto: '', colaborador_nombre: '', colaborador_apellido: '', id_cumplido: null };
+          const turnoBData = puestosTurnoB.find(p => p.id_puesto === idPuesto) || { nombre_puesto: '', colaborador_nombre: '', colaborador_apellido: '', id_cumplido: null };
+          const nocturnoData = puestosNocturno.find(p => p.id_puesto === idPuesto) || { nombre_puesto: '', colaborador_nombre: '', colaborador_apellido: '', id_cumplido: null };
+          const nombreColaboradorDiurno = (diurnoData.colaborador_nombre || '') + (diurnoData.colaborador_apellido ? ' ' + diurnoData.colaborador_apellido : '');
+          const nombreColaboradorB = (turnoBData.colaborador_nombre || '') + (turnoBData.colaborador_apellido ? ' ' + turnoBData.colaborador_apellido : '');
+          const nombreColaboradorNocturno = (nocturnoData.colaborador_nombre || '') + (nocturnoData.colaborador_apellido ? ' ' + nocturnoData.colaborador_apellido : '');
+          sheet.getCell(row, col++).value = diurnoData.nombre_puesto || turnoBData.nombre_puesto || nocturnoData.nombre_puesto || '';
+          sheet.getCell(row, col++).value = nombreColaboradorDiurno.trim();
+          sheet.getCell(row, col++).value = nombreColaboradorB.trim();
+          sheet.getCell(row, col++).value = nombreColaboradorNocturno.trim();
 
-          // Calcular nivel de comunicación
           let puntajes = [];
           if (diurnoData.id_cumplido) {
             const reporte = reportes.find((r) => r.id_cumplido === diurnoData.id_cumplido);
+            if (reporte && reporte.calificaciones) {
+              for (const key of Object.keys(reporte.calificaciones)) {
+                for (const hora of Object.keys(reporte.calificaciones[key])) {
+                  const val = reporte.calificaciones[key][hora];
+                  if (val && typeof val === 'object' && 'valor' in val) {
+                    if (typeof val.valor === 'number') puntajes.push(val.valor);
+                  } else if (typeof val === 'number') {
+                    puntajes.push(val);
+                  }
+                }
+              }
+            }
+          }
+          if (turnoBData.id_cumplido) {
+            const reporte = reportes.find((r) => r.id_cumplido === turnoBData.id_cumplido);
             if (reporte && reporte.calificaciones) {
               for (const key of Object.keys(reporte.calificaciones)) {
                 for (const hora of Object.keys(reporte.calificaciones[key])) {
@@ -302,12 +312,27 @@ export async function POST(request: Request) {
           const nivelCom = puntajes.length > 0 ? `${Math.round((puntajes.reduce((a, b) => a + b, 0) / puntajes.length) * 10)}%` : '';
           sheet.getCell(row, col++).value = nivelCom;
 
-          // Reportes diurnos
           for (const k of clavesDiurno) {
             let valor = '';
             let nota = '';
             if (diurnoData.id_cumplido) {
               const reporte = reportes.find((r) => r.id_cumplido === diurnoData.id_cumplido);
+              if (reporte && reporte.calificaciones && reporte.calificaciones[k]) {
+                const horas = Object.keys(reporte.calificaciones[k]);
+                if (horas.length > 0) {
+                  const hora = horas[0];
+                  const val = reporte.calificaciones[k][hora];
+                  if (val && typeof val === 'object' && 'valor' in val) {
+                    valor = val.valor;
+                    nota = val.nota;
+                  } else {
+                    valor = val;
+                  }
+                }
+              }
+            }
+            if (!valor && turnoBData.id_cumplido) { // Include Turno B ratings in Diurno columns
+              const reporte = reportes.find((r) => r.id_cumplido === turnoBData.id_cumplido);
               if (reporte && reporte.calificaciones && reporte.calificaciones[k]) {
                 const horas = Object.keys(reporte.calificaciones[k]);
                 if (horas.length > 0) {
@@ -332,7 +357,6 @@ export async function POST(request: Request) {
             cell.border = { bottom: { style: 'thin' }, right: { style: 'thin' }, left: { style: 'thin' }, top: { style: 'thin' } };
           }
 
-          // Reportes nocturnos
           for (const k of clavesNocturno) {
             let valor = '';
             let nota = '';
@@ -362,11 +386,10 @@ export async function POST(request: Request) {
             cell.border = { bottom: { style: 'thin' }, right: { style: 'thin' }, left: { style: 'thin' }, top: { style: 'thin' } };
           }
 
-          // Estilo filas alternas y bordes
           const fillColor = row % 2 === 0 ? 'FFFFFF' : 'F2F2F2';
           for (let cIdx = 1; cIdx <= totalCols; cIdx++) {
             const cell = sheet.getCell(row, cIdx);
-            if (!cell.fill || (cell.fill && (cell.fill as any).fgColor?.argb !== 'FFCCCC')) {
+            if (!cell.fill || (cell.fill as any).fgColor?.argb !== 'FFCCCC') {
               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
             }
             cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
@@ -374,25 +397,25 @@ export async function POST(request: Request) {
           }
           row++;
         }
-        // Hacer merge de la celda de unidad de negocio para este grupo
-        if (maxPuestos > 1) {
+
+        if (puestosUnidad.length > 1) {
           sheet.mergeCells(startRow, 1, row - 1, 1);
           sheet.getCell(startRow, 1).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
         }
       }
-      // Ajustar ancho de columnas
+
       sheet.columns = [
-        { width: 25 }, // Unidad de negocio
-        { width: 20 }, // Puesto
-        { width: 25 }, // Colaborador diurno
-        { width: 25 }, // Colaborador nocturno
-        { width: 18 }, // Nivel comunicación
+        { width: 25 },
+        { width: 20 },
+        { width: 25 },
+        { width: 25 },
+        { width: 25 },
+        { width: 18 },
         ...clavesDiurno.map(() => ({ width: 13 })),
         ...clavesNocturno.map(() => ({ width: 13 })),
       ];
     }
 
-    // Generar buffer
     if (hojasConDatos === 0) {
       return NextResponse.json({ error: tipo === 'global' ? 'No hay datos para ningún día del rango seleccionado.' : 'No hay datos para el día seleccionado.' }, { status: 404 });
     }

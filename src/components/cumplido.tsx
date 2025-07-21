@@ -67,7 +67,7 @@ interface ModalState {
   nota?: {
     idCumplido?: number;
     idPuesto?: number;
-    tipo?: 'diurno' | 'nocturno';
+    idTipoTurno?: number;
     nota?: string;
   };
   config?: {
@@ -78,8 +78,7 @@ interface ModalState {
 
 interface PendingChange {
   idPuesto: number;
-  diurno?: number | null;
-  nocturno?: number | null;
+  [turnoId: number]: number | null | undefined;
 }
 
 // Componente para renderizar el dropdown en un portal
@@ -111,7 +110,7 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
     mes: (new Date().getMonth() + 1).toString(),
     dia: new Date().getDate().toString(),
   });
-  const [cumplidos, setCumplidos] = useState<Record<number, { diurno?: Cumplido; nocturno?: Cumplido }>>({});
+  const [cumplidos, setCumplidos] = useState<Record<number, Record<number, Cumplido>>>({});
   const [puestos, setPuestos] = useState<Puesto[]>([]);
   const [loading, setLoading] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<Map<number, PendingChange>>(new Map());
@@ -137,6 +136,7 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const { toast } = useToast();
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [tiposTurno, setTiposTurno] = useState<Array<{ id_tipo_turno: number; nombre_tipo_turno: string }>>([]);
 
   // Memoized arrays for select options
   const anios = useMemo(
@@ -226,15 +226,11 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
       const responseCumplidos = await fetch(`/api/cumplidos?negocioId=${negocioId}&fecha=${fecha.toISOString()}`);
       if (!responseCumplidos.ok) throw new Error('Error al cargar los cumplidos');
       const data: Cumplido[] = await responseCumplidos.json();
-      // Agrupar por puesto y separar diurno/nocturno
-      const agrupados: Record<number, { diurno?: Cumplido; nocturno?: Cumplido }> = {};
+      // Agrupar por puesto y por tipo de turno
+      const agrupados: Record<number, Record<number, Cumplido>> = {};
       data.forEach((cumplido) => {
         if (!agrupados[cumplido.id_puesto]) agrupados[cumplido.id_puesto] = {};
-        if (cumplido.id_tipo_turno === 1) {
-          agrupados[cumplido.id_puesto].diurno = cumplido;
-        } else if (cumplido.id_tipo_turno === 2) {
-          agrupados[cumplido.id_puesto].nocturno = cumplido;
-        }
+        agrupados[cumplido.id_puesto][cumplido.id_tipo_turno] = cumplido;
       });
       setCumplidos(agrupados);
       // Notas: ahora es un array por cumplido
@@ -264,26 +260,19 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
     try {
       const fecha = new Date(parseInt(date.anio), parseInt(date.mes) - 1, parseInt(date.dia));
       const fechaFormateada = fecha.toISOString();
-      // Solo agrega al payload si el ID de colaborador es válido
+      // Genera el payload dinámicamente para todos los turnos
       const payload = changes.flatMap((change) => {
         const arr: any[] = [];
-        // Diurno
-        if (change.diurno !== undefined) {
-          arr.push({
-            id_puesto: change.idPuesto,
-            fecha: fechaFormateada,
-            id_tipo_turno: 1,
-            id_colaborador: change.diurno === null || change.diurno === undefined ? null : change.diurno,
-          });
-        }
-        // Nocturno
-        if (change.nocturno !== undefined) {
-          arr.push({
-            id_puesto: change.idPuesto,
-            fecha: fechaFormateada,
-            id_tipo_turno: 2,
-            id_colaborador: change.nocturno === null || change.nocturno === undefined ? null : change.nocturno,
-          });
+        for (const turno of tiposTurno) {
+          const value = change[turno.id_tipo_turno];
+          if (value !== undefined) {
+            arr.push({
+              id_puesto: change.idPuesto,
+              fecha: fechaFormateada,
+              id_tipo_turno: turno.id_tipo_turno,
+              id_colaborador: value === null ? null : value,
+            });
+          }
         }
         return arr;
       });
@@ -317,20 +306,20 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
         return newSet;
       });
     }
-  }, [date, cargarCumplidos, toast]);
+  }, [date, cargarCumplidos, toast, tiposTurno]);
 
-  const handleColaboradorAutocomplete = useCallback((idPuesto: number, tipo: 'diurno' | 'nocturno', value: string) => {
-    setColaboradorSearch(prev => ({ ...prev, [`${idPuesto}-${tipo}`]: value }));
+  const handleColaboradorAutocomplete = useCallback((idPuesto: number, turnoId: number, value: string) => {
+    setColaboradorSearch(prev => ({ ...prev, [`${idPuesto}-${turnoId}`]: value }));
   }, []);
 
-  const handleColaboradorSelect = useCallback((idPuesto: number, tipo: 'diurno' | 'nocturno', colaborador: any) => {
+  const handleColaboradorSelect = useCallback((idPuesto: number, turnoId: number, colaborador: any) => {
     setPendingChanges(prev => {
-        const newMap = new Map(prev);
-        const existing = newMap.get(idPuesto) || { idPuesto };
-      newMap.set(idPuesto, { ...existing, [tipo]: colaborador.id });
-        return newMap;
-      });
-    setColaboradorSearch(prev => ({ ...prev, [`${idPuesto}-${tipo}`]: `${colaborador.nombre} ${colaborador.apellido}${colaborador.placa ? ' (' + colaborador.placa + ')' : ''}` }));
+      const newMap = new Map(prev);
+      const existing = newMap.get(idPuesto) || { idPuesto };
+      newMap.set(idPuesto, { ...existing, [turnoId]: colaborador.id });
+      return newMap;
+    });
+    setColaboradorSearch(prev => ({ ...prev, [`${idPuesto}-${turnoId}`]: `${colaborador.nombre} ${colaborador.apellido}${colaborador.placa ? ' (' + colaborador.placa + ')' : ''}` }));
   }, []);
 
   const cargarPuestos = useCallback(async () => {
@@ -456,9 +445,9 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
   );
 
   const handleContextMenu = useCallback(
-    (e: React.MouseEvent, idPuesto: number, tipo: 'diurno' | 'nocturno') => {
+    (e: React.MouseEvent, idPuesto: number, idTipoTurno: number) => {
       e.preventDefault();
-      const cumplido = cumplidos[idPuesto]?.[tipo];
+      const cumplido = cumplidos[idPuesto]?.[idTipoTurno];
       const nota = cumplido?.id_cumplido ? notas.get(`${cumplido.id_cumplido}`) : null;
       setModal({
         type: 'nota',
@@ -466,7 +455,7 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
         nota: {
           idCumplido: cumplido?.id_cumplido,
           idPuesto,
-          tipo,
+          idTipoTurno,
           nota: nota?.nota,
         },
       });
@@ -475,13 +464,11 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
   );
 
   const guardarNota = useCallback(async () => {
-    if (!modal.nota?.idPuesto) return;
+    if (!modal.nota?.idPuesto || !modal.nota?.idTipoTurno) return;
     try {
       const fecha = new Date(parseInt(date.anio), parseInt(date.mes) - 1, parseInt(date.dia));
-      // Buscar el cumplido correspondiente
-      const tipoTurno = modal.nota?.tipo === 'diurno' ? 1 : 2;
       let idCumplido = undefined;
-      const cumplido = cumplidos[modal.nota.idPuesto]?.[modal.nota.tipo as 'diurno' | 'nocturno'];
+      const cumplido = cumplidos[modal.nota.idPuesto]?.[modal.nota.idTipoTurno];
       if (cumplido) {
         idCumplido = cumplido.id_cumplido;
       } else {
@@ -492,7 +479,7 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
           body: JSON.stringify({
             id_puesto: modal.nota.idPuesto,
             fecha: fecha.toISOString(),
-            id_tipo_turno: tipoTurno,
+            id_tipo_turno: modal.nota.idTipoTurno,
             colaborador: null,
           }),
         });
@@ -669,6 +656,21 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
     setSearching(false);
   }, [colaboradores]);
 
+  // Cargar tipos de turno dinámicamente
+  useEffect(() => {
+    const fetchTiposTurno = async () => {
+      try {
+        const res = await fetch('/api/cumplidos/tipos-turno');
+        const data = await res.json();
+        if (Array.isArray(data)) setTiposTurno(data);
+        else setTiposTurno([]);
+      } catch (e) {
+        setTiposTurno([]);
+      }
+    };
+    fetchTiposTurno();
+  }, []);
+
   useEffect(() => {
     cargarPuestos();
     cargarUnidadesNegocio();
@@ -687,8 +689,8 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
   );
 
   const puestosFiltrados = puestos.filter((puesto) => {
-    // ¿Hay cumplido para este puesto en la fecha seleccionada?
-    const tieneCumplido = cumplidos[puesto.id_puesto]?.diurno || cumplidos[puesto.id_puesto]?.nocturno;
+    // ¿Hay algún cumplido para este puesto en la fecha seleccionada?
+    const tieneCumplido = cumplidos[puesto.id_puesto] && Object.keys(cumplidos[puesto.id_puesto]).length > 0;
 
     // Verifica la fecha inicial
     const fechaInicial = puesto.fecha_inicial ? new Date(puesto.fecha_inicial) : null;
@@ -816,8 +818,9 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
                   <TableRow>
                     <TableHead className="w-[200px]">Unidad de Negocio</TableHead>
                     <TableHead className="w-[150px]">Puesto</TableHead>
-                    <TableHead className="w-[300px]">Colaborador Diurno</TableHead>
-                    <TableHead className="w-[300px]">Colaborador Nocturno</TableHead>
+                    {tiposTurno.map(turno => (
+                      <TableHead key={turno.id_tipo_turno} className="w-[300px]">Colaborador {turno.nombre_tipo_turno}</TableHead>
+                    ))}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -835,11 +838,7 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
                   }, []).map((unidad, unidadIndex) => (
                     <React.Fragment key={`unidad-${unidad.nombre_unidad}-${unidadIndex}`}>
                       {unidad.puestos.map((puesto: Puesto, puestoIndex: number) => {
-                        const cumplidoDiurno = cumplidos[puesto.id_puesto]?.diurno;
-                        const cumplidoNocturno = cumplidos[puesto.id_puesto]?.nocturno;
                         const cambios = (pendingChanges.get(puesto.id_puesto) || {}) as PendingChange;
-                        const notaDiurno = cumplidoDiurno?.id_cumplido ? notas.get(`${cumplidoDiurno.id_cumplido}`) : null;
-                        const notaNocturno = cumplidoNocturno?.id_cumplido ? notas.get(`${cumplidoNocturno.id_cumplido}`) : null;
                         const isSaving = saving.has(puesto.id_puesto);
                         return (
                           <TableRow 
@@ -852,106 +851,62 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
                               </TableCell>
                             )}
                             <TableCell className="w-[150px]">{puesto.nombre_puesto}</TableCell>
-                            <TableCell className="w-[300px]">
-                              <div className="relative" onContextMenu={e => handleContextMenu(e, puesto.id_puesto, 'diurno')}>
-                                <Input
-                                type="text"
-                                  className={`w-[250px] border rounded px-2 py-3 min-h-[48px] max-h-[200px] resize-none overflow-y-auto whitespace-normal break-words ${notaDiurno ? 'bg-red-100' : ''} ${isSaving ? 'opacity-50' : ''}`}
-                                  value={colaboradorSearch[`${puesto.id_puesto}-diurno`] ?? (cambios.diurno !== undefined ? (colaboradores.find(c => c.id === cambios.diurno)?.nombre + ' ' + (colaboradores.find(c => c.id === cambios.diurno)?.apellido || '') + (colaboradores.find(c => c.id === cambios.diurno)?.placa ? ' (' + colaboradores.find(c => c.id === cambios.diurno)?.placa + ')' : '')) : ((cumplidoDiurno?.colaborador_nombre || '') + (cumplidoDiurno?.colaborador_apellido ? ' ' + cumplidoDiurno.colaborador_apellido : '')))}
-                                  onChange={e => {
-                                    handleColaboradorAutocomplete(puesto.id_puesto, 'diurno', e.target.value);
-                                    buscarColaboradores(e.target.value);
-                                    setPendingChanges(prev => {
-                                      const newMap = new Map(prev);
-                                      const existing = newMap.get(puesto.id_puesto) || { idPuesto: puesto.id_puesto };
-                                      newMap.set(puesto.id_puesto, { ...existing, diurno: e.target.value.trim() === '' ? null : undefined });
-                                      return newMap;
-                                    });
-                                  }}
-                                disabled={isSaving}
-                                  autoComplete="off"
-                                  placeholder="Buscar colaborador..."
-                                  onFocus={() => setAutocompleteOpen(`${puesto.id_puesto}-diurno`)}
-                                  onBlur={() => setTimeout(() => setAutocompleteOpen(null), 150)}
-                                  ref={el => { inputRefs.current[`${puesto.id_puesto}-diurno`] = el; }}
-                                />
-                                {colaboradorSearch[`${puesto.id_puesto}-diurno`] && autocompleteOpen === `${puesto.id_puesto}-diurno` && inputRefs.current[`${puesto.id_puesto}-diurno`] && (
-                                  <AutocompletePortal inputRef={{ current: inputRefs.current[`${puesto.id_puesto}-diurno`] }}>
-                                    {searching ? (
-                                      <div className="px-3 py-2">
-                                        <Skeleton className="h-6 w-full mb-2" />
-                                        <Skeleton className="h-6 w-3/4 mb-2" />
-                                        <Skeleton className="h-6 w-1/2" />
-                                      </div>
-                                    ) : searchResults.length > 0 ? (
-                                      searchResults.slice(0, 8).map(c => (
-                                        <div
-                                          key={c.id}
-                                          className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
-                                          onClick={() => handleColaboradorSelect(puesto.id_puesto, 'diurno', c)}
-                                        >
-                                          {c.nombre} {c.apellido} {c.placa ? '(' + c.placa + ')' : ''}
-                                        </div>
-                                      ))
-                                    ) : (
-                                      (colaboradorSearch[`${puesto.id_puesto}-diurno`]?.length >= 2) && (
-                                        <div className="px-3 py-2 text-gray-400">Sin resultados</div>
-                                      )
+                            {tiposTurno.map(turno => {
+                              const cumplido = cumplidos[puesto.id_puesto]?.[turno.id_tipo_turno];
+                              const nota = cumplido?.id_cumplido ? notas.get(`${cumplido.id_cumplido}`) : null;
+                              return (
+                                <TableCell key={turno.id_tipo_turno} className="w-[300px]">
+                                  <div className="relative" onContextMenu={e => handleContextMenu(e, puesto.id_puesto, turno.id_tipo_turno)}>
+                                    <Input
+                                      type="text"
+                                      className={`w-[250px] border rounded px-2 py-3 min-h-[48px] max-h-[200px] resize-none overflow-y-auto whitespace-normal break-words ${nota ? 'bg-red-100' : ''} ${isSaving ? 'opacity-50' : ''}`}
+                                      value={colaboradorSearch[`${puesto.id_puesto}-${turno.id_tipo_turno}`] ?? (cambios[turno.id_tipo_turno] !== undefined ? (colaboradores.find(c => c.id === cambios[turno.id_tipo_turno])?.nombre + ' ' + (colaboradores.find(c => c.id === cambios[turno.id_tipo_turno])?.apellido || '') + (colaboradores.find(c => c.id === cambios[turno.id_tipo_turno])?.placa ? ' (' + colaboradores.find(c => c.id === cambios[turno.id_tipo_turno])?.placa + ')' : '')) : ((cumplido?.colaborador_nombre || '') + (cumplido?.colaborador_apellido ? ' ' + cumplido.colaborador_apellido : '')))}
+                                      onChange={e => {
+                                        handleColaboradorAutocomplete(puesto.id_puesto, turno.id_tipo_turno, e.target.value);
+                                        buscarColaboradores(e.target.value);
+                                        setPendingChanges(prev => {
+                                          const newMap = new Map(prev);
+                                          const existing = newMap.get(puesto.id_puesto) || { idPuesto: puesto.id_puesto };
+                                          newMap.set(puesto.id_puesto, { ...existing, [turno.id_tipo_turno]: e.target.value.trim() === '' ? null : undefined });
+                                          return newMap;
+                                        });
+                                      }}
+                                      disabled={isSaving}
+                                      autoComplete="off"
+                                      placeholder="Buscar colaborador..."
+                                      onFocus={() => setAutocompleteOpen(`${puesto.id_puesto}-${turno.id_tipo_turno}`)}
+                                      onBlur={() => setTimeout(() => setAutocompleteOpen(null), 150)}
+                                      ref={el => { inputRefs.current[`${puesto.id_puesto}-${turno.id_tipo_turno}`] = el; }}
+                                    />
+                                    {colaboradorSearch[`${puesto.id_puesto}-${turno.id_tipo_turno}`] && autocompleteOpen === `${puesto.id_puesto}-${turno.id_tipo_turno}` && inputRefs.current[`${puesto.id_puesto}-${turno.id_tipo_turno}`] && (
+                                      <AutocompletePortal inputRef={{ current: inputRefs.current[`${puesto.id_puesto}-${turno.id_tipo_turno}`] }}>
+                                        {searching ? (
+                                          <div className="px-3 py-2">
+                                            <Skeleton className="h-6 w-full mb-2" />
+                                            <Skeleton className="h-6 w-3/4 mb-2" />
+                                            <Skeleton className="h-6 w-1/2" />
+                                          </div>
+                                        ) : searchResults.length > 0 ? (
+                                          searchResults.slice(0, 8).map(c => (
+                                            <div
+                                              key={c.id}
+                                              className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
+                                              onClick={() => handleColaboradorSelect(puesto.id_puesto, turno.id_tipo_turno, c)}
+                                            >
+                                              {c.nombre} {c.apellido} {c.placa ? '(' + c.placa + ')' : ''}
+                                            </div>
+                                          ))
+                                        ) : (
+                                          (colaboradorSearch[`${puesto.id_puesto}-${turno.id_tipo_turno}`]?.length >= 2) && (
+                                            <div className="px-3 py-2 text-gray-400">Sin resultados</div>
+                                          )
+                                        )}
+                                      </AutocompletePortal>
                                     )}
-                                  </AutocompletePortal>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell className="w-[300px]">
-                              <div className="relative" onContextMenu={e => handleContextMenu(e, puesto.id_puesto, 'nocturno')}>
-                                <Input
-                                type="text"
-                                  className={`w-[250px] border rounded px-2 py-3 min-h-[48px] max-h-[200px] resize-none overflow-y-auto whitespace-normal break-words ${notaNocturno ? 'bg-red-100' : ''} ${isSaving ? 'opacity-50' : ''}`}
-                                  value={colaboradorSearch[`${puesto.id_puesto}-nocturno`] ?? (cambios.nocturno !== undefined ? (colaboradores.find(c => c.id === cambios.nocturno)?.nombre + ' ' + (colaboradores.find(c => c.id === cambios.nocturno)?.apellido || '') + (colaboradores.find(c => c.id === cambios.nocturno)?.placa ? ' (' + colaboradores.find(c => c.id === cambios.nocturno)?.placa + ')' : '')) : ((cumplidoNocturno?.colaborador_nombre || '') + (cumplidoNocturno?.colaborador_apellido ? ' ' + cumplidoNocturno.colaborador_apellido : '')))}
-                                  onChange={e => {
-                                    handleColaboradorAutocomplete(puesto.id_puesto, 'nocturno', e.target.value);
-                                    buscarColaboradores(e.target.value);
-                                    setPendingChanges(prev => {
-                                      const newMap = new Map(prev);
-                                      const existing = newMap.get(puesto.id_puesto) || { idPuesto: puesto.id_puesto };
-                                      newMap.set(puesto.id_puesto, { ...existing, nocturno: e.target.value.trim() === '' ? null : undefined });
-                                      return newMap;
-                                    });
-                                  }}
-                                disabled={isSaving}
-                                  autoComplete="off"
-                                  placeholder="Buscar colaborador..."
-                                  onFocus={() => setAutocompleteOpen(`${puesto.id_puesto}-nocturno`)}
-                                  onBlur={() => setTimeout(() => setAutocompleteOpen(null), 150)}
-                                  ref={el => { inputRefs.current[`${puesto.id_puesto}-nocturno`] = el; }}
-                                />
-                                {colaboradorSearch[`${puesto.id_puesto}-nocturno`] && autocompleteOpen === `${puesto.id_puesto}-nocturno` && inputRefs.current[`${puesto.id_puesto}-nocturno`] && (
-                                  <AutocompletePortal inputRef={{ current: inputRefs.current[`${puesto.id_puesto}-nocturno`] }}>
-                                    {searching ? (
-                                      <div className="px-3 py-2">
-                                        <Skeleton className="h-6 w-full mb-2" />
-                                        <Skeleton className="h-6 w-3/4 mb-2" />
-                                        <Skeleton className="h-6 w-1/2" />
-                                      </div>
-                                    ) : searchResults.length > 0 ? (
-                                      searchResults.slice(0, 8).map(c => (
-                                        <div
-                                          key={c.id}
-                                          className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
-                                          onClick={() => handleColaboradorSelect(puesto.id_puesto, 'nocturno', c)}
-                                        >
-                                          {c.nombre} {c.apellido} {c.placa ? '(' + c.placa + ')' : ''}
-                                        </div>
-                                      ))
-                                    ) : (
-                                      (colaboradorSearch[`${puesto.id_puesto}-nocturno`]?.length >= 2) && (
-                                        <div className="px-3 py-2 text-gray-400">Sin resultados</div>
-                                      )
-                                    )}
-                                  </AutocompletePortal>
-                                )}
-                              </div>
-                            </TableCell>
+                                  </div>
+                                </TableCell>
+                              );
+                            })}
                           </TableRow>
                         );
                       })}
@@ -970,10 +925,10 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
       >
         <DialogContent aria-describedby="nota-dialog-description">
           <DialogHeader>
-            <DialogTitle>Nota para colaborador {modal.nota?.tipo}</DialogTitle>
+            <DialogTitle>Nota para colaborador {modal.nota?.idTipoTurno ? tiposTurno.find(t => t.id_tipo_turno === modal.nota?.idTipoTurno)?.nombre_tipo_turno : ''}</DialogTitle>
           </DialogHeader>
           <div id="nota-dialog-description" className="sr-only">
-            Formulario para agregar o editar una nota para el colaborador {modal.nota?.tipo}
+            Formulario para agregar o editar una nota para el colaborador {modal.nota?.idTipoTurno ? tiposTurno.find(t => t.id_tipo_turno === modal.nota?.idTipoTurno)?.nombre_tipo_turno : ''}
           </div>
           <Textarea
             value={modal.nota?.nota || ''}

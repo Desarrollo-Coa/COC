@@ -1,0 +1,12 @@
+---
+alwaysApply: true
+
+rules:
+  - Comenta cada función explicando su propósito.
+  - Usa nombres de variables descriptivos (en inglés).
+  - Incluye manejo de errores y validación de datos.
+  - Escribe código compatible con ES2022.
+  - No uses código obsoleto ni APIs deprecated.
+  - Sigue principios SOLID cuando sea posible.
+
+--- 

@@ -32,13 +32,14 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Falta fecha para descarga de día' }, { status: 400 });
       }
       fechas = [new Date(fechaDia).toISOString().split('T')[0]];
-    } else {
+     } else {
       return NextResponse.json({ error: 'Tipo inválido' }, { status: 400 });
     }
 
     const workbook = new ExcelJS.Workbook();
     const diasSinDatos: string[] = [];
     let hojasConDatos = 0;
+
     for (const fecha of [...fechas].reverse()) {
       // Obtener cumplidos de la zona para la fecha
       const [cumplidos] = await pool.query(`
@@ -93,15 +94,20 @@ export async function POST(request: Request) {
       };
       const diurno = getPorTurno(1);
       const nocturno = getPorTurno(2);
+      const turnoB = getPorTurno(3); // Added Turno B
+
       // Crear hoja
       const sheet = workbook.addWorksheet(fecha);
       hojasConDatos++;
+
       // Encabezados grandes
       sheet.mergeCells('A1', 'C1');
       sheet.mergeCells('E1', 'G1');
+      sheet.mergeCells('I1', 'K1'); // Turno B header
       sheet.getCell('A1').value = `CUMPLIDO TURNO DIURNO ${String(nombreNegocio).toUpperCase()}`;
-      sheet.getCell('E1').value = `CUMPLIDO TURNO NOCTURNO ${String(nombreNegocio).toUpperCase()}`;
-      ['A1','E1'].forEach(cell => {
+      sheet.getCell('E1').value = `CUMPLIDO TURNO B ${String(nombreNegocio).toUpperCase()}`;
+      sheet.getCell('I1').value = `CUMPLIDO TURNO NOCTURNO ${String(nombreNegocio).toUpperCase()}`;
+      ['A1', 'E1', 'I1'].forEach(cell => {
         sheet.getCell(cell).fill = {
           type: 'pattern',
           pattern: 'solid',
@@ -110,12 +116,15 @@ export async function POST(request: Request) {
         sheet.getCell(cell).font = { color: { argb: 'FFFFFF' }, bold: true, size: 13 };
         sheet.getCell(cell).alignment = { vertical: 'middle', horizontal: 'center' };
       });
+
       // Sub-encabezados
       sheet.mergeCells('A2', 'C2');
       sheet.mergeCells('E2', 'G2');
+      sheet.mergeCells('I2', 'K2');
       sheet.getCell('A2').value = '';
       sheet.getCell('E2').value = '';
-      ['A2','E2'].forEach(cell => {
+      sheet.getCell('I2').value = '';
+      ['A2', 'E2', 'I2'].forEach(cell => {
         sheet.getCell(cell).fill = {
           type: 'pattern',
           pattern: 'solid',
@@ -124,14 +133,18 @@ export async function POST(request: Request) {
         sheet.getCell(cell).font = { color: { argb: 'FFFFFF' }, bold: true };
         sheet.getCell(cell).alignment = { vertical: 'middle', horizontal: 'center' };
       });
+
       // Columnas
       sheet.getCell('A3').value = 'UNIDAD DE NEGOCIO';
       sheet.getCell('B3').value = 'PUESTO';
       sheet.getCell('C3').value = 'COLABORADOR DIURNO';
       sheet.getCell('E3').value = 'UNIDAD DE NEGOCIO';
       sheet.getCell('F3').value = 'PUESTO';
-      sheet.getCell('G3').value = 'COLABORADOR NOCTURNO';
-      ['A3','B3','C3','E3','F3','G3'].forEach(cell => {
+      sheet.getCell('G3').value = 'COLABORADOR TURNO B';
+      sheet.getCell('I3').value = 'UNIDAD DE NEGOCIO';
+      sheet.getCell('J3').value = 'PUESTO';
+      sheet.getCell('K3').value = 'COLABORADOR NOCTURNO';
+      ['A3', 'B3', 'C3', 'E3', 'F3', 'G3', 'I3', 'J3', 'K3'].forEach(cell => {
         sheet.getCell(cell).fill = {
           type: 'pattern',
           pattern: 'solid',
@@ -141,16 +154,20 @@ export async function POST(request: Request) {
         sheet.getCell(cell).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
         sheet.getCell(cell).border = { bottom: { style: 'thin' }, right: { style: 'thin' }, left: { style: 'thin' }, top: { style: 'thin' } };
       });
+
       // Filas de datos agrupadas por unidad de negocio
       let row = 4;
-      // Agrupar por unidad de negocio para diurno y nocturno
+      // Agrupar por unidad de negocio para diurno, turno B, y nocturno
       const diurnoUnidades = Object.entries(diurno);
+      const turnoBUnidades = Object.entries(turnoB);
       const nocturnoUnidades = Object.entries(nocturno);
-      // Calcular el máximo de filas para alinear ambas secciones
+      // Calcular el máximo de filas para alinear las tres secciones
       const maxRows = Math.max(
         diurnoUnidades.reduce((acc, [_, arr]) => acc + arr.length, 0),
+        turnoBUnidades.reduce((acc, [_, arr]) => acc + arr.length, 0),
         nocturnoUnidades.reduce((acc, [_, arr]) => acc + arr.length, 0)
       );
+
       // Construir filas agrupadas para diurno
       let diurnoRows: any[] = [];
       diurnoUnidades.forEach(([unidad, arr]) => {
@@ -164,6 +181,21 @@ export async function POST(request: Request) {
           });
         });
       });
+
+      // Construir filas agrupadas para turno B
+      let turnoBRows: any[] = [];
+      turnoBUnidades.forEach(([unidad, arr]) => {
+        arr.forEach((c: any, idx: number) => {
+          turnoBRows.push({
+            unidad,
+            puesto: c.nombre_puesto,
+            colaborador: c.colaborador_nombre_completo,
+            id_cumplido: c.id_cumplido,
+            merge: idx === 0 ? arr.length : 0
+          });
+        });
+      });
+
       // Construir filas agrupadas para nocturno
       let nocturnoRows: any[] = [];
       nocturnoUnidades.forEach(([unidad, arr]) => {
@@ -177,11 +209,14 @@ export async function POST(request: Request) {
           });
         });
       });
-      // Alinear ambas secciones
-      const maxDataRows = Math.max(diurnoRows.length, nocturnoRows.length);
+
+      // Alinear las tres secciones
+      const maxDataRows = Math.max(diurnoRows.length, turnoBRows.length, nocturnoRows.length);
       for (let i = 0; i < maxDataRows; i++) {
         const diurnoData = diurnoRows[i] || { unidad: '', puesto: '', colaborador: '', id_cumplido: null, merge: 0 };
+        const turnoBData = turnoBRows[i] || { unidad: '', puesto: '', colaborador: '', id_cumplido: null, merge: 0 };
         const nocturnoData = nocturnoRows[i] || { unidad: '', puesto: '', colaborador: '', id_cumplido: null, merge: 0 };
+
         // Diurno
         if (diurnoData.merge > 0) {
           sheet.mergeCells(`A${row}:A${row + diurnoData.merge - 1}`);
@@ -190,29 +225,48 @@ export async function POST(request: Request) {
         }
         sheet.getCell(`B${row}`).value = diurnoData.puesto;
         sheet.getCell(`C${row}`).value = diurnoData.colaborador;
-        // Si hay nota, poner fondo rojo y comentario
         if (diurnoData.id_cumplido && notasMap[diurnoData.id_cumplido]) {
           sheet.getCell(`C${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0000' } };
           sheet.getCell(`C${row}`).note = notasMap[diurnoData.id_cumplido];
         }
-        // Nocturno
-        if (nocturnoData.merge > 0) {
-          sheet.mergeCells(`E${row}:E${row + nocturnoData.merge - 1}`);
-          sheet.getCell(`E${row}`).value = nocturnoData.unidad;
+
+        // Turno B
+        if (turnoBData.merge > 0) {
+          sheet.mergeCells(`E${row}:E${row + turnoBData.merge - 1}`);
+          sheet.getCell(`E${row}`).value = turnoBData.unidad;
           sheet.getCell(`E${row}`).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
         }
-        sheet.getCell(`F${row}`).value = nocturnoData.puesto;
-        sheet.getCell(`G${row}`).value = nocturnoData.colaborador;
-        // Si hay nota, poner fondo rojo y comentario
-        if (nocturnoData.id_cumplido && notasMap[nocturnoData.id_cumplido]) {
+        sheet.getCell(`F${row}`).value = turnoBData.puesto;
+        sheet.getCell(`G${row}`).value = turnoBData.colaborador;
+        if (turnoBData.id_cumplido && notasMap[turnoBData.id_cumplido]) {
           sheet.getCell(`G${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0000' } };
-          sheet.getCell(`G${row}`).note = notasMap[nocturnoData.id_cumplido];
+          sheet.getCell(`G${row}`).note = notasMap[turnoBData.id_cumplido];
         }
+
+        // Nocturno
+        if (nocturnoData.merge > 0) {
+          sheet.mergeCells(`I${row}:I${row + nocturnoData.merge - 1}`);
+          sheet.getCell(`I${row}`).value = nocturnoData.unidad;
+          sheet.getCell(`I${row}`).alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        }
+        sheet.getCell(`J${row}`).value = nocturnoData.puesto;
+        sheet.getCell(`K${row}`).value = nocturnoData.colaborador;
+        if (nocturnoData.id_cumplido && notasMap[nocturnoData.id_cumplido]) {
+          sheet.getCell(`K${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0000' } };
+          sheet.getCell(`K${row}`).note = notasMap[nocturnoData.id_cumplido];
+        }
+
         // Estilo filas alternas
         const fillColor = i % 2 === 0 ? 'FFFFFF' : 'F2F2F2';
-        ['A','B','C','E','F','G'].forEach(col => {
+        ['A', 'B', 'C', 'E', 'F', 'G', 'I', 'J', 'K'].forEach(col => {
           // No sobrescribir fondo rojo si hay nota
-          if (!((col === 'C' && diurnoData.id_cumplido && notasMap[diurnoData.id_cumplido]) || (col === 'G' && nocturnoData.id_cumplido && notasMap[nocturnoData.id_cumplido]))) {
+          if (
+            !(
+              (col === 'C' && diurnoData.id_cumplido && notasMap[diurnoData.id_cumplido]) ||
+              (col === 'G' && turnoBData.id_cumplido && notasMap[turnoBData.id_cumplido]) ||
+              (col === 'K' && nocturnoData.id_cumplido && notasMap[nocturnoData.id_cumplido])
+            )
+          ) {
             const cell = sheet.getCell(`${col}${row}`);
             cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } };
           }
@@ -222,9 +276,9 @@ export async function POST(request: Request) {
         });
         row++;
       }
+
       // Pie de página solo con la fecha
-      sheet.mergeCells(`A${row}:G${row}`);
-      // Formatear la fecha de la hoja a DD-MM-YYYY
+      sheet.mergeCells(`A${row}:K${row}`);
       const [yyyy, mm, dd] = fecha.split('-');
       sheet.getCell(`A${row}`).value = `${dd}-${mm}-${yyyy}`;
       sheet.getCell(`A${row}`).fill = {
@@ -234,17 +288,23 @@ export async function POST(request: Request) {
       };
       sheet.getCell(`A${row}`).font = { color: { argb: 'FFFFFF' }, bold: true };
       sheet.getCell(`A${row}`).alignment = { vertical: 'middle', horizontal: 'center' };
+
       // Ajustar ancho
       sheet.columns = [
-        { width: 25 },
-        { width: 15 },
-        { width: 30 },
-        { width: 2 }, // espacio
-        { width: 25 },
-        { width: 15 },
-        { width: 30 }
+        { width: 25 }, // A: Unidad Diurno
+        { width: 15 }, // B: Puesto Diurno
+        { width: 30 }, // C: Colaborador Diurno
+        { width: 2 },  // D: Espacio
+        { width: 25 }, // E: Unidad Turno B
+        { width: 15 }, // F: Puesto Turno B
+        { width: 30 }, // G: Colaborador Turno B
+        { width: 2 },  // H: Espacio
+        { width: 25 }, // I: Unidad Nocturno
+        { width: 15 }, // J: Puesto Nocturno
+        { width: 30 }  // K: Colaborador Nocturno
       ];
     }
+
     // Generar buffer
     if (hojasConDatos === 0) {
       return NextResponse.json({ error: tipo === 'global' ? 'No hay datos para ningún día del rango seleccionado.' : 'No hay datos para el día seleccionado.' }, { status: 404 });
@@ -253,7 +313,7 @@ export async function POST(request: Request) {
     // Nombre archivo
     let filename = '';
     if (tipo === 'global') {
-      filename = `${nombreNegocio}_${fechas[0]}_a_${fechas[fechas.length-1]}.xlsx`;
+      filename = `${nombreNegocio}_${fechas[0]}_a_${fechas[fechas.length - 1]}.xlsx`;
     } else {
       filename = `${nombreNegocio}_${fechas[0]}.xlsx`;
     }
@@ -272,4 +332,4 @@ export async function POST(request: Request) {
     console.error('Error generando Excel:', error);
     return NextResponse.json({ error: 'Error generando Excel' }, { status: 500 });
   }
-} 
+}
