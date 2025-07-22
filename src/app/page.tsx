@@ -52,6 +52,13 @@ export default function Home() {
       image: "/img/modulos/asuencias/MODULO.jpg",
       link: "/ausencias",
     },
+    {
+      title: "Marcaciones",
+      description: "Visualiza y analiza las marcaciones del personal.",
+      icon: <Calendar className="h-6 w-6 text-muted-foreground" />, 
+      image: "/img/modulos/marcaciones/marcaciones-mitra.jpg",
+      link: "/marcaciones-mitra",
+    },
   ];
 
   useEffect(() => {

@@ -32,6 +32,13 @@ export default function SettingsPage() {
       icon: Route,
       href: "/settings/rutas",
       color: "text-red-500"
+    },
+    {
+      title: "Gestionar Clientes",
+      description: "Crear y administrar clientes para puntos de marcación",
+      icon: Building2,
+      href: "/settings/clientes",
+      color: "text-indigo-500"
     }
   ];
 
