@@ -35,6 +35,8 @@ export default function HistorialAusenciasPage() {
             <thead>
               <tr className="bg-gray-100">
                 <th className="px-2 py-2 border">Colaborador</th>
+                <th className="px-2 py-2 border">Negocio</th>
+                <th className="px-2 py-2 border">Unidad de Negocio</th>
                 <th className="px-2 py-2 border">Puesto</th>
                 <th className="px-2 py-2 border">Tipo</th>
                 <th className="px-2 py-2 border">Fecha inicial</th>
@@ -48,11 +50,17 @@ export default function HistorialAusenciasPage() {
               {ausencias.map((a) => (
                 <tr key={a.id_ausencia} className="border-b">
                   <td className="px-2 py-2 border">{a.nombre_colaborador} {a.apellido_colaborador}</td>
+                  <td className="px-2 py-2 border">{a.nombre_negocio}</td>
+                  <td className="px-2 py-2 border">{a.nombre_unidad}</td>
                   <td className="px-2 py-2 border">{a.nombre_puesto}</td>
                   <td className="px-2 py-2 border">{a.nombre_tipo_ausencia}</td>
                   <td className="px-2 py-2 border">{formatFecha(a.fecha_inicio)}</td>
                   <td className="px-2 py-2 border">{formatFecha(a.fecha_fin)}</td>
-                  <td className="px-2 py-2 border">{a.fecha_inicio && a.fecha_fin ? (Math.ceil((new Date(a.fecha_fin).getTime() - new Date(a.fecha_inicio).getTime()) / (1000*60*60*24)) + 1) : '-'}</td>
+                  <td className="px-2 py-2 border">
+                    {a.fecha_inicio && a.fecha_fin
+                      ? Math.ceil((new Date(a.fecha_fin).getTime() - new Date(a.fecha_inicio).getTime()) / (1000 * 60 * 60 * 24)) + 1
+                      : '-'}
+                  </td>
                   <td className="px-2 py-2 border max-w-xs whitespace-pre-line">{a.descripcion}</td>
                   <td className="px-2 py-2 border">
                     {a.archivos && a.archivos.length > 0 ? (
@@ -77,4 +85,4 @@ export default function HistorialAusenciasPage() {
       )}
     </div>
   );
-} 
+}

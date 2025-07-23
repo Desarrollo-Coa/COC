@@ -7,13 +7,15 @@ export const revalidate = 0;
 export async function GET() {
   try {
     const [ausencias] = await pool.query(
-      `SELECT a.*, c.nombre AS nombre_colaborador, c.apellido AS apellido_colaborador, p.nombre_puesto, ta.nombre_tipo_ausencia
+      `SELECT a.*, c.nombre AS nombre_colaborador, c.apellido AS apellido_colaborador, 
+              p.nombre_puesto, ta.nombre_tipo_ausencia, un.nombre_unidad, ng.nombre_negocio
        FROM ausencias a
        JOIN colaboradores c ON a.id_colaborador = c.id
        JOIN puestos p ON a.id_puesto = p.id_puesto
+       JOIN unidades_negocio un ON p.id_unidad = un.id_unidad
+       JOIN negocios ng ON un.id_negocio = ng.id_negocio
        JOIN tipos_ausencia ta ON a.id_tipo_ausencia = ta.id_tipo_ausencia
-       ORDER BY a.fecha_registro DESC`
-    );
+       ORDER BY a.fecha_registro DESC`    );
     // Para cada ausencia, obtener archivos adjuntos
     const ausenciasConArchivos = await Promise.all((ausencias as any[]).map(async (a) => {
       const [archivos] = await pool.query(
