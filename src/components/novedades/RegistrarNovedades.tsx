@@ -36,18 +36,6 @@ const formSchema = z.object({
   imagenes: z.any().optional(),
 })
 
-interface Sede {
-  id_sede: number
-  nombre_sede: string
-  id_departamento: number
-  id_municipio: number
-  id_zona: number
-  direccion: string
-  nombre_departamento: string
-  nombre_municipio: string
-  nombre_zona: string
-}
-
 interface UnidadNegocio {
   id_unidad_negocio: number | string
   nombre_puesto: string
