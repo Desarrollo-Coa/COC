@@ -80,7 +80,7 @@ export default function RegistrarNovedades() {
       try {
         const [tiposReporteRes, negociosRes] = await Promise.all([
           fetch("/api/novedades/tipos-reporte"),
-          fetch("/api/novedades/negocios"),
+          fetch("/api/negocios"),
         ])
         
         if (!tiposReporteRes.ok || !negociosRes.ok) {
