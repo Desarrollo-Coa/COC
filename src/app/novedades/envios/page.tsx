@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 'use client'
 
 import NovedadesAside from '@/components/novedades/NovedadesAside'
