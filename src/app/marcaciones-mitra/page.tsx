@@ -58,26 +58,22 @@ const formatearFecha = (fecha: string) => {
   return `${day}/${month}/${year}`;
 };
 
-const obtenerQuincenaAnterior = () => {
+const obtenerUltimos7Dias = () => {
   const hoy = new Date();
-  const mesActual = hoy.getMonth();
-  const añoActual = hoy.getFullYear();
+  const fechaFin = new Date(hoy);
+  const fechaInicio = new Date(hoy);
   
-  if (hoy.getDate() <= 15) {
-    const fechaInicio = new Date(añoActual, mesActual - 1, 16);
-    const fechaFin = new Date(añoActual, mesActual, 0);
-    return {
-      desde: fechaInicio.toISOString().split('T')[0],
-      hasta: fechaFin.toISOString().split('T')[0]
-    };
-  } else {
-    const fechaInicio = new Date(añoActual, mesActual, 1);
-    const fechaFin = new Date(añoActual, mesActual, 15);
-    return {
-      desde: fechaInicio.toISOString().split('T')[0],
-      hasta: fechaFin.toISOString().split('T')[0]
-    };
-  }
+  // La fecha fin es hoy
+  fechaFin.setHours(23, 59, 59, 999);
+  
+  // La fecha inicio es 7 días atrás
+  fechaInicio.setDate(hoy.getDate() - 6); // -6 para incluir hoy + 6 días anteriores = 7 días total
+  fechaInicio.setHours(0, 0, 0, 0);
+  
+  return {
+    desde: fechaInicio.toISOString().split('T')[0],
+    hasta: fechaFin.toISOString().split('T')[0]
+  };
 };
 
 const BATCH_SIZE = 1000; // Aumentamos el tamaño del lote ya que ahora es más eficiente
@@ -133,9 +129,9 @@ export default function MarcacionesMitraPage() {
 
   useEffect(() => {
     setIsClient(true);
-    const quincenaAnterior = obtenerQuincenaAnterior();
-    setDesde(quincenaAnterior.desde);
-    setHasta(quincenaAnterior.hasta);
+    const ultimos7Dias = obtenerUltimos7Dias();
+    setDesde(ultimos7Dias.desde);
+    setHasta(ultimos7Dias.hasta);
     // Cargar clientes
     fetch('/api/clientes')
       .then(res => res.json())
@@ -570,7 +566,7 @@ export default function MarcacionesMitraPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 space-y-4 md:space-y-0 px-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Marcaciones Mitra Dashboard</h1>
-            <p className="mt-2 text-sm text-gray-600">Visualización y análisis de marcaciones por período</p>
+            <p className="mt-2 text-sm text-gray-600">Visualización y análisis de marcaciones de los últimos 7 días</p>
           </div>
           <div className="flex items-center gap-6 w-full md:w-auto">
             {selectorCliente}
