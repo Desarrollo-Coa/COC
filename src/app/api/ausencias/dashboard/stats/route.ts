@@ -88,14 +88,31 @@ export async function GET() {
       cantidad: item.cantidad,
     }))
 
+    // Tendencia mensual (por mes y año)
+    const [tendenciaMensualResult] = await pool.query(`
+      SELECT 
+        DATE_FORMAT(fecha_registro, '%b %Y') as mes,
+        COUNT(*) as cantidad
+      FROM ausencias
+      WHERE activo = TRUE
+      GROUP BY YEAR(fecha_registro), MONTH(fecha_registro)
+      ORDER BY YEAR(fecha_registro), MONTH(fecha_registro)
+    `);
+
+    const tendenciaMensual = (tendenciaMensualResult as any[]).map((item) => ({
+      mes: item.mes,
+      cantidad: item.cantidad,
+    }));
+
     const stats = {
       totalAusencias,
-      ausenciasEsteMes, // <-- este campo es el que espera el frontend
+      ausenciasEsteMes,
       colaboradoresAfectados,
       tiposAusencia: tiposResult,
       ausenciasPorNegocio: negociosResult,
       colaboradoresConMasAusencias: colaboradoresTopResult,
       tendenciaDiaria,
+      tendenciaMensual,
     }
 
     return NextResponse.json(stats)
