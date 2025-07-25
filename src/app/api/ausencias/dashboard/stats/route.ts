@@ -95,7 +95,7 @@ export async function GET() {
         COUNT(*) as cantidad
       FROM ausencias
       WHERE activo = TRUE
-      GROUP BY YEAR(fecha_registro), MONTH(fecha_registro)
+      GROUP BY YEAR(fecha_registro), MONTH(fecha_registro), DATE_FORMAT(fecha_registro, '%b %Y')
       ORDER BY YEAR(fecha_registro), MONTH(fecha_registro)
     `);
 
