@@ -9,14 +9,15 @@ export async function GET() {
     const [totalResult] = await pool.query("SELECT COUNT(*) as total FROM ausencias WHERE activo = TRUE")
     const totalAusencias = (totalResult as any[])[0].total
 
-    // Ausencias este día
-    const [diaResult] = await pool.query(`
+    // Ausencias este mes
+    const [mesResult] = await pool.query(`
       SELECT COUNT(*) as total 
       FROM ausencias 
       WHERE activo = TRUE 
-      AND DATE(fecha_registro) = CURRENT_DATE()
+      AND MONTH(fecha_registro) = MONTH(CURRENT_DATE())
+      AND YEAR(fecha_registro) = YEAR(CURRENT_DATE())
     `)
-    const ausenciasEsteDia = (diaResult as any[])[0].total
+    const ausenciasEsteMes = (mesResult as any[])[0].total;
 
     // Colaboradores afectados
     const [colaboradoresResult] = await pool.query(`
@@ -89,7 +90,7 @@ export async function GET() {
 
     const stats = {
       totalAusencias,
-      ausenciasEsteDia,
+      ausenciasEsteMes, // <-- este campo es el que espera el frontend
       colaboradoresAfectados,
       tiposAusencia: tiposResult,
       ausenciasPorNegocio: negociosResult,
