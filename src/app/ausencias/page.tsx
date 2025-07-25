@@ -47,6 +47,10 @@ interface DashboardStats {
     mes: string
     cantidad: number
   }>
+  tendenciaDiaria: Array<{
+    dia: string
+    cantidad: number
+  }>
 }
 
 const COLORS = ["#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"]
@@ -164,28 +168,21 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium opacity-90">Tipos Activos</CardTitle>
-                <FileText className="h-4 w-4 opacity-90" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.tiposAusencia.length}</div>
-                <p className="text-xs opacity-90">Tipos de ausencia</p>
-              </CardContent>
-            </Card>
+            {/* Elimina la tarjeta de Tipos Activos y reemplázala por el gráfico de barras de tipos de ausencia */}
+            {/* Cambia el gráfico de tendencia mensual a barras */}
+            {/* Agrega un nuevo gráfico de línea para tendencia diaria */}
           </div>
 
           {/* Charts Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Ausencias por Tipo */}
+            {/* Gráfico de barras de tipos de ausencia */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-emerald-600" />
                   Ausencias por Tipo
                 </CardTitle>
-                <CardDescription>Distribución de ausencias según su tipo</CardDescription>
+                <CardDescription>Cantidad de ausencias por tipo</CardDescription>
               </CardHeader>
               <CardContent>
                 <ChartContainer
@@ -198,78 +195,44 @@ export default function DashboardPage() {
                   className="h-[300px]"
                 >
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={stats.tiposAusencia}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="cantidad"
-                        label={({ nombre, porcentaje }) => `${nombre} (${porcentaje}%)`}
-                      >
-                        {stats.tiposAusencia.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
+                    <BarChart data={stats.tiposAusencia}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="nombre" tick={{ fill: "#374151", fontSize: 12 }} angle={-30} textAnchor="end" interval={0} />
+                      <YAxis tick={{ fill: "#374151", fontSize: 12 }} />
                       <ChartTooltip content={<ChartTooltipContent />} />
-                    </PieChart>
+                      <Bar dataKey="cantidad" fill="#10b981" radius={[4, 4, 0, 0]} label={{ position: "top", fill: "#1e293b", fontSize: 14, fontWeight: "bold" }} />
+                    </BarChart>
                   </ResponsiveContainer>
                 </ChartContainer>
               </CardContent>
             </Card>
 
-            {/* Ausencias por Negocio */}
+            {/* Tendencia Mensual (barras por mes) */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-blue-600" />
-                  Ausencias por Negocio
+                  <TrendingUp className="w-5 h-5 text-purple-600" />
+                  Tendencia Mensual
                 </CardTitle>
-                <CardDescription>Cantidad de ausencias por unidad de negocio</CardDescription>
+                <CardDescription>Ausencias por mes (enero, febrero, marzo, ...)</CardDescription>
               </CardHeader>
               <CardContent>
                 <ChartContainer
                   config={{
                     cantidad: {
-                      label: "Cantidad",
-                      color: "hsl(var(--chart-2))",
+                      label: "Ausencias",
+                      color: "hsl(var(--chart-3))",
                     },
                   }}
                   className="h-[300px]"
                 >
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={stats.ausenciasPorNegocio}
-                      margin={{ top: 30, right: 20, left: 20, bottom: 60 }} // Increased top margin for labels
-                    >
+                    <BarChart data={stats.tendenciaMensual}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis
-                        dataKey="negocio"
-                        tick={{ fill: "#374151", fontSize: 12 }}
-                        angle={90}
-                        textAnchor="start"
-                        dy={10}
-                      />
-                      <YAxis
-                        tick={{ fill: "#374151", fontSize: 12 }}
-                        domain={[0, yAxisMax]} // Set dynamic max value
-                      />
+                      <XAxis dataKey="mes" />
+                      <YAxis />
                       <ChartTooltip content={<ChartTooltipContent />} />
-                      <Bar
-                        dataKey="cantidad"
-                        fill="#3b82f6"
-                        radius={[4, 4, 0, 0]}
-                        label={{
-                          position: "top",
-                          fill: "#1e293b",
-                          fontSize: 16,
-                          fontWeight: "bold",
-                          offset: 10, // Increased offset to prevent clipping
-                          formatter: (value: number) => `${value}`,
-                        }}
-                      />
+                      <Bar dataKey="cantidad" fill="#8b5cf6" radius={[4, 4, 0, 0]} label={{ position: "top", fill: "#1e293b", fontSize: 14, fontWeight: "bold" }} />
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartContainer>
@@ -277,38 +240,32 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Tendencia Mensual */}
+          {/* Nuevo gráfico de línea: tendencia diaria últimos 7 días */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-purple-600" />
-                Tendencia Mensual
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+                Tendencia de Ausencias Diaria (últimos 7 días)
               </CardTitle>
-              <CardDescription>Evolución de ausencias en los últimos meses</CardDescription>
+              <CardDescription>Evolución diaria de ausencias recientes</CardDescription>
             </CardHeader>
             <CardContent>
               <ChartContainer
                 config={{
                   cantidad: {
                     label: "Ausencias",
-                    color: "hsl(var(--chart-3))",
+                    color: "hsl(var(--chart-2))",
                   },
                 }}
                 className="h-[300px]"
               >
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={stats.tendenciaMensual}>
+                  <LineChart data={stats.tendenciaDiaria}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="mes" />
+                    <XAxis dataKey="dia" />
                     <YAxis />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line
-                      type="monotone"
-                      dataKey="cantidad"
-                      stroke="#8b5cf6"
-                      strokeWidth={3}
-                      dot={{ fill: "#8b5cf6", strokeWidth: 2, r: 4 }}
-                    />
+                    <Line type="monotone" dataKey="cantidad" stroke="#3b82f6" strokeWidth={3} dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </ChartContainer>
