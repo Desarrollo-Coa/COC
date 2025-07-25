@@ -48,6 +48,7 @@ export default function RegistroAusenciaPage() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -56,6 +57,37 @@ export default function RegistroAusenciaPage() {
         ...prev,
         archivos: [...prev.archivos, ...newFiles],
       }));
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const newFiles = Array.from(e.dataTransfer.files);
+      setFormData((prev) => ({
+        ...prev,
+        archivos: [...prev.archivos, ...newFiles],
+      }));
+    }
+  };
+
+  const handleFileInputClick = () => {
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
     }
   };
 
@@ -256,9 +288,21 @@ export default function RegistroAusenciaPage() {
                 <CardDescription>Adjunte documentos que respalden la ausencia (opcional)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center">
+                <div 
+                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                    dragActive 
+                      ? 'border-blue-400 bg-blue-50' 
+                      : 'border-slate-300 hover:border-slate-400'
+                  }`}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                >
                   <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                  <p className="text-sm text-slate-600 mb-2">Arrastra archivos aquí o haz clic para seleccionar</p>
+                  <p className="text-sm text-slate-600 mb-2">
+                    Arrastra archivos aquí o haz clic para seleccionar
+                  </p>
                   <Input
                     type="file"
                     multiple
@@ -267,11 +311,14 @@ export default function RegistroAusenciaPage() {
                     className="hidden"
                     id="file-upload"
                   />
-                  <Label htmlFor="file-upload" className="cursor-pointer">
-                    <Button type="button" variant="outline" size="sm">
-                      Seleccionar Archivos
-                    </Button>
-                  </Label>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleFileInputClick}
+                  >
+                    Seleccionar Archivos
+                  </Button>
                   <p className="text-xs text-slate-500 mt-2">PDF, JPG, PNG (máx. 10MB cada uno)</p>
                 </div>
 

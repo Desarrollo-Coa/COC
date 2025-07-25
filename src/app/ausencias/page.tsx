@@ -267,9 +267,9 @@ export default function DashboardPage() {
                   className="h-[300px]"
                 >
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.ausenciasPorNegocio} margin={{ top: 30, right: 20, left: 20, bottom: 60 }}>
+                    <BarChart data={stats.ausenciasPorNegocio} margin={{ top: 30, right: 20, left: 20, bottom: 80 }}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="negocio" tick={{ fill: "#374151", fontSize: 12 }} angle={90} textAnchor="start" dy={10} />
+                      <XAxis dataKey="negocio" tick={{ fill: "#374151", fontSize: 11 }} angle={-45} textAnchor="end" height={60} />
                       <YAxis tick={{ fill: "#374151", fontSize: 12 }} />
                       <ChartTooltip content={<ChartTooltipContent />} />
                       <Bar dataKey="cantidad" fill="#3b82f6" radius={[4, 4, 0, 0]} label={{ position: "top", fill: "#1e293b", fontSize: 14, fontWeight: "bold" }}>
