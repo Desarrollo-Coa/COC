@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 // import { CumplidoNegocioTable } from '@/components/reporte-diario';
-import { CumplidoNegocioTable } from '../../../../components/reporte-diario';
+import { CumplidoNegocioTable } from '@/components/reporte-diario';
 import SelectorNegocioGenerales, { Negocio } from '@/components/negocios/SelectorNegocioGenerales';
 import { useRouter } from 'next/navigation';
 
