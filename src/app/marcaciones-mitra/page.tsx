@@ -16,8 +16,7 @@ import { Bar, Line } from "react-chartjs-2";
 import ChartDataLabels from "chartjs-plugin-datalabels"; 
 import { useAuth } from '@/hooks/useAuth';
 import * as XLSX from 'xlsx';
-import { RadialBarChart, RadialBar, PolarGrid, PolarRadiusAxis, Label } from 'recharts';
-import { TrendingUp } from "lucide-react"
+import { RadialBarChart, RadialBar, PolarGrid, PolarRadiusAxis, Label } from 'recharts'; 
 import { CartesianGrid, LabelList, Line as RechartsLine, LineChart, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip, TooltipProps } from "recharts"
 import {
   Card,
@@ -881,8 +880,8 @@ export default function MarcacionesMitraPage() {
 
         {/* Charts Section */}
         <div className="space-y-8">
-          {/* Primera fila: Dos columnas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Primera fila: Gráfico de Marcaciones por Zona (ancho completo) */}
+          <div className="grid grid-cols-1 gap-8">
             {/* Gráfico de Marcaciones por Zona */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Marcaciones por Zona</h3>
@@ -911,28 +910,35 @@ export default function MarcacionesMitraPage() {
                     },
                     responsive: true,
                     maintainAspectRatio: false,
-                    indexAxis: 'y',
+                    indexAxis: 'x',
                     scales: { 
                       x: { 
+                        ticks: { 
+                          color: '#374151',
+                          maxRotation: 45,
+                          minRotation: 45
+                        },
+                        grid: {
+                          display: true
+                        }
+                      }, 
+                      y: { 
                         ticks: { color: '#374151' },
                         grid: {
                           display: true
                         },
                         suggestedMax: sugeridoMaxZona,
                         beginAtZero: true
-                      }, 
-                      y: { 
-                        ticks: { color: '#374151' },
-                        grid: {
-                          display: true
-                        }
                       } 
                     }
                   }}
                 />
               </div>
             </div>
+          </div>
 
+          {/* Segunda fila: Gráficos de Marcaciones por Hora y por Día (dos columnas) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Gráfico de Marcaciones por Hora */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
               <div className="flex justify-between items-center mb-4">
@@ -1001,251 +1007,81 @@ export default function MarcacionesMitraPage() {
                 />
               </div>
             </div>
-          </div>
 
-          {/* Segunda fila: Gráfico de Marcaciones por Día */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Marcaciones por Día</h3>
-              <div className="flex gap-4">
-                <select
-                  value={filtroZonaDia}
-                  onChange={(e) => setFiltroZonaDia(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Todas las zonas</option>
-                  {zonas.map((zona) => (
-                    <option key={zona} value={zona}>{zona}</option>
-                  ))}
-                </select>
+            {/* Gráfico de Marcaciones por Día */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Marcaciones por Día</h3>
+                <div className="flex gap-4">
+                  <select
+                    value={filtroZonaDia}
+                    onChange={(e) => setFiltroZonaDia(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Todas las zonas</option>
+                    {zonas.map((zona) => (
+                      <option key={zona} value={zona}>{zona}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
-            </div>
-            <p className="text-sm text-gray-600 mb-6">Muestra el número total de marcaciones registradas cada día en el período seleccionado, permitiendo identificar los días con mayor y menor actividad de revistas.</p>
-            <div className="h-64 mb-8">
-              <Bar
-                data={{
-                  labels: fechasFormateadas,
-                  datasets: [{
-                    label: "Marcaciones",
-                    data: fechas.map(f => 
-                      filtroZonaDia 
-                        ? dataFiltrada.filter((d: any) => d.fecha === f && d.punto_marcacion === filtroZonaDia).length
-                        : dataFiltrada.filter((d: any) => d.fecha === f).length
-                    ),
-                    backgroundColor: PALETA[0],
-                    borderRadius: 4
-                  }]
-                }}
-                options={{
-                  onClick: (_, elements) => handleBarClick(_, elements, 'dia'),
-                  plugins: { 
-                    legend: { display: false }, 
-                    datalabels: { anchor: 'end', align: 'end', color: '#1e293b', font: { weight: 'bold', size: 16 } },
-                    tooltip: {
-                      callbacks: {
-                        label: (context) => `Click para ver detalles`
-                      }
-                    }
-                  },
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  indexAxis: 'x',
-                  scales: { 
-                    x: { 
-                      ticks: { 
-                        color: '#374151',
-                        maxRotation: 90,
-                        minRotation: 90
-                      },
-                      grid: {
-                        display: true
-                      }
-                    }, 
-                    y: { 
-                      ticks: { color: '#374151' },
-                      suggestedMax: Math.max(...fechas.map(f => 
+              <p className="text-sm text-gray-600 mb-6">Muestra el número total de marcaciones registradas cada día en el período seleccionado, permitiendo identificar los días con mayor y menor actividad de revistas.</p>
+              <div className="h-[20rem]">
+                <Bar
+                  data={{
+                    labels: fechasFormateadas,
+                    datasets: [{
+                      label: "Marcaciones",
+                      data: fechas.map(f => 
                         filtroZonaDia 
                           ? dataFiltrada.filter((d: any) => d.fecha === f && d.punto_marcacion === filtroZonaDia).length
                           : dataFiltrada.filter((d: any) => d.fecha === f).length
-                      )) * 1.2,
-                      beginAtZero: true,
-                      grid: {
-                        display: true
+                      ),
+                      backgroundColor: PALETA[0],
+                      borderRadius: 4
+                    }]
+                  }}
+                  options={{
+                    onClick: (_, elements) => handleBarClick(_, elements, 'dia'),
+                    plugins: { 
+                      legend: { display: false }, 
+                      datalabels: { anchor: 'end', align: 'end', color: '#1e293b', font: { weight: 'bold', size: 16 } },
+                      tooltip: {
+                        callbacks: {
+                          label: (context) => `Click para ver detalles`
+                        }
                       }
-                    } 
-                  }
-                }}
-              />
-            </div>
-            <div className="mb-6">
-              <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <CardTitle>Análisis de Tendencia</CardTitle>
-                      <CardDescription>
-                        {tipoAnalisisTendencia === 'diario' 
-                          ? 'Tendencia de marcaciones por día'
-                          : `Tendencia de marcaciones por hora (últimas ${horasAnalisis} horas)`}
-                      </CardDescription>
-                    </div>
-                    <div className="flex gap-4">
-                      <select
-                        value={filtroZonaTendencia}
-                        onChange={(e) => setFiltroZonaTendencia(e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">Todas las zonas</option>
-                        {zonas.map((zona) => (
-                          <option key={zona} value={zona}>{zona}</option>
-                        ))}
-                      </select>
-                      <select
-                        value={tipoAnalisisTendencia}
-                        onChange={(e) => setTipoAnalisisTendencia(e.target.value as 'diario' | 'horas')}
-                        className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="diario">Tendencia Diaria</option>
-                        <option value="horas">Tendencia por Horas</option>
-                      </select>
-                      {tipoAnalisisTendencia === 'horas' && (
-                        <select
-                          value={horasAnalisis}
-                          onChange={(e) => setHorasAnalisis(Number(e.target.value))}
-                          className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="4">Últimas 4 horas</option>
-                          <option value="8">Últimas 8 horas</option>
-                          <option value="12">Últimas 12 horas</option>
-                          <option value="24">Últimas 24 horas</option>
-                        </select>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[400px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={tipoAnalisisTendencia === 'diario'
-                          ? fechas.map(f => ({
-                              fecha: formatearFecha(f),
-                              fechaOriginal: f,
-                              marcaciones: filtroZonaTendencia 
-                                ? dataFiltrada.filter((d: any) => d.fecha === f && d.punto_marcacion === filtroZonaTendencia).length
-                                : dataFiltrada.filter((d: any) => d.fecha === f).length
-                            }))
-                          : horas.slice(-horasAnalisis).map(h => ({
-                              hora: `${h}:00`,
-                              horaOriginal: h,
-                              marcaciones: filtroZonaTendencia 
-                                ? dataFiltrada.filter((d: any) => d.hora_marcacion?.slice(0,2) === h && d.punto_marcacion === filtroZonaTendencia).length
-                                : dataFiltrada.filter((d: any) => d.hora_marcacion?.slice(0,2) === h).length
-                            }))}
-                        margin={{
-                          top: 20,
-                          right: 30,
-                          left: 20,
-                          bottom: 20,
-                        }}
-                        onClick={(chartData) => {
-                          if (chartData && chartData.activePayload && chartData.activePayload[0]) {
-                            const payload = chartData.activePayload[0].payload;
-                            let filteredData: any[] = [];
-                            let title = "";
-
-                            if (tipoAnalisisTendencia === 'diario') {
-                              filteredData = dataFiltrada.filter((d: any) => {
-                                const matchesFecha = d.fecha === payload.fechaOriginal;
-                                const matchesZona = filtroZonaTendencia ? d.punto_marcacion === filtroZonaTendencia : true;
-                                return matchesFecha && matchesZona;
-                              });
-                              title = `Marcaciones del día ${payload.fecha}${filtroZonaTendencia ? ` en ${filtroZonaTendencia}` : ''}`;
-                            } else {
-                              filteredData = dataFiltrada.filter((d: any) => {
-                                const matchesHora = d.hora_marcacion?.slice(0,2) === payload.horaOriginal;
-                                const matchesZona = filtroZonaTendencia ? d.punto_marcacion === filtroZonaTendencia : true;
-                                return matchesHora && matchesZona;
-                              });
-                              title = `Marcaciones a las ${payload.hora}${filtroZonaTendencia ? ` en ${filtroZonaTendencia}` : ''}`;
-                            }
-
-                            setModalData({
-                              show: true,
-                              title,
-                              data: filteredData
-                            });
-                          }
-                        }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis
-                          dataKey={tipoAnalisisTendencia === 'horas' ? 'hora' : 'fecha'}
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={8}
-                        />
-                        <YAxis
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={8}
-                        />
-                        <RechartsTooltip
-                          content={({ active, payload, label }: TooltipProps<number, string>) => {
-                            if (active && payload && payload.length && payload[0]?.value !== undefined) {
-                              return (
-                                <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-                                  <p className="text-sm font-medium text-gray-900">
-                                    {label}
-                                  </p>
-                                  <p className="text-sm text-gray-600">
-                                    {payload[0].value.toFixed(1)} marcaciones
-                                  </p>
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Click para ver detalles
-                                  </p>
-                                </div>
-                              );
-                            }
-                            return null;
-                          }}
-                        />
-                        <RechartsLine
-                          dataKey="marcaciones"
-                          stroke={PALETA[0]}
-                          strokeWidth={2}
-                          dot={{
-                            fill: PALETA[0],
-                            strokeWidth: 2,
-                            r: 4
-                          }}
-                          activeDot={{
-                            r: 6,
-                            fill: PALETA[0],
-                            stroke: '#fff',
-                            strokeWidth: 2
-                          }}
-                        >
-                          <LabelList
-                            position="top"
-                            offset={12}
-                            className="fill-foreground"
-                            fontSize={12}
-                          />
-                        </RechartsLine>
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex-col items-start gap-2 text-sm">
-                  <div className="leading-none text-muted-foreground">
-                    {tipoAnalisisTendencia === 'diario'
-                      ? `Mostrando tendencia de marcaciones para ${fechas.length} días`
-                      : `Mostrando tendencia de marcaciones para las últimas ${horasAnalisis} horas`}
-                    {filtroZonaTendencia && ` en ${filtroZonaTendencia}`}
-                  </div>
-                </CardFooter>
-              </Card>
+                    },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'x',
+                    scales: { 
+                      x: { 
+                        ticks: { 
+                          color: '#374151',
+                          maxRotation: 90,
+                          minRotation: 90
+                        },
+                        grid: {
+                          display: true
+                        }
+                      }, 
+                      y: { 
+                        ticks: { color: '#374151' },
+                        suggestedMax: Math.max(...fechas.map(f => 
+                          filtroZonaDia 
+                            ? dataFiltrada.filter((d: any) => d.fecha === f && d.punto_marcacion === filtroZonaDia).length
+                            : dataFiltrada.filter((d: any) => d.fecha === f).length
+                        )) * 1.2,
+                        beginAtZero: true,
+                        grid: {
+                          display: true
+                        }
+                      } 
+                    }
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
