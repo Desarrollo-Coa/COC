@@ -1,5 +1,5 @@
+"use client";
 export const dynamic = "force-dynamic";
-"use client"
 
 import RegistrarNovedades from "@/components/novedades/RegistrarNovedades"
 import NovedadesAside from "@/components/novedades/NovedadesAside"

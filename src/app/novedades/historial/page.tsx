@@ -1,7 +1,5 @@
+"use client";
 export const dynamic = "force-dynamic";
-
-'use client'
-
 import HistorialNovedades from '@/components/novedades/HistorialNovedades'
 import NovedadesAside from '@/components/novedades/NovedadesAside'
 import RenoaHeader from '@/components/novedades/RenoaHeader'

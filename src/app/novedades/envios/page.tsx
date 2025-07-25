@@ -1,6 +1,5 @@
+"use client";
 export const dynamic = "force-dynamic";
-
-'use client'
 
 import NovedadesAside from '@/components/novedades/NovedadesAside'
 import HistorialEnvios from '@/components/novedades/HistorialEnvios'
