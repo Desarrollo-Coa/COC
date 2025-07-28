@@ -75,7 +75,7 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const fetchNegocios = async () => {
       try {
-        const response = await fetch('/api/novedades/negocios')
+        const response = await fetch('/api/negocios')
         const data = await response.json()
         setNegocios(data)
         if (data.length > 0) {

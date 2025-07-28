@@ -18,31 +18,54 @@ export default function SelectCascada({ value, onChange }: SelectCascadaProps) {
   const [puestos, setPuestos] = useState<Option[]>([]);
 
   useEffect(() => {
-    fetch('/api/negocios')
-      .then(res => res.json())
-      .then(data => setNegocios(data.map((n: any) => ({ value: n.id_negocio, label: n.nombre_negocio }))));
+    const fetchNegocios = async () => {
+      try {
+        const res = await fetch('/api/negocios')
+        const data = await res.json()
+        setNegocios(data.map((n: any) => ({ value: n.id_negocio, label: n.nombre_negocio })))
+      } catch (error) {
+        console.error('Error al cargar negocios:', error)
+      }
+    }
+    fetchNegocios()
   }, []);
 
   useEffect(() => {
-    if (value.negocio) {
-      fetch(`/api/settings/unidades-negocio?id_negocio=${value.negocio.value}`)
-        .then(res => res.json())
-        .then(data => setUnidades(data.map((u: any) => ({ value: u.id_unidad, label: u.nombre_unidad }))));
-    } else {
-      setUnidades([]);
-      onChange({ ...value, unidad: null, puesto: null });
+    const fetchUnidades = async () => {
+      if (value.negocio) {
+        try {
+          const res = await fetch(`/api/settings/unidades-negocio?id_negocio=${value.negocio.value}`)
+          const data = await res.json()
+          setUnidades(data.map((u: any) => ({ value: u.id_unidad, label: u.nombre_unidad })))
+        } catch (error) {
+          console.error('Error al cargar unidades:', error)
+          setUnidades([])
+        }
+      } else {
+        setUnidades([]);
+        onChange({ ...value, unidad: null, puesto: null });
+      }
     }
+    fetchUnidades()
   }, [value.negocio]);
 
   useEffect(() => {
-    if (value.unidad) {
-      fetch(`/api/puestos?id_unidad=${value.unidad.value}`)
-        .then(res => res.json())
-        .then(data => setPuestos(data.map((p: any) => ({ value: p.id_puesto, label: p.nombre_puesto }))));
-    } else {
-      setPuestos([]);
-      onChange({ ...value, puesto: null });
+    const fetchPuestos = async () => {
+      if (value.unidad) {
+        try {
+          const res = await fetch(`/api/puestos?id_unidad=${value.unidad.value}`)
+          const data = await res.json()
+          setPuestos(data.map((p: any) => ({ value: p.id_puesto, label: p.nombre_puesto })))
+        } catch (error) {
+          console.error('Error al cargar puestos:', error)
+          setPuestos([])
+        }
+      } else {
+        setPuestos([]);
+        onChange({ ...value, puesto: null });
+      }
     }
+    fetchPuestos()
   }, [value.unidad]);
 
   return (

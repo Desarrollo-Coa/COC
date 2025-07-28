@@ -74,12 +74,17 @@ export default function HistorialNovedades() {
   }, [filtros])
 
   useEffect(() => {
-    fetch('/api/novedades/negocios')
-      .then(res => res.json())
-      .then(data => {
+    const fetchNegocios = async () => {
+      try {
+        const res = await fetch('/api/negocios')
+        const data = await res.json()
         setNegocios(data)
         setTodosNegocios(data)
-      })
+      } catch (error) {
+        console.error('Error al cargar negocios:', error)
+      }
+    }
+    fetchNegocios()
   }, [])
 
   // Corrijo el useEffect de tiposReporte para validar que la respuesta sea un array

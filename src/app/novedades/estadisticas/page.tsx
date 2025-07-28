@@ -271,7 +271,7 @@ export default function EstadisticasPage() {
   useEffect(() => {
     const fetchNegocios = async () => {
       try {
-        const response = await fetch('/api/novedades/negocios')
+        const response = await fetch('/api/negocios')
         if (!response.ok) throw new Error('Error al cargar negocios')
         const data = await response.json()
         setNegocios(data)

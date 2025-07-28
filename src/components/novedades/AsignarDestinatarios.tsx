@@ -102,7 +102,7 @@ export default function AsignarDestinatarios() {
       fetchData('/api/novedades/destinatarios', setDestinatarios),
       fetchData('/api/novedades/asignaciones', setAsignaciones),
       fetchData('/api/novedades/tipos-reporte', setTiposReporte),
-      fetchData('/api/novedades/negocios', setNegocios),
+              fetchData('/api/negocios', setNegocios),
     ]).catch(() => {
       toast.error("Error al cargar datos iniciales");
     });

@@ -17,9 +17,16 @@ export default function CumplidoNegocio() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch('/api/negocios')
-      .then(res => res.json())
-      .then(data => setNegocios(data));
+    const fetchNegocios = async () => {
+      try {
+        const res = await fetch('/api/negocios')
+        const data = await res.json()
+        setNegocios(data)
+      } catch (error) {
+        console.error('Error al cargar negocios:', error)
+      }
+    }
+    fetchNegocios()
   }, []);
 
   useEffect(() => {
