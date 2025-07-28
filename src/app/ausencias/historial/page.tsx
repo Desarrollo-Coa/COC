@@ -81,6 +81,7 @@ export default function HistorialAusenciasPage() {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editingAusencia, setEditingAusencia] = useState<EditAusenciaData | null>(null)
   const [saving, setSaving] = useState(false)
+  const [todosLosTipos, setTodosLosTipos] = useState<any[]>([])
 
   // Filtros
   const [searchTerm, setSearchTerm] = useState("")
@@ -88,6 +89,7 @@ export default function HistorialAusenciasPage() {
   const [negocioFilter, setNegocioFilter] = useState("all")
 
   useEffect(() => {
+    // Cargar ausencias
     fetch("/api/ausencias")
       .then((res) => res.json())
       .then((data) => {
@@ -100,6 +102,16 @@ export default function HistorialAusenciasPage() {
       })
       .catch((e) => setError("Error al cargar ausencias"))
       .finally(() => setLoading(false))
+
+    // Cargar todos los tipos de ausencia
+    fetch("/api/tipos-ausencia")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setTodosLosTipos(data)
+        }
+      })
+      .catch((e) => console.error("Error al cargar tipos de ausencia:", e))
   }, [])
 
   useEffect(() => {
@@ -297,9 +309,9 @@ export default function HistorialAusenciasPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos los tipos</SelectItem>
-                    {tiposUnicos.map((tipo) => (
-                      <SelectItem key={tipo} value={tipo}>
-                        {tipo}
+                    {todosLosTipos.map((tipo) => (
+                      <SelectItem key={tipo.id_tipo_ausencia} value={tipo.nombre_tipo_ausencia}>
+                        {tipo.nombre_tipo_ausencia}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -487,9 +499,9 @@ export default function HistorialAusenciasPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {tiposUnicos.map((tipo) => (
-                        <SelectItem key={tipo} value={tipo}>
-                          {tipo}
+                      {todosLosTipos.map((tipo) => (
+                        <SelectItem key={tipo.id_tipo_ausencia} value={tipo.nombre_tipo_ausencia}>
+                          {tipo.nombre_tipo_ausencia}
                         </SelectItem>
                       ))}
                     </SelectContent>
