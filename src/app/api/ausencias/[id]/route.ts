@@ -71,11 +71,15 @@ export async function PUT(
           
           // Eliminar de DigitalOcean Spaces
           try {
-            const key = archivo.url_archivo.split('/').slice(-3).join('/');
+            // Extraer la clave del archivo de la URL
+            // La URL tiene formato: https://nyc3.digitaloceanspaces.com/bucket/folder/file.ext
+            const urlParts = archivo.url_archivo.split('/');
+            const key = urlParts.slice(-3).join('/'); // Tomar los últimos 3 segmentos: folder/file.ext
             await deleteFromSpaces(key);
             console.log('Archivo eliminado de Spaces:', key);
           } catch (error) {
             console.error('Error al eliminar archivo de Spaces:', error);
+            // Continuar con la eliminación de la BD aunque falle en Spaces
           }
 
           // Eliminar de la base de datos
