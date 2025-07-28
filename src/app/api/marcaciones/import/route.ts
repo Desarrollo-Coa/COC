@@ -11,48 +11,93 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
     }
 
-    // Iniciar transacción
-    await connection.beginTransaction();
+    const exitos: any[] = [];
+    const errores: any[] = [];
 
-    try {
-      // Extraer los valores de los inserts (ahora son objetos)
-      const values = inserts.map((item: any) => [
-        item.id_cliente,
-        item.id_origen,
-        item.punto_marcacion,
-        item.fecha,
-        item.hora_marcacion,
-        item.usuario,
-        item.nombre
-      ]);
+    // Procesar cada registro individualmente
+    for (const item of inserts) {
+      try {
+        // Verificar si ya existe un registro con el mismo id_origen
+        const [existingRows] = await connection.query(
+          'SELECT id FROM puntos_marcacion WHERE id_origen = ? AND id_cliente = ?',
+          [item.id_origen, item.id_cliente]
+        );
 
-      // Crear una única consulta SQL con múltiples valores
-      const query = `
-        INSERT INTO puntos_marcacion (id_cliente, id_origen, punto_marcacion, fecha, hora_marcacion, usuario, nombre) 
-        VALUES ?
-      `;
+        if (Array.isArray(existingRows) && existingRows.length > 0) {
+          // Registro duplicado
+          errores.push({
+            id_origen: item.id_origen,
+            error: 'Registro duplicado - ya existe en la base de datos'
+          });
+          continue;
+        }
 
-      // Ejecutar la consulta con todos los valores
-      await connection.query(query, [values]);
+        // Validar datos requeridos
+        if (!item.id_origen || !item.punto_marcacion || !item.fecha || !item.hora_marcacion || !item.usuario || !item.nombre) {
+          errores.push({
+            id_origen: item.id_origen || 'N/A',
+            error: 'Datos incompletos - faltan campos requeridos'
+          });
+          continue;
+        }
 
-      // Si todo salió bien, hacer commit
-      await connection.commit();
+        // Validar formato de fecha
+        const fechaRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!fechaRegex.test(item.fecha)) {
+          errores.push({
+            id_origen: item.id_origen,
+            error: 'Formato de fecha inválido - debe ser YYYY-MM-DD'
+          });
+          continue;
+        }
 
-      return NextResponse.json({ 
-        message: 'Lote procesado exitosamente',
-        registrosProcesados: inserts.length
-      });
+        // Validar formato de hora
+        const horaRegex = /^\d{2}:\d{2}:\d{2}$/;
+        if (!horaRegex.test(item.hora_marcacion)) {
+          errores.push({
+            id_origen: item.id_origen,
+            error: 'Formato de hora inválido - debe ser HH:MM:SS'
+          });
+          continue;
+        }
 
-    } catch (error) {
-      // Si hay error, hacer rollback
-      await connection.rollback();
-      throw error;
+        // Insertar el registro
+        const [result] = await connection.query(
+          'INSERT INTO puntos_marcacion (id_cliente, id_origen, punto_marcacion, fecha, hora_marcacion, usuario, nombre) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [item.id_cliente, item.id_origen, item.punto_marcacion, item.fecha, item.hora_marcacion, item.usuario, item.nombre]
+        );
+
+        exitos.push({
+          id_origen: item.id_origen,
+          punto_marcacion: item.punto_marcacion,
+          fecha: item.fecha,
+          hora_marcacion: item.hora_marcacion,
+          usuario: item.usuario,
+          nombre: item.nombre
+        });
+
+      } catch (error) {
+        console.error('Error procesando registro:', error);
+        errores.push({
+          id_origen: item.id_origen || 'N/A',
+          error: error instanceof Error ? error.message : 'Error desconocido al procesar el registro'
+        });
+      }
     }
+
+    return NextResponse.json({ 
+      message: 'Procesamiento completado',
+      exitos,
+      errores,
+      total: inserts.length,
+      exitosos: exitos.length,
+      conError: errores.length
+    });
 
   } catch (error) {
     console.error('Error en la importación:', error);
     return NextResponse.json(
-      { error: 'Error al procesar el lote de datos' },
+      { error: 'Error al procesar los datos' },
       { status: 500 }
     );
   } finally {

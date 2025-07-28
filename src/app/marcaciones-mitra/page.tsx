@@ -126,6 +126,7 @@ export default function MarcacionesMitraPage() {
   const [importProgress, setImportProgress] = useState(0);
   const [isImporting, setIsImporting] = useState(false);
   const [todosLosPuntos, setTodosLosPuntos] = useState<string[]>([]);
+  const [resultados, setResultados] = useState<{exitos: any[], errores: any[], total: number, exitosos: number, conError: number} | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -468,17 +469,19 @@ export default function MarcacionesMitraPage() {
     setImportProgress(0);
     setImportError("");
     setImportSuccess("");
+    setResultados(null);
 
     try {
       const totalInserts = previewData.inserts;
-      const totalBatches = Math.ceil(totalInserts.length / BATCH_SIZE);
-      let processedCount = 0;
+      let allExitos: any[] = [];
+      let allErrores: any[] = [];
       let startTime = Date.now();
 
       // Procesar cada lote secuencialmente
       for (let i = 0; i < totalInserts.length; i += BATCH_SIZE) {
         const batch = totalInserts.slice(i, i + BATCH_SIZE);
         const currentBatch = Math.floor(i / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(totalInserts.length / BATCH_SIZE);
 
         try {
           const response = await fetch('/api/marcaciones/import', {
@@ -493,7 +496,13 @@ export default function MarcacionesMitraPage() {
             throw new Error('Error al importar el lote de datos');
           }
 
-          processedCount += batch.length;
+          const result = await response.json();
+          
+          // Acumular resultados
+          if (result.exitos) allExitos = allExitos.concat(result.exitos);
+          if (result.errores) allErrores = allErrores.concat(result.errores);
+
+          const processedCount = allExitos.length + allErrores.length;
           const progress = Math.round((processedCount / totalInserts.length) * 100);
           setImportProgress(progress);
 
@@ -505,6 +514,7 @@ export default function MarcacionesMitraPage() {
 
           setImportSuccess(
             `Procesando lote ${currentBatch} de ${totalBatches} (${progress}%)\n` +
+            `Exitosos: ${allExitos.length} | Con error: ${allErrores.length}\n` +
             `Velocidad: ${Math.round(recordsPerSecond)} registros/segundo\n` +
             `Tiempo restante estimado: ${Math.round(estimatedTimeRemaining)} segundos`
           );
@@ -518,18 +528,33 @@ export default function MarcacionesMitraPage() {
       setImportProgress(100);
       await new Promise(resolve => setTimeout(resolve, 500));
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+      
+      // Guardar resultados finales
+      setResultados({
+        exitos: allExitos,
+        errores: allErrores,
+        total: totalInserts.length,
+        exitosos: allExitos.length,
+        conError: allErrores.length
+      });
+
       setImportSuccess(
-        `Importación completada exitosamente\n` +
-        `Total de registros: ${processedCount}\n` +
+        `Procesamiento completado\n` +
+        `Total de registros: ${totalInserts.length}\n` +
+        `Exitosos: ${allExitos.length} | Con error: ${allErrores.length}\n` +
         `Tiempo total: ${totalTime} segundos\n` +
-        `Velocidad promedio: ${Math.round(processedCount / Number(totalTime))} registros/segundo`
+        `Velocidad promedio: ${Math.round(totalInserts.length / Number(totalTime))} registros/segundo`
       );
-      setPreviewData(null);
-      setShowImportModal(false);
-      if (desde && hasta && clienteSeleccionado) {
+
+      // Actualizar datos si hay registros exitosos
+      if (allExitos.length > 0 && desde && hasta && clienteSeleccionado) {
         const newData = await fetch(`/api/marcaciones?desde=${desde}&hasta=${hasta}&id_cliente=${clienteSeleccionado}`).then(res => res.json());
         setData(newData);
       }
+
+      // No cerrar el modal automáticamente, mostrar el reporte
+      setPreviewData(null);
+
     } catch (error) {
       console.error('Error importando datos:', error);
       setImportError(error instanceof Error ? error.message : "Error al importar los datos. Se ha cancelado la importación.");
@@ -1139,7 +1164,7 @@ export default function MarcacionesMitraPage() {
         {showImportModal && (
           <div 
             className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-            onClick={() => !isImporting && setShowImportModal(false)}
+            onClick={() => !isImporting && !resultados && setShowImportModal(false)}
           >
             <div 
               className="bg-white rounded-lg p-6 max-w-6xl w-full max-h-[90vh] overflow-y-auto"
@@ -1155,7 +1180,7 @@ export default function MarcacionesMitraPage() {
                   )}
                 </div>
                 <button 
-                  onClick={() => !isImporting && setShowImportModal(false)}
+                  onClick={() => !isImporting && !resultados && setShowImportModal(false)}
                   className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors"
                   disabled={isImporting}
                 >
@@ -1185,7 +1210,7 @@ export default function MarcacionesMitraPage() {
                 </div>
               )}
               
-              {!previewData ? (
+              {!previewData && !resultados ? (
                 <div className="mb-4">
                   <p className="text-sm text-gray-600 mb-2">
                     Asegúrese de que su archivo Excel o CSV contenga las siguientes columnas en este orden:
@@ -1221,7 +1246,7 @@ export default function MarcacionesMitraPage() {
                     </p>
                   </div>
                 </div>
-              ) : (
+              ) : previewData && !resultados ? (
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-4">
                     <h4 className="text-lg font-medium">Vista previa de datos</h4>
@@ -1396,7 +1421,7 @@ export default function MarcacionesMitraPage() {
                     </table>
                   </div>
                 </div>
-              )}
+              ) : null}
 
               {importError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-4">
@@ -1407,6 +1432,90 @@ export default function MarcacionesMitraPage() {
               {importSuccess && (
                 <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md mb-4">
                   {importSuccess}
+                </div>
+              )}
+
+              {/* Reporte de Errores */}
+              {resultados && (
+                <div className="mt-6">
+                  <div className="flex gap-4">
+                    {/* Left Section: Reporte de Errores */}
+                    <div className="w-1/3 bg-white rounded-xl shadow-md p-4 flex flex-col gap-4 overflow-y-auto max-h-[60dvh]">
+                      <div>
+                        <span className="text-lg font-semibold text-red-700 block mb-2">REPORTE DE ERRORES</span>
+                        {resultados.errores.length === 0 ? (
+                          <div className="bg-green-50 border border-green-200 rounded-xl p-6 flex flex-col items-center justify-center shadow-md">
+                            <span className="text-green-700 text-lg font-semibold">¡Importación exitosa!</span>
+                            <span className="text-green-900 text-2xl font-bold mt-2">{resultados.exitosos} marcaciones insertadas correctamente.</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="overflow-x-auto w-full">
+                              <table className="min-w-[300px] w-full text-xs border border-red-200 bg-white rounded-xl">
+                                <thead className="bg-red-100">
+                                  <tr>
+                                    <th className="px-3 py-2 border-b border-red-200 text-left">ID Origen</th>
+                                    <th className="px-3 py-2 border-b border-red-200 text-left">Error</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {resultados.errores.map((err, i) => (
+                                    <tr key={i} className="hover:bg-red-50">
+                                      <td className="px-3 py-2 font-mono text-red-900">{err.id_origen}</td>
+                                      <td className="px-3 py-2 text-red-800 max-w-xs truncate" style={{maxWidth: '16rem'}} title={err.error}>{err.error}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div className="mt-4 text-gray-700 text-sm">
+                              Total exitosos: <b>{resultados.exitosos}</b> | Total con error: <b>{resultados.conError}</b>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right Section: Tabla de Registros Exitosos */}
+                    <div className="w-2/3 bg-white rounded-xl shadow border border-gray-200 overflow-x-auto" style={{ height: '60dvh' }}> 
+                      <table className="min-w-full text-xs">
+                        <thead className="bg-gray-100 sticky top-0 z-10">
+                          <tr>
+                            <th className="border-b border-gray-300 px-3 py-2 text-left font-semibold text-gray-700">ID Origen</th>
+                            <th className="border-b border-gray-300 px-3 py-2 text-left font-semibold text-gray-700">Punto de Marcación</th>
+                            <th className="border-b border-gray-300 px-3 py-2 text-left font-semibold text-gray-700">Usuario</th>
+                            <th className="border-b border-gray-300 px-3 py-2 text-left font-semibold text-gray-700">Fecha</th>
+                            <th className="border-b border-gray-300 px-3 py-2 text-left font-semibold text-gray-700">Hora</th>
+                            <th className="border-b border-gray-300 px-3 py-2 text-left font-semibold text-gray-700">Nombre Guarda</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {resultados.exitos.map((row, i) => (
+                            <tr key={i} className="hover:bg-green-50 transition">
+                              <td className="px-3 py-2 font-mono text-green-900">{row.id_origen}</td>
+                              <td className="px-3 py-2">{row.punto_marcacion}</td>
+                              <td className="px-3 py-2">{row.usuario}</td>
+                              <td className="px-3 py-2">{formatearFecha(row.fecha)}</td>
+                              <td className="px-3 py-2">{row.hora_marcacion}</td>
+                              <td className="px-3 py-2">{row.nombre}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div className="flex justify-end mt-6">
+                    <button
+                      onClick={() => {
+                        setShowImportModal(false);
+                        setPreviewData(null);
+                        setResultados(null);
+                      }}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
