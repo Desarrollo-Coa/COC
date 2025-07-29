@@ -16,6 +16,7 @@ const eslintConfig = [
       '@typescript-eslint/no-explicit-any': 'warn', // Solo advertencia
       '@typescript-eslint/no-unused-vars': 'warn', // Solo advertencia
       'react-hooks/exhaustive-deps': 'error', // Error crítico
+      'prefer-const': 'off', // Desactivar prefer-const
      },
   },
 ];
