@@ -3,11 +3,11 @@ import LoginForm from '@/components/login-form';
 import Skeleton from '@/components/ui/skeleton';
 
 interface PageProps {
-  params: { negocio: string };
+  params: Promise<{ negocio: string }>;
 }
 
 export default async function AccesosLoginPage({ params }: PageProps) {
-  const negocioHash = params.negocio;
+  const { negocio: negocioHash } = await params;
   let business = null;
   let error = '';
 
@@ -24,7 +24,8 @@ export default async function AccesosLoginPage({ params }: PageProps) {
 
   try {
     // Detectar host para SSR
-    const host = headers().get('x-forwarded-host') || headers().get('host');
+    const headersList = await headers();
+    const host = headersList.get('x-forwarded-host') || headersList.get('host');
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
     const baseUrl = `${protocol}://${host}`;
     const res = await fetch(`${baseUrl}/api/accesos/negocios/by-hash?hash=${negocioHash}`, {
