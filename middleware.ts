@@ -81,9 +81,9 @@ export async function middleware(request: NextRequest) {
 
   console.log('[MIDDLEWARE] Usuario autenticado:', { userId, role });
 
-  // Si es administrador, permitir acceso a todas las rutas
+  // Si es administrador, permitir acceso a todas las rutas sin verificar permisos
   if (role === 'administrador') {
-    console.log('[MIDDLEWARE] Es administrador, acceso permitido');
+    console.log('[MIDDLEWARE] Es administrador, acceso permitido a todas las rutas');
     return NextResponse.next();
   }
 
@@ -93,50 +93,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Obtener configuración de la ruta
-  const routeConfig = getRouteConfig(normalizedPath);
-  
-  if (routeConfig) {
-    console.log('[MIDDLEWARE] Configuración de ruta encontrada:', routeConfig);
-    
-    // Si es administrador, permitir acceso
-    if (role === 'administrador') {
-      console.log('[MIDDLEWARE] Es administrador, acceso permitido');
-      return NextResponse.next();
-    }
-    
-    // Si requiere admin y no es administrador, denegar acceso
-    if (routeConfig.requiresAdmin && role !== 'administrador') {
-      console.log('[MIDDLEWARE] Acceso denegado - requiere administrador para ruta:', normalizedPath);
-      
-      if (normalizedPath.startsWith('/api/')) {
-        return new NextResponse(null, { status: 403 });
-      } else {
-        const dashboardUrl = new URL('/users/dashboard', request.url);
-        return NextResponse.redirect(dashboardUrl);
-      }
-    }
-    
-    // Para otras rutas, verificar permisos en la base de datos
-    console.log('[MIDDLEWARE] Verificando permisos de módulos desde BD para:', normalizedPath);
-    const hasPermission = await checkModulePermissions(userId, normalizedPath, token);
-    
-    if (!hasPermission) {
-      console.log('[MIDDLEWARE] Acceso denegado a:', normalizedPath);
-      
-      if (normalizedPath.startsWith('/api/')) {
-        return new NextResponse(null, { status: 403 });
-      } else {
-        const dashboardUrl = new URL('/users/dashboard', request.url);
-        return NextResponse.redirect(dashboardUrl);
-      }
-    }
-    
-    console.log('[MIDDLEWARE] Permisos verificados, acceso permitido');
-    return NextResponse.next();
-  }
-
-  // Si no hay configuración específica, verificar permisos de módulos desde la base de datos
+  // Para usuarios no administradores, verificar permisos de módulos desde la base de datos
   console.log('[MIDDLEWARE] Verificando permisos de módulos desde BD para:', normalizedPath);
   const hasPermission = await checkModulePermissions(userId, normalizedPath, token);
   

@@ -12,6 +12,7 @@ export interface RouteConfig {
 export const publicRoutes = [
   '/login',
   '/accesos/login',
+  '/accesos/login/[negocio]',
   '/api/auth/login',
   '/api/auth/logout',
   '/api/auth/me',

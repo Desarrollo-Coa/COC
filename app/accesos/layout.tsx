@@ -1,11 +1,30 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowLeft, Shield, Building2, Link as LinkIcon } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 
 export default function AccesosLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  
+  // Verificar si estamos en las rutas de login de vigilantes
+  const isVigilanteLogin = pathname?.startsWith('/accesos/login');
+  
+  // Si es login de vigilantes, no mostrar el header
+  if (isVigilanteLogin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+        <main>
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Navigation Header */}
