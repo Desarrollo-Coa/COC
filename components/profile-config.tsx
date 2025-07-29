@@ -20,7 +20,7 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
   const [profileImage, setProfileImage] = useState<string>("")
   const [selectedShift, setSelectedShift] = useState<"diurno" | "nocturno" | "">("")
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString())
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [showReports, setShowReports] = useState(false)
 
   // Actualizar hora cada segundo

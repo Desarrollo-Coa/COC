@@ -82,7 +82,7 @@ interface PendingChange {
 }
 
 // Componente para renderizar el dropdown en un portal
-function AutocompletePortal({ children, inputRef }: { children: React.ReactNode, inputRef: React.RefObject<HTMLInputElement> }) {
+function AutocompletePortal({ children, inputRef }: { children: React.ReactNode, inputRef: React.RefObject<HTMLInputElement | null> }) {
   const [style, setStyle] = useState<React.CSSProperties>({});
   useEffect(() => {
     if (inputRef.current) {
@@ -879,7 +879,7 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
                                       ref={el => { inputRefs.current[`${puesto.id_puesto}-${turno.id_tipo_turno}`] = el; }}
                                     />
                                     {colaboradorSearch[`${puesto.id_puesto}-${turno.id_tipo_turno}`] && autocompleteOpen === `${puesto.id_puesto}-${turno.id_tipo_turno}` && inputRefs.current[`${puesto.id_puesto}-${turno.id_tipo_turno}`] && (
-                                      <AutocompletePortal inputRef={{ current: inputRefs.current[`${puesto.id_puesto}-${turno.id_tipo_turno}`] }}>
+                                      <AutocompletePortal inputRef={{ current: inputRefs.current[`${puesto.id_puesto}-${turno.id_tipo_turno}`] } as React.RefObject<HTMLInputElement | null>}>
                                         {searching ? (
                                           <div className="px-3 py-2">
                                             <Skeleton className="h-6 w-full mb-2" />

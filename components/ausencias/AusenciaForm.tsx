@@ -15,7 +15,7 @@ export default function AusenciaForm({ seleccion, onResumen, disabled }: Ausenci
   const [archivos, setArchivos] = useState<File[]>([]);
   const [dias, setDias] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const fetchTiposAusencia = async () => {
