@@ -633,10 +633,18 @@ export default function CumplimientoServiciosCementos() {
 
   // Cargar zonas al inicio
   useEffect(() => {
-    fetch("/api/negocios")
-      .then(res => res.json())
-      .then(data => setNegocios(data))
-      .catch(() => toast.error("Error al cargar negocios"))
+    const fetchNegocios = async () => {
+      try {
+        const res = await fetch("/api/negocios");
+        const data = await res.json();
+        setNegocios(data);
+      } catch (error) {
+        console.error('Error cargando negocios:', error);
+        toast.error("Error al cargar negocios");
+      }
+    };
+    
+    fetchNegocios();
   }, [])
 
   // Calcular cumplimiento al cambiar personnel
@@ -653,16 +661,19 @@ export default function CumplimientoServiciosCementos() {
 
   // Cargar unidades de negocio al cambiar zona y fecha
   useEffect(() => {
-    if (!negocioId) {
-      setUnidadesRaw([])
-      setUnidades([])
-      setUnidadId("")
-      setSelectedPosition("")
-      return
-    }
-    fetch(`/api/settings/unidades-negocio?id_negocio=${negocioId}`)
-      .then(res => res.json())
-      .then(async data => {
+    const fetchUnidades = async () => {
+      if (!negocioId) {
+        setUnidadesRaw([])
+        setUnidades([])
+        setUnidadId("")
+        setSelectedPosition("")
+        return
+      }
+      
+      try {
+        const res = await fetch(`/api/settings/unidades-negocio?id_negocio=${negocioId}`);
+        const data = await res.json();
+        
         if (Array.isArray(data)) {
           setUnidadesRaw(data)
           const colores = ["#3B82F6", "#10B981", "#8B5CF6", "#F59E42", "#F43F5E", "#6366F1"]
@@ -695,25 +706,37 @@ export default function CumplimientoServiciosCementos() {
           setSelectedUnit(null)
           setSelectedPosition("")
         }
-      })
-      .catch(() => {
+      } catch (error) {
+        console.error('Error cargando unidades de negocio:', error);
         setUnidadesRaw([])
         setUnidades([])
         toast.error("Error al cargar unidades de negocio")
-      })
+      }
+    };
+    
+    fetchUnidades();
   }, [negocioId, selectedYear, selectedMonth, selectedDay])
 
   // Cargar puestos dinámicamente al seleccionar unidad
   useEffect(() => {
-    if (!unidadId) {
-      setPuestos([])
-      setPuestoId("")
-      return
-    }
-    fetch(`/api/puestos?unidadId=${unidadId}`)
-      .then(res => res.json())
-      .then(data => setPuestos(data))
-      .catch(() => toast.error("Error al cargar puestos"))
+    const fetchPuestos = async () => {
+      if (!unidadId) {
+        setPuestos([])
+        setPuestoId("")
+        return
+      }
+      
+      try {
+        const res = await fetch(`/api/puestos?unidadId=${unidadId}`);
+        const data = await res.json();
+        setPuestos(data);
+      } catch (error) {
+        console.error('Error cargando puestos:', error);
+        toast.error("Error al cargar puestos");
+      }
+    };
+    
+    fetchPuestos();
   }, [unidadId])
 
   // Calcular cumplimiento general por zona al inicio o cuando cambian fechas
@@ -722,30 +745,39 @@ export default function CumplimientoServiciosCementos() {
     if (negocios.length === 0) return
     const colores = ["#3B82F6", "#10B981", "#8B5CF6", "#F59E42", "#F43F5E", "#6366F1"]
     const fecha = `${selectedYear}-${(months.indexOf(selectedMonth) + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`
-    Promise.all(
-      negocios.map(async (negocio, idx) => {
-        const res = await fetch(`/api/cumplimiento-servicios?fecha=${fecha}&negocioId=${negocio.id_negocio}`)
-        const datos = await res.json()
-        let porcentaje = 0
-        if (datos && datos.puestos) {
-          const puestos = Object.values(datos.puestos)
-          const totalTurnos = puestos.length * 3 // Ajustado para 3 turnos
-          let turnosCubiertos = 0
-          puestos.forEach((p: any) => {
-            if (p.diurno?.colaborador) turnosCubiertos++
-            if (p.turno_b?.colaborador) turnosCubiertos++
-            if (p.nocturno?.colaborador) turnosCubiertos++
+    const fetchZonesCompliance = async () => {
+      try {
+        const zonesData = await Promise.all(
+          negocios.map(async (negocio, idx) => {
+            const res = await fetch(`/api/cumplimiento-servicios?fecha=${fecha}&negocioId=${negocio.id_negocio}`)
+            const datos = await res.json()
+            let porcentaje = 0
+            if (datos && datos.puestos) {
+              const puestos = Object.values(datos.puestos)
+              const totalTurnos = puestos.length * 3 // Ajustado para 3 turnos
+              let turnosCubiertos = 0
+              puestos.forEach((p: any) => {
+                if (p.diurno?.colaborador) turnosCubiertos++
+                if (p.turno_b?.colaborador) turnosCubiertos++
+                if (p.nocturno?.colaborador) turnosCubiertos++
+              })
+              porcentaje = totalTurnos > 0 ? Math.round((turnosCubiertos / totalTurnos) * 100) : 0
+            }
+            return {
+              id: negocio.id_negocio.toString(),
+              name: negocio.nombre_negocio,
+              percentage: porcentaje,
+              color: colores[idx % colores.length]
+            }
           })
-          porcentaje = totalTurnos > 0 ? Math.round((turnosCubiertos / totalTurnos) * 100) : 0
-        }
-        return {
-          id: negocio.id_negocio.toString(),
-          name: negocio.nombre_negocio,
-          percentage: porcentaje,
-          color: colores[idx % colores.length]
-        }
-      })
-    ).then(setZonesCompliance)
+        );
+        setZonesCompliance(zonesData);
+      } catch (error) {
+        console.error('Error calculando cumplimiento por zona:', error);
+      }
+    };
+    
+    fetchZonesCompliance();
   }, [negocios, negocioId, selectedYear, selectedMonth, selectedDay])
 
   return (

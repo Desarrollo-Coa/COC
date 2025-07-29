@@ -187,13 +187,22 @@ export default function EstadisticasPage() {
 
   // Fetch de datos GENERALES
   useEffect(() => {
-    if (!opcionGenerales) return;
-    setLoadingGenerales(true);
-    fetch(`/api/novedades/estadisticas-generales-todos?desde=${fechaDesde}&hasta=${fechaHasta}`)
-      .then(res => res.json())
-      .then(data => setGeneralesData(data))
-      .catch(() => setGeneralesData(null))
-      .finally(() => setLoadingGenerales(false));
+    const fetchGeneralesData = async () => {
+      if (!opcionGenerales) return;
+      setLoadingGenerales(true);
+      try {
+        const res = await fetch(`/api/novedades/estadisticas-generales-todos?desde=${fechaDesde}&hasta=${fechaHasta}`);
+        const data = await res.json();
+        setGeneralesData(data);
+      } catch (error) {
+        console.error('Error cargando estadísticas generales:', error);
+        setGeneralesData(null);
+      } finally {
+        setLoadingGenerales(false);
+      }
+    };
+    
+    fetchGeneralesData();
   }, [opcionGenerales, fechaDesde, fechaHasta]);
 
   // Procesamiento de datos para los gráficos GENERALES
