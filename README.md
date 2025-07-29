@@ -1,58 +1,36 @@
-# COC (Central de Operaciones Costa)
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-Sistema de gestión y control operativo para la Central de Operaciones Costa.
+## Getting Started
 
-## Instalación
+First, run the development server:
 
-1. **Clona el repositorio:**
-   ```bash
-   git clone https://github.com/Desarrollo-Coa/coc-central-operaciones-costa.git
-   cd coc-central-operaciones-costa
-   ```
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
-2. **Instala las dependencias:**
-   ```bash
-   npm install
-   ```
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-3. **Configura la base de datos:**
-   - Crea una base de datos MySQL/MariaDB.
-   - Ejecuta el script `scripts/init-database.sql` para crear las tablas y datos iniciales.
-   - Configura las variables de entorno para la conexión a la base de datos (por ejemplo, en un archivo `.env.local`):
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-     ```
-     DB_HOST=localhost
-     DB_USER=tu_usuario
-     DB_PASSWORD=tu_contraseña
-     DB_NAME=coc_costa
-     NEXT_PUBLIC_DASHBOARD_TITLE="COC - CENTRAL DE OPERACIONES COSTA"
-     ```
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-4. **Inicia la aplicación:**
-   ```bash
-   npm run dev
-   ```
+## Learn More
 
-5. **Accede a la plataforma:**
-   - Abre tu navegador en [http://localhost:3000](http://localhost:3000)
+To learn more about Next.js, take a look at the following resources:
 
-## Uso
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-- Ingresa con un usuario administrador (por defecto: `admin@central.com` / contraseña definida en el script SQL).
-- Explora los módulos de gestión de colaboradores, turnos, cumplidos, reportes y configuración.
-- Administra negocios, unidades de negocio y puestos desde el panel de configuración.
-- Revisa y aprueba solicitudes de cuenta desde el módulo correspondiente.
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Tecnologías utilizadas
+## Deploy on Vercel
 
-- **Frontend & Backend:** Next.js, React, TypeScript
-- **Estilos:** Tailwind CSS
-- **Base de datos:** MySQL/MariaDB
-- **ORM/DB Utils:** (Personalizado o a definir según implementación)
-- **Autenticación:** JWT, bcrypt
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-## Créditos
-
-Desarrollado por CARLOS MUÑOZ Y JOSE FLOREZ.
-
----
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
