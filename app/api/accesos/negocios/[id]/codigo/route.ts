@@ -10,9 +10,10 @@ function generarCodigo() {
   return code;
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id_negocio = parseInt(params.id);
+    const { id } = await params;
+    const id_negocio = parseInt(id);
     
     if (isNaN(id_negocio)) {
       return NextResponse.json(
@@ -37,9 +38,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 }
 
 // POST: Generar nuevo código
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id_negocio = parseInt(params.id);
+    const { id } = await params;
+    const id_negocio = parseInt(id);
     
     if (isNaN(id_negocio)) {
       return NextResponse.json(
@@ -90,9 +92,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 }
 
 // PUT: Eliminar el código activo
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id_negocio = parseInt(params.id);
+    const { id } = await params;
+    const id_negocio = parseInt(id);
     
     if (isNaN(id_negocio)) {
       return NextResponse.json(
@@ -135,9 +138,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE: Eliminar el código activo (mismo comportamiento que PUT)
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const id_negocio = parseInt(params.id);
+    const { id } = await params;
+    const id_negocio = parseInt(id);
     
     if (isNaN(id_negocio)) {
       return NextResponse.json(
