@@ -22,7 +22,7 @@ interface CollaboratorSearchProps {
   onContextMenu?: (e: React.MouseEvent) => void;
 }
 
-function AutocompletePortal({ children, inputRef }: { children: React.ReactNode; inputRef: React.RefObject<HTMLInputElement> }) {
+function AutocompletePortal({ children, inputRef }: { children: React.ReactNode; inputRef: React.RefObject<HTMLInputElement | null> }) {
   const [style, setStyle] = useState<React.CSSProperties>({});
   
   useEffect(() => {
