@@ -17,6 +17,11 @@ import {
   Legend as RechartsLegend,
   LineChart,
   Line,
+  RadialBarChart,
+  RadialBar,
+  PolarGrid,
+  PolarRadiusAxis,
+  Label,
 } from 'recharts';
 import Skeleton from '@/components/ui/skeleton';
 import { BarChart as BarChartIcon, Flame as HeatmapIcon } from 'lucide-react';
@@ -188,7 +193,7 @@ function DistribucionHorariaNovedades({
                     <LabelList
                       dataKey={tipo}
                       position="inside"
-                      formatter={(value: number) => (value > 0 ? value : '')}
+                      formatter={(value: React.ReactNode) => (typeof value === 'number' && value > 0 ? value : '')}
                       style={{ fill: '#fff', fontWeight: 'bold', fontSize: 11, textShadow: '0 1px 2px #0006' }}
                     />
                   </Bar>
@@ -757,8 +762,8 @@ export default function EstadisticasGenerales({ id_negocio, id_unidad, id_puesto
                       <RadialBar dataKey="value" background cornerRadius={10} />
                       <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
                         <Label
-                          content={({ viewBox }) => {
-                            const { cx, cy } = viewBox as { cx: number; cy: number };
+                          content={(props: any) => {
+                            const { cx, cy } = props.viewBox as { cx: number; cy: number };
                             return (
                               <text
                                 x={cx}
@@ -814,8 +819,8 @@ export default function EstadisticasGenerales({ id_negocio, id_unidad, id_puesto
                       <RadialBar dataKey="value" background cornerRadius={10} />
                       <PolarRadiusAxis tick={false} tickLine={false} axisLine={false}>
                         <Label
-                          content={({ viewBox }) => {
-                            const { cx, cy } = viewBox as { cx: number; cy: number };
+                          content={(props: any) => {
+                            const { cx, cy } = props.viewBox as { cx: number; cy: number };
                             return (
                               <text
                                 x={cx}
