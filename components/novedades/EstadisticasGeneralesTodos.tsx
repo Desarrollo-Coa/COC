@@ -463,7 +463,7 @@ function DistribucionHorariaNovedadesGenerales({ eventos, onBarClick, onCellClic
                     <LabelList
                       dataKey={tipo}
                       position="inside"
-                      formatter={(value: number) => (value > 0 ? value : '')}
+                      formatter={(value: React.ReactNode) => (typeof value === 'number' && value > 0 ? value : '')}
                       style={{ fill: '#fff', fontWeight: 'bold', fontSize: 11, textShadow: '0 1px 2px #0006' }}
                     />
                   </Bar>
