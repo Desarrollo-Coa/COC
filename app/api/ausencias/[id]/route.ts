@@ -5,10 +5,10 @@ import { deleteFromSpaces } from '@/utils/deleteFromSpaces';
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id_ausencia = params.id;
+    const { id: id_ausencia } = await context.params;
     const formData = await request.formData();
     
     // Obtener datos del formulario
@@ -147,10 +147,10 @@ export async function PUT(
 // GET - Obtener una ausencia específica
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id_ausencia = params.id;
+    const { id: id_ausencia } = await context.params;
 
     const [ausencias] = await pool.query(
       `SELECT a.*, c.nombre AS nombre_colaborador, c.apellido AS apellido_colaborador, 

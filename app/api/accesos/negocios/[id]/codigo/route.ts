@@ -10,9 +10,9 @@ function generarCodigo() {
   return code;
 }
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const id_negocio = parseInt(id);
     
     if (isNaN(id_negocio)) {
@@ -38,9 +38,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 // POST: Generar nuevo código
-export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const id_negocio = parseInt(id);
     
     if (isNaN(id_negocio)) {
@@ -92,9 +92,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 }
 
 // PUT: Eliminar el código activo
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const id_negocio = parseInt(id);
     
     if (isNaN(id_negocio)) {
@@ -138,9 +138,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 // DELETE: Eliminar el código activo (mismo comportamiento que PUT)
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const id_negocio = parseInt(id);
     
     if (isNaN(id_negocio)) {
