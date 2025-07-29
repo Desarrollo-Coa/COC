@@ -1,6 +1,7 @@
 import { cookies, headers } from 'next/headers';
-import LoginForm from '@/components/login-form';
 import Skeleton from '@/components/ui/skeleton';
+import { Shield } from 'lucide-react';
+import LoginForm from '@/components/LoginForm';
 
 interface PageProps {
   params: Promise<{ negocio: string }>;
@@ -13,10 +14,26 @@ export default async function AccesosLoginPage({ params }: PageProps) {
 
   if (!negocioHash) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-100 to-blue-100">
-        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
-          <h1 className="text-2xl font-bold mb-4 text-blue-900">Acceso Vigilantes</h1>
-          <p className="mb-4 text-gray-700">Falta el parámetro de negocio en el link.</p>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+        <div className="w-full max-w-sm">
+          <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-t-3xl p-8 relative overflow-hidden">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-4 left-4 w-8 h-8 border-2 border-white transform rotate-45"></div>
+              <div className="absolute top-8 right-8 w-6 h-6 border-2 border-white transform rotate-12"></div>
+              <div className="absolute bottom-6 left-8 w-4 h-4 bg-white transform rotate-45"></div>
+            </div>
+            <div className="relative z-10 text-center">
+              <div className="w-16 h-16 bg-white rounded-2xl mx-auto mb-4 flex items-center justify-center">
+                <Shield className="w-8 h-8 text-gray-900" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-b-3xl p-8 shadow-xl">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Acceso Vigilantes</h1>
+              <p className="text-gray-600">Falta el parámetro de negocio en el link.</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -28,16 +45,19 @@ export default async function AccesosLoginPage({ params }: PageProps) {
     const host = headersList.get('x-forwarded-host') || headersList.get('host');
     const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
     const baseUrl = `${protocol}://${host}`;
+    
+    // Obtener cookies de forma asíncrona
+    const cookieStore = await cookies();
     const res = await fetch(`${baseUrl}/api/accesos/negocios/by-hash?hash=${negocioHash}`, {
       cache: 'no-store',
-      headers: { cookie: cookies().toString() },
+      headers: { cookie: cookieStore.toString() },
     });
     const data = await res.json();
     if (data.error) error = data.error;
     else {
       business = {
-        ...data,
-        name: data.nombre_negocio,
+        id_negocio: data.id_negocio,
+        nombre_negocio: data.nombre_negocio,
       };
     }
   } catch {
@@ -45,12 +65,32 @@ export default async function AccesosLoginPage({ params }: PageProps) {
   }
 
   if (error) return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-100 to-blue-100">
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center text-red-600">{error}</div>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+      <div className="w-full max-w-sm">
+        <div className="bg-gradient-to-br from-red-600 to-red-700 rounded-t-3xl p-8 relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-4 left-4 w-8 h-8 border-2 border-white transform rotate-45"></div>
+            <div className="absolute top-8 right-8 w-6 h-6 border-2 border-white transform rotate-12"></div>
+            <div className="absolute bottom-6 left-8 w-4 h-4 bg-white transform rotate-45"></div>
+          </div>
+          <div className="relative z-10 text-center">
+            <div className="w-16 h-16 bg-white rounded-2xl mx-auto mb-4 flex items-center justify-center">
+              <Shield className="w-8 h-8 text-red-600" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-b-3xl p-8 shadow-xl">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Error de Acceso</h1>
+            <p className="text-red-600">{error}</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
+  
   if (!business) return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-100 to-blue-100">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
       <div className="w-full max-w-sm">
         <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-t-3xl p-8 relative overflow-hidden">
           <Skeleton className="w-16 h-16 mx-auto mb-4 rounded-2xl" />

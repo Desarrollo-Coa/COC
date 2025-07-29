@@ -71,7 +71,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       [id_negocio]
     );
 
-    // Insertar nuevo código
+    // Insertar solo el código plano
     await pool.query(
       'INSERT INTO codigos_seguridad_negocio (id_negocio, codigo_acceso_hash, activo) VALUES (?, ?, 1)',
       [id_negocio, codigoPlano]

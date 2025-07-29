@@ -57,6 +57,7 @@ export async function middleware(request: NextRequest) {
   // Permitir rutas públicas sin verificación
   if (isPublicRoute(normalizedPath)) {
     console.log('[MIDDLEWARE] Ruta pública, acceso permitido');
+    console.log('[MIDDLEWARE] Ruta normalizada:', normalizedPath);
     return NextResponse.next();
   }
 
@@ -64,6 +65,23 @@ export async function middleware(request: NextRequest) {
   const token = getTokenFromRequest(request);
   if (!token) {
     console.log('[MIDDLEWARE] No hay token, redirigiendo a login');
+    
+    // Si es una ruta de accesos que requiere autenticación, redirigir al login específico
+    if (normalizedPath.startsWith('/accesos/')) {
+      // Extraer el hash del negocio de la URL si está presente
+      const pathParts = normalizedPath.split('/');
+      const negocioIndex = pathParts.findIndex(part => part === 'login');
+      if (negocioIndex !== -1 && pathParts[negocioIndex + 1]) {
+        const negocioHash = pathParts[negocioIndex + 1];
+        const accesosLoginUrl = new URL(`/accesos/login/${negocioHash}`, request.url);
+        return NextResponse.redirect(accesosLoginUrl);
+      }
+      
+      // Si es otra ruta de accesos protegida, redirigir al login general
+      const accesosLoginUrl = new URL('/accesos/login', request.url);
+      return NextResponse.redirect(accesosLoginUrl);
+    }
+    
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
   }
@@ -81,9 +99,9 @@ export async function middleware(request: NextRequest) {
 
   console.log('[MIDDLEWARE] Usuario autenticado:', { userId, role });
 
-  // Si es administrador, permitir acceso a todas las rutas
+  // Si es administrador, permitir acceso a todas las rutas sin verificar permisos
   if (role === 'administrador') {
-    console.log('[MIDDLEWARE] Es administrador, acceso permitido');
+    console.log('[MIDDLEWARE] Es administrador, acceso permitido a todas las rutas');
     return NextResponse.next();
   }
 
@@ -93,50 +111,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Obtener configuración de la ruta
-  const routeConfig = getRouteConfig(normalizedPath);
-  
-  if (routeConfig) {
-    console.log('[MIDDLEWARE] Configuración de ruta encontrada:', routeConfig);
-    
-    // Si es administrador, permitir acceso
-    if (role === 'administrador') {
-      console.log('[MIDDLEWARE] Es administrador, acceso permitido');
-      return NextResponse.next();
-    }
-    
-    // Si requiere admin y no es administrador, denegar acceso
-    if (routeConfig.requiresAdmin && role !== 'administrador') {
-      console.log('[MIDDLEWARE] Acceso denegado - requiere administrador para ruta:', normalizedPath);
-      
-      if (normalizedPath.startsWith('/api/')) {
-        return new NextResponse(null, { status: 403 });
-      } else {
-        const dashboardUrl = new URL('/users/dashboard', request.url);
-        return NextResponse.redirect(dashboardUrl);
-      }
-    }
-    
-    // Para otras rutas, verificar permisos en la base de datos
-    console.log('[MIDDLEWARE] Verificando permisos de módulos desde BD para:', normalizedPath);
-    const hasPermission = await checkModulePermissions(userId, normalizedPath, token);
-    
-    if (!hasPermission) {
-      console.log('[MIDDLEWARE] Acceso denegado a:', normalizedPath);
-      
-      if (normalizedPath.startsWith('/api/')) {
-        return new NextResponse(null, { status: 403 });
-      } else {
-        const dashboardUrl = new URL('/users/dashboard', request.url);
-        return NextResponse.redirect(dashboardUrl);
-      }
-    }
-    
-    console.log('[MIDDLEWARE] Permisos verificados, acceso permitido');
-    return NextResponse.next();
-  }
-
-  // Si no hay configuración específica, verificar permisos de módulos desde la base de datos
+  // Para usuarios no administradores, verificar permisos de módulos desde la base de datos
   console.log('[MIDDLEWARE] Verificando permisos de módulos desde BD para:', normalizedPath);
   const hasPermission = await checkModulePermissions(userId, normalizedPath, token);
   

@@ -61,9 +61,9 @@ export async function GET(request: NextRequest) {
   const role = (payload.role as string | undefined)?.toLowerCase() || '';
   console.log('[middleware-routes] Rol:', role);
 
-  // Si es administrador, permitir acceso a todas las rutas
+  // Si es administrador, permitir acceso a todas las rutas sin verificar permisos
   if (role === 'administrador') {
-    console.log('[middleware-routes] Es administrador, acceso permitido');
+    console.log('[middleware-routes] Es administrador, acceso permitido a todas las rutas');
     return new NextResponse(null, { status: 200 });
   }
 
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
     return new NextResponse(null, { status: 200 });
   }
 
-  // Obtener módulos asignados al usuario
+  // Para usuarios no administradores, verificar permisos de módulos
   const userId = payload.id as number;
   const modules = await getUserModules(userId);
   console.log('[middleware-routes] Módulos asignados:', modules);

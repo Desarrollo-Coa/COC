@@ -15,13 +15,21 @@ export function getTokenFromRequest(request: NextRequest) {
     return token;
   }
   
-  // Si no está en el header, buscar en las cookies
+  // Si no está en el header, buscar en las cookies (tanto 'token' como 'vigilante_token')
   const token = request.cookies.get('token')?.value;
+  const vigilanteToken = request.cookies.get('vigilante_token')?.value;
+  
   console.log('🍪 getTokenFromRequest - Token encontrado en cookies:', !!token);
-  if (token) {
-    console.log('🍪 Token (primeros 20 chars):', token.substring(0, 20) + '...');
+  console.log('🍪 getTokenFromRequest - Vigilante token encontrado en cookies:', !!vigilanteToken);
+  
+  // Priorizar vigilante_token si existe, sino usar token normal
+  const finalToken = vigilanteToken || token;
+  
+  if (finalToken) {
+    console.log('🍪 Token (primeros 20 chars):', finalToken.substring(0, 20) + '...');
   }
-  return token;
+  
+  return finalToken;
 }
 
 export async function verifyToken(token: string) {

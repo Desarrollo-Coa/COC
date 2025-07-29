@@ -12,12 +12,24 @@ export interface RouteConfig {
 export const publicRoutes = [
   '/login',
   '/accesos/login',
+  '/accesos/login/[negocio]',
   '/api/auth/login',
   '/api/auth/logout',
   '/api/auth/me',
   '/api/auth/verify-admin',
   '/api/middleware-routes',
   '/api/test-middleware',
+  '/api/accesos/negocios/by-hash',
+  '/api/accesos/auth/login',
+  '/api/accesos/auth/me',
+  '/api/accesos/auth/logout',
+  '/api/accesos/stats',
+  '/api/accesos/puestos',
+  '/api/accesos/turnos',
+  '/api/accesos/asignaciones',
+  '/api/accesos/profile/photo',
+  '/api/accesos/links',
+  '/api/accesos/negocios',
   '/favicon.ico',
   '/_next',
   '/api/webhooks',
@@ -203,12 +215,23 @@ export function normalizePath(path: string): string {
 // Función para verificar si una ruta es pública
 export function isPublicRoute(path: string): boolean {
   const normalizedPath = normalizePath(path);
-  return publicRoutes.some(route => 
-    normalizedPath === route || 
-    normalizedPath.startsWith(route + '/') ||
-    normalizedPath.startsWith('/_next/') ||
-    normalizedPath.startsWith('/api/webhooks/')
-  );
+  
+  // Remover parámetros de consulta para la comparación
+  const pathWithoutQuery = normalizedPath.split('?')[0];
+  
+  return publicRoutes.some(route => {
+    // Comparar rutas exactas
+    if (pathWithoutQuery === route) return true;
+    
+    // Comparar rutas que empiezan con el patrón
+    if (pathWithoutQuery.startsWith(route + '/')) return true;
+    
+    // Rutas especiales
+    if (pathWithoutQuery.startsWith('/_next/')) return true;
+    if (pathWithoutQuery.startsWith('/api/webhooks/')) return true;
+    
+    return false;
+  });
 }
 
 // Función para verificar si una ruta requiere solo autenticación
