@@ -5,11 +5,6 @@ import { GraficoCard } from '@/components/novedades/GraficoCard';
 import { useToast } from '@/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
-  RadialBarChart,
-  RadialBar,
-  PolarGrid,
-  PolarRadiusAxis,
-  Label,
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -427,20 +422,21 @@ export default function EstadisticasGenerales({ id_negocio, id_unidad, id_puesto
   // Cargar unidades de negocio
   useEffect(() => {
     if (!id_negocio) return;
-    console.log('Cargando unidades para negocio:', id_negocio);
-    fetch(`/api/novedades/unidades-negocio?id_negocio=${id_negocio}`)
-      .then(res => {
+    const fetchUnidades = async () => {
+      console.log('Cargando unidades para negocio:', id_negocio);
+      try {
+        const res = await fetch(`/api/novedades/unidades-negocio?id_negocio=${id_negocio}`);
         console.log('Respuesta unidades:', res.status);
-        return res.json();
-      })
-      .then(data => {
+        const data = await res.json();
         console.log('Datos unidades recibidos:', data);
         setUnidades(Array.isArray(data) ? data : []);
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('Error cargando unidades:', error);
         setUnidades([]);
-      });
+      }
+    };
+    
+    fetchUnidades();
   }, [id_negocio]);
 
   // Cargar puestos
@@ -450,27 +446,28 @@ export default function EstadisticasGenerales({ id_negocio, id_unidad, id_puesto
       return;
     }
     
-    console.log('Cargando puestos para negocio:', id_negocio, 'unidad:', unidadSeleccionada);
-    
-    // Si no hay unidad seleccionada, cargar todos los puestos del negocio
-    // Si hay unidad seleccionada, cargar solo los puestos de esa unidad
-    const url = unidadSeleccionada 
-      ? `/api/novedades/puestos?id_unidad=${unidadSeleccionada}`
-      : `/api/novedades/puestos?id_negocio=${id_negocio}`;
-    
-    fetch(url)
-      .then(res => {
+    const fetchPuestos = async () => {
+      console.log('Cargando puestos para negocio:', id_negocio, 'unidad:', unidadSeleccionada);
+      
+      // Si no hay unidad seleccionada, cargar todos los puestos del negocio
+      // Si hay unidad seleccionada, cargar solo los puestos de esa unidad
+      const url = unidadSeleccionada 
+        ? `/api/novedades/puestos?id_unidad=${unidadSeleccionada}`
+        : `/api/novedades/puestos?id_negocio=${id_negocio}`;
+      
+      try {
+        const res = await fetch(url);
         console.log('Respuesta puestos:', res.status);
-        return res.json();
-      })
-      .then(data => {
+        const data = await res.json();
         console.log('Datos puestos recibidos:', data);
         setPuestos(Array.isArray(data) ? data : []);
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('Error cargando puestos:', error);
         setPuestos([]);
-      });
+      }
+    };
+    
+    fetchPuestos();
   }, [id_negocio, unidadSeleccionada]);
 
   // Función para manejar cambio de puesto
@@ -498,11 +495,20 @@ export default function EstadisticasGenerales({ id_negocio, id_unidad, id_puesto
     });
     if (unidadSeleccionada) params.append('id_unidad', unidadSeleccionada.toString());
     if (puestoSeleccionado) params.append('id_puesto', puestoSeleccionado.toString());
-    fetch(`/api/novedades/estadisticas-generales?${params.toString()}`)
-      .then(res => res.json())
-      .then(json => setData(json))
-      .catch(() => setData(null))
-      .finally(() => setLoadingZona(false));
+    const fetchEstadisticas = async () => {
+      try {
+        const res = await fetch(`/api/novedades/estadisticas-generales?${params.toString()}`);
+        const json = await res.json();
+        setData(json);
+      } catch (error) {
+        console.error('Error cargando estadísticas:', error);
+        setData(null);
+      } finally {
+        setLoadingZona(false);
+      }
+    };
+    
+    fetchEstadisticas();
   }, [id_negocio, unidadSeleccionada, puestoSeleccionado, desde, hasta]);
 
   // Cargar datos por mes para el año seleccionado
@@ -520,9 +526,10 @@ export default function EstadisticasGenerales({ id_negocio, id_unidad, id_puesto
     if (unidadSeleccionada) params.append('id_unidad', unidadSeleccionada.toString());
     if (puestoSeleccionado) params.append('id_puesto', puestoSeleccionado.toString());
     
-    fetch(`/api/novedades/estadisticas-generales?${params.toString()}`)
-      .then(res => res.json())
-      .then(json => {
+    const fetchEstadisticasPorMes = async () => {
+      try {
+        const res = await fetch(`/api/novedades/estadisticas-generales?${params.toString()}`);
+        const json = await res.json();
         const datosPorMes = json.porMes || [];
         const nuevoArray = Array(12).fill(0);
         
@@ -532,8 +539,13 @@ export default function EstadisticasGenerales({ id_negocio, id_unidad, id_puesto
         });
         
         setNovedadesPorMesAño(nuevoArray);
-      })
-      .catch(() => setNovedadesPorMesAño(Array(12).fill(0)));
+      } catch (error) {
+        console.error('Error cargando estadísticas por mes:', error);
+        setNovedadesPorMesAño(Array(12).fill(0));
+      }
+    };
+    
+    fetchEstadisticasPorMes();
   }, [id_negocio, unidadSeleccionada, puestoSeleccionado, añoMeses]);
 
   const formatearFecha = (fecha: string): string => {

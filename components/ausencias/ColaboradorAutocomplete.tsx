@@ -23,9 +23,17 @@ export default function ColaboradorAutocomplete({ value, onChange, placeholder }
   const [filtered, setFiltered] = useState<Colaborador[]>([]);
 
   useEffect(() => {
-    fetch('/api/colaboradores')
-      .then(res => res.json())
-      .then(data => setColaboradores(data));
+    const fetchColaboradores = async () => {
+      try {
+        const res = await fetch('/api/colaboradores');
+        const data = await res.json();
+        setColaboradores(data);
+      } catch (error) {
+        console.error('Error cargando colaboradores:', error);
+      }
+    };
+    
+    fetchColaboradores();
   }, []);
 
   useEffect(() => {

@@ -89,30 +89,42 @@ export default function HistorialNovedades() {
 
   // Corrijo el useEffect de tiposReporte para validar que la respuesta sea un array
   useEffect(() => {
-    fetch('/api/novedades/tipos-reporte')
-      .then(res => res.json())
-      .then(data => {
+    const fetchTiposReporte = async () => {
+      try {
+        const res = await fetch('/api/novedades/tipos-reporte');
+        const data = await res.json();
         if (Array.isArray(data)) {
-          setTiposReporte(data)
+          setTiposReporte(data);
         } else {
-          setTiposReporte([])
+          setTiposReporte([]);
         }
-      })
-      .catch(() => setTiposReporte([]))
+      } catch (error) {
+        console.error('Error cargando tipos de reporte:', error);
+        setTiposReporte([]);
+      }
+    };
+    
+    fetchTiposReporte();
   }, [])
 
   // Corrijo el useEffect de tiposEvento para validar que la respuesta sea un array
   useEffect(() => {
-    fetch('/api/novedades/tipos-evento')
-      .then(res => res.json())
-      .then(data => {
+    const fetchTiposEvento = async () => {
+      try {
+        const res = await fetch('/api/novedades/tipos-evento');
+        const data = await res.json();
         if (Array.isArray(data)) {
-          setTiposEvento(data)
+          setTiposEvento(data);
         } else {
-          setTiposEvento([])
+          setTiposEvento([]);
         }
-      })
-      .catch(() => setTiposEvento([]))
+      } catch (error) {
+        console.error('Error cargando tipos de evento:', error);
+        setTiposEvento([]);
+      }
+    };
+    
+    fetchTiposEvento();
   }, [])
 
   useEffect(() => {

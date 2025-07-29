@@ -42,10 +42,12 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
     setError(null);
     setData(null);
     setReportesArray([]);
-    // Incluir tipoTurno en la petición si está definido
-    const url = `/api/reporte-comunicacion/por-colaborador?colaboradorId=${colaboradorId}&fecha=${fecha}&puestoId=${puestoId}` + (tipoTurno ? `&tipoTurno=${tipoTurno}` : "");
-    fetch(url)
-      .then(async (res) => {
+    const fetchData = async () => {
+      // Incluir tipoTurno en la petición si está definido
+      const url = `/api/reporte-comunicacion/por-colaborador?colaboradorId=${colaboradorId}&fecha=${fecha}&puestoId=${puestoId}` + (tipoTurno ? `&tipoTurno=${tipoTurno}` : "");
+      
+      try {
+        const res = await fetch(url);
         if (!res.ok) {
           const errorData = await res.json();
           throw new Error(errorData.error || "Error al cargar los datos");
@@ -71,12 +73,15 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
         } else {
           setReportesArray([]);
         }
-      })
-      .catch((e) => {
+      } catch (e: any) {
         console.error('Error fetching data:', e);
-        setError(e.message);
-      })
-      .finally(() => setLoading(false));
+        setError(e.message || 'Error desconocido');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
   }, [isOpen, colaboradorId, fecha, puestoId, tipoTurno]);
 
   return (

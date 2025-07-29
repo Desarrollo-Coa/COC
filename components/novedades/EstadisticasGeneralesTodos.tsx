@@ -40,12 +40,21 @@ export default function EstadisticasGeneralesTodos() {
   const [tipoSeleccionado, setTipoSeleccionado] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoadingGenerales(true);
-    fetch(`/api/novedades/estadisticas-generales-todos?desde=${fechaDesde}&hasta=${fechaHasta}`)
-      .then(res => res.json())
-      .then(data => setGeneralesData(data))
-      .catch(() => setGeneralesData(null))
-      .finally(() => setLoadingGenerales(false));
+    const fetchGeneralesData = async () => {
+      setLoadingGenerales(true);
+      try {
+        const res = await fetch(`/api/novedades/estadisticas-generales-todos?desde=${fechaDesde}&hasta=${fechaHasta}`);
+        const data = await res.json();
+        setGeneralesData(data);
+      } catch (error) {
+        console.error('Error cargando estadísticas generales:', error);
+        setGeneralesData(null);
+      } finally {
+        setLoadingGenerales(false);
+      }
+    };
+    
+    fetchGeneralesData();
   }, [fechaDesde, fechaHasta]);
 
   const labelsMeses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];

@@ -18,9 +18,17 @@ export default function AusenciaForm({ seleccion, onResumen, disabled }: Ausenci
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch('/api/tipos-ausencia')
-      .then(res => res.json())
-      .then(data => setTiposAusencia(data));
+    const fetchTiposAusencia = async () => {
+      try {
+        const res = await fetch('/api/tipos-ausencia');
+        const data = await res.json();
+        setTiposAusencia(data);
+      } catch (error) {
+        console.error('Error cargando tipos de ausencia:', error);
+      }
+    };
+    
+    fetchTiposAusencia();
   }, []);
 
   useEffect(() => {

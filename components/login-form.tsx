@@ -60,32 +60,56 @@ export default function LoginForm({ negocioHash, business, onLogin }: LoginFormP
 
   // Cargar unidades cuando se pasa el código
   useEffect(() => {
-    if (step === "unidad" && business) {
-      fetch(`/api/configuracion-unidades-negocio?id_negocio=${business.id_negocio}`)
-        .then(res => res.json())
-        .then(data => setUnidades(data))
-        .catch(() => setUnidades([]))
-    }
+    const fetchUnidades = async () => {
+      if (step === "unidad" && business) {
+        try {
+          const res = await fetch(`/api/configuracion-unidades-negocio?id_negocio=${business.id_negocio}`);
+          const data = await res.json();
+          setUnidades(data);
+        } catch (error) {
+          console.error('Error cargando unidades:', error);
+          setUnidades([]);
+        }
+      }
+    };
+    
+    fetchUnidades();
   }, [step, business])
 
   // Cargar puestos cuando se selecciona unidad
   useEffect(() => {
-    if (step === "puesto" && selectedUnidad) {
-      fetch(`/api/novedades/puestos?id_unidad=${selectedUnidad.id_unidad}`)
-        .then(res => res.json())
-        .then(data => setPuestos(data))
-        .catch(() => setPuestos([]))
-    }
+    const fetchPuestos = async () => {
+      if (step === "puesto" && selectedUnidad) {
+        try {
+          const res = await fetch(`/api/novedades/puestos?id_unidad=${selectedUnidad.id_unidad}`);
+          const data = await res.json();
+          setPuestos(data);
+        } catch (error) {
+          console.error('Error cargando puestos:', error);
+          setPuestos([]);
+        }
+      }
+    };
+    
+    fetchPuestos();
   }, [step, selectedUnidad])
 
   // Cargar colaboradores al pasar el código
   useEffect(() => {
-    if (step === "user") {
-      fetch(`/api/colaboradores`)
-        .then(res => res.json())
-        .then(data => setColaboradores(data))
-        .catch(() => setColaboradores([]))
-    }
+    const fetchColaboradores = async () => {
+      if (step === "user") {
+        try {
+          const res = await fetch(`/api/colaboradores`);
+          const data = await res.json();
+          setColaboradores(data);
+        } catch (error) {
+          console.error('Error cargando colaboradores:', error);
+          setColaboradores([]);
+        }
+      }
+    };
+    
+    fetchColaboradores();
   }, [step])
 
   const handleBusinessCodeSubmit = (e: React.FormEvent) => {
