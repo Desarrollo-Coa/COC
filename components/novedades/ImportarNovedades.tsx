@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx'
+import * as ExcelJS from 'exceljs'
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -6,9 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 export default function ImportarNovedades() {
   const [modalOpen, setModalOpen] = useState(false)
-  const [excelData, setExcelData] = useState<any[]>([])
   const [novedadesFaltantes, setNovedadesFaltantes] = useState<any[]>([])
-  const [resumen, setResumen] = useState<{total: number, faltantes: number}>({total: 0, faltantes: 0})
   const [loading, setLoading] = useState(false)
   const [resultados, setResultados] = useState<{exitos: any[], errores: any[]} | null>(null)
 
@@ -16,11 +14,26 @@ export default function ImportarNovedades() {
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const data = await file.arrayBuffer()
-    const workbook = XLSX.read(data)
-    const sheet = workbook.Sheets[workbook.SheetNames[0]]
-    const json = XLSX.utils.sheet_to_json(sheet, {defval: ''})
-    setExcelData(json)
+    
+    const workbook = new ExcelJS.Workbook()
+    const arrayBuffer = await file.arrayBuffer()
+    await workbook.xlsx.load(arrayBuffer)
+    
+    const worksheet = workbook.getWorksheet(1)
+    if (!worksheet) return
+    
+    const json: any[] = []
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return // Skip header row
+      
+      const rowData: any = {}
+      row.eachCell((cell, colNumber) => {
+        const header = worksheet.getRow(1).getCell(colNumber).value?.toString() || ''
+        rowData[header] = cell.value?.toString() || ''
+      })
+      json.push(rowData)
+    })
+    
     // 2. Extraer consecutivos y consultar al backend
     const consecutivos = json.map((row: any) => row['Consecutvo'] || row['Consecutivo'])
     setLoading(true)
@@ -33,7 +46,6 @@ export default function ImportarNovedades() {
     // 3. Filtrar novedades faltantes
     const novedadesFaltantes = json.filter((row: any) => faltantes.includes(row['Consecutvo'] || row['Consecutivo']))
     setNovedadesFaltantes(novedadesFaltantes)
-    setResumen({total: consecutivos.length, faltantes: novedadesFaltantes.length})
     setLoading(false)
     setModalOpen(true)
   }
@@ -70,9 +82,7 @@ export default function ImportarNovedades() {
           setModalOpen(open)
           if (!open) {
             setResultados(null)
-            setExcelData([])
             setNovedadesFaltantes([])
-            setResumen({ total: 0, faltantes: 0 })
             setLoading(false)
           }
         }}
