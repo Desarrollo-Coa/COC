@@ -57,14 +57,20 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch("/api/ausencias/dashboard/stats")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.error) throw new Error(data.error)
-        setStats(data)
-      })
-      .catch((e) => setError("Error al cargar estadísticas"))
-      .finally(() => setLoading(false))
+    const loadStats = async () => {
+      try {
+        const res = await fetch("/api/ausencias/dashboard/stats");
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        setStats(data);
+      } catch (error) {
+        setError("Error al cargar estadísticas");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadStats();
   }, [])
 
   if (loading) {

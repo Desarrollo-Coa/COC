@@ -35,15 +35,17 @@ const NegociosPage: React.FC = () => {
     type: 'danger'
   });
 
-  const fetchNegocios = () => {
+  const fetchNegocios = async () => {
     setLoading(true);
-    fetch('/api/accesos/negocios')
-      .then(res => res.json())
-      .then(data => {
-        setNegocios(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    try {
+      const res = await fetch('/api/accesos/negocios');
+      const data = await res.json();
+      setNegocios(data);
+    } catch (error) {
+      console.error('Error cargando negocios:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

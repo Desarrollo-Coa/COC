@@ -18,15 +18,17 @@ export default function LinksPage() {
     fetchLinks();
   }, []);
 
-  const fetchLinks = () => {
+  const fetchLinks = async () => {
     setLoading(true);
-    fetch('/api/accesos/links')
-      .then(res => res.json())
-      .then(data => {
-        setLinks(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    try {
+      const res = await fetch('/api/accesos/links');
+      const data = await res.json();
+      setLinks(data);
+    } catch (error) {
+      console.error('Error cargando links:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCopy = (link: string, id_negocio: number) => {

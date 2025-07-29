@@ -89,29 +89,33 @@ export default function HistorialAusenciasPage() {
   const [negocioFilter, setNegocioFilter] = useState("all")
 
   useEffect(() => {
-    // Cargar ausencias
-    fetch("/api/ausencias")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setAusencias(data)
-          setFilteredAusencias(data)
+    const loadData = async () => {
+      try {
+        // Cargar ausencias
+        const ausenciasRes = await fetch("/api/ausencias");
+        const ausenciasData = await ausenciasRes.json();
+        if (Array.isArray(ausenciasData)) {
+          setAusencias(ausenciasData);
+          setFilteredAusencias(ausenciasData);
         } else {
-          throw new Error("Formato de datos inválido")
+          throw new Error("Formato de datos inválido");
         }
-      })
-      .catch((e) => setError("Error al cargar ausencias"))
-      .finally(() => setLoading(false))
 
-    // Cargar todos los tipos de ausencia
-    fetch("/api/tipos-ausencia")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setTodosLosTipos(data)
+        // Cargar todos los tipos de ausencia
+        const tiposRes = await fetch("/api/tipos-ausencia");
+        const tiposData = await tiposRes.json();
+        if (Array.isArray(tiposData)) {
+          setTodosLosTipos(tiposData);
         }
-      })
-      .catch((e) => console.error("Error al cargar tipos de ausencia:", e))
+      } catch (error) {
+        setError("Error al cargar ausencias");
+        console.error("Error al cargar tipos de ausencia:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, [])
 
   useEffect(() => {
@@ -186,7 +190,8 @@ export default function HistorialAusenciasPage() {
 
       if (response.ok) {
         // Refresh data
-        const updatedData = await fetch("/api/ausencias").then(res => res.json())
+        const updatedRes = await fetch("/api/ausencias");
+        const updatedData = await updatedRes.json();
         if (Array.isArray(updatedData)) {
           setAusencias(updatedData)
         }

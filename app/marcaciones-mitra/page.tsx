@@ -15,7 +15,7 @@ import {
 import { Bar, Line } from "react-chartjs-2";
 import ChartDataLabels from "chartjs-plugin-datalabels"; 
 import { useAuth } from '@/hooks/useAuth';
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import { RadialBarChart, RadialBar, PolarGrid, PolarRadiusAxis, Label } from 'recharts'; 
 import { CartesianGrid, LabelList, Line as RechartsLine, LineChart, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip, TooltipProps } from "recharts"
 import {
@@ -110,18 +110,14 @@ export default function MarcacionesMitraPage() {
   const [importError, setImportError] = useState("");
   const [importSuccess, setImportSuccess] = useState("");
   const [previewData, setPreviewData] = useState<{
+    total: number;
+    fechas: { fecha: string; count: number }[];
+    zonas: { zona: string; count: number }[];
+    horas: { hora: string; count: number }[];
     headers: string[];
     rows: string[][];
-    inserts: any[];
-    summary: {
-      total: number;
-      fechaInicio: string;
-      fechaFin: string;
-      marcacionesPorDia: { fecha: string; count: number }[];
-      marcacionesPorZona: { zona: string; count: number }[];
-      marcacionesPorHora: { hora: string; count: number }[];
-    };
   } | null>(null);
+  const [importData, setImportData] = useState<any[]>([]);
   const { user, isAuthenticated } = useAuth();
   const [importProgress, setImportProgress] = useState(0);
   const [isImporting, setIsImporting] = useState(false);
@@ -129,25 +125,40 @@ export default function MarcacionesMitraPage() {
   const [resultados, setResultados] = useState<{exitos: any[], errores: any[], total: number, exitosos: number, conError: number} | null>(null);
 
   useEffect(() => {
-    setIsClient(true);
-    const ultimos7Dias = obtenerUltimos7Dias();
-    setDesde(ultimos7Dias.desde);
-    setHasta(ultimos7Dias.hasta);
-    // Cargar clientes
-    fetch('/api/clientes')
-      .then(res => res.json())
-      .then(data => {
+    const loadInitialData = async () => {
+      setIsClient(true);
+      const ultimos7Dias = obtenerUltimos7Dias();
+      setDesde(ultimos7Dias.desde);
+      setHasta(ultimos7Dias.hasta);
+      
+      // Cargar clientes
+      try {
+        const res = await fetch('/api/clientes');
+        const data = await res.json();
         setClientes(data);
         if (data.length > 0) setClienteSeleccionado(data[0].id_cliente);
-      });
+      } catch (error) {
+        console.error('Error cargando clientes:', error);
+      }
+    };
+    
+    loadInitialData();
   }, []);
 
   useEffect(() => {
-    if (desde && hasta && clienteSeleccionado) {
-      fetch(`/api/marcaciones?desde=${desde}&hasta=${hasta}&id_cliente=${clienteSeleccionado}`)
-        .then(res => res.json())
-        .then(setData);
-    }
+    const loadMarcaciones = async () => {
+      if (desde && hasta && clienteSeleccionado) {
+        try {
+          const res = await fetch(`/api/marcaciones?desde=${desde}&hasta=${hasta}&id_cliente=${clienteSeleccionado}`);
+          const data = await res.json();
+          setData(data);
+        } catch (error) {
+          console.error('Error cargando marcaciones:', error);
+        }
+      }
+    };
+    
+    loadMarcaciones();
   }, [desde, hasta, clienteSeleccionado]);
 
   // Cargar todos los puntos de marcación al inicio
@@ -335,10 +346,23 @@ export default function MarcacionesMitraPage() {
       reader.onload = async (e) => {
         try {
           const data = e.target?.result;
-          const workbook = XLSX.read(data, { type: 'binary' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1 });
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(data as ArrayBuffer);
+          const worksheet = workbook.getWorksheet(1);
+          
+          if (!worksheet) {
+            setImportError("No se encontró ninguna hoja en el archivo");
+            return;
+          }
+
+          const jsonData: string[][] = [];
+          worksheet.eachRow((row, rowNumber) => {
+            const rowData: string[] = [];
+            row.eachCell((cell, colNumber) => {
+              rowData[colNumber - 1] = cell.value?.toString() || '';
+            });
+            jsonData.push(rowData);
+          });
 
           // Validar el formato del archivo
           if (jsonData.length < 2) {
@@ -426,39 +450,32 @@ export default function MarcacionesMitraPage() {
           }));
 
           const marcacionesPorHora = horas.map(hora => ({
-            hora: `${hora}:00`,
+            hora,
             count: rows.filter(row => row[4].startsWith(hora)).length
           }));
 
-          // Mostrar vista previa
           setPreviewData({
+            total: inserts.length,
+            fechas: marcacionesPorDia,
+            zonas: marcacionesPorZona,
+            horas: marcacionesPorHora,
             headers,
-            rows,
-            inserts,
-            summary: {
-              total: rows.length,
-              fechaInicio: fechas[0],
-              fechaFin: fechas[fechas.length - 1],
-              marcacionesPorDia,
-              marcacionesPorZona,
-              marcacionesPorHora
-            }
+            rows: rows.slice(0, 10) // Solo mostrar las primeras 10 filas en el preview
           });
 
+          setImportData(inserts);
+          setShowImportModal(true);
+          toast.success(`Archivo cargado exitosamente. ${inserts.length} registros encontrados.`);
+
         } catch (error) {
-          console.error('Error procesando el archivo:', error);
-          setImportError("Error al procesar el archivo. Verifique el formato.");
+          console.error('Error procesando archivo:', error);
+          setImportError("Error al procesar el archivo. Asegúrese de que sea un archivo Excel válido.");
         }
       };
-
-      reader.onerror = () => {
-        setImportError("Error al leer el archivo");
-      };
-
-      reader.readAsBinaryString(file);
+      reader.readAsArrayBuffer(file);
     } catch (error) {
-      console.error('Error en la carga del archivo:', error);
-      setImportError("Error al cargar el archivo");
+      console.error('Error leyendo archivo:', error);
+      setImportError("Error al leer el archivo.");
     }
   };
 
@@ -472,7 +489,7 @@ export default function MarcacionesMitraPage() {
     setResultados(null);
 
     try {
-      const totalInserts = previewData.inserts;
+                const totalInserts = importData;
       let allExitos: any[] = [];
       let allErrores: any[] = [];
       let startTime = Date.now();
@@ -548,8 +565,13 @@ export default function MarcacionesMitraPage() {
 
       // Actualizar datos si hay registros exitosos
       if (allExitos.length > 0 && desde && hasta && clienteSeleccionado) {
-        const newData = await fetch(`/api/marcaciones?desde=${desde}&hasta=${hasta}&id_cliente=${clienteSeleccionado}`).then(res => res.json());
-        setData(newData);
+        try {
+          const res = await fetch(`/api/marcaciones?desde=${desde}&hasta=${hasta}&id_cliente=${clienteSeleccionado}`);
+          const newData = await res.json();
+          setData(newData);
+        } catch (error) {
+          console.error('Error actualizando datos después de importación:', error);
+        }
       }
 
       // No cerrar el modal automáticamente, mostrar el reporte
@@ -1271,17 +1293,17 @@ export default function MarcacionesMitraPage() {
                     <div className="grid grid-cols-3 gap-4">
                       <div className="bg-white p-4 rounded-lg shadow">
                         <h5 className="text-sm font-medium text-gray-500">Total de Marcaciones</h5>
-                        <p className="text-2xl font-bold text-gray-900">{previewData.summary.total}</p>
+                        <p className="text-2xl font-bold text-gray-900">{previewData.total}</p>
                       </div>
                       <div className="bg-white p-4 rounded-lg shadow">
                         <h5 className="text-sm font-medium text-gray-500">Período</h5>
                         <p className="text-lg font-semibold text-gray-900">
-                          {formatearFecha(previewData.summary.fechaInicio)} - {formatearFecha(previewData.summary.fechaFin)}
+                          {formatearFecha(previewData.fechas[0]?.fecha || '')} - {formatearFecha(previewData.fechas[previewData.fechas.length - 1]?.fecha || '')}
                         </p>
                       </div>
                       <div className="bg-white p-4 rounded-lg shadow">
                         <h5 className="text-sm font-medium text-gray-500">Días con Marcaciones</h5>
-                        <p className="text-2xl font-bold text-gray-900">{previewData.summary.marcacionesPorDia.length}</p>
+                        <p className="text-2xl font-bold text-gray-900">{previewData.fechas.length}</p>
                       </div>
                     </div>
                   </div>
@@ -1294,10 +1316,10 @@ export default function MarcacionesMitraPage() {
                       <div className="h-64">
                         <Bar
                           data={{
-                            labels: previewData.summary.marcacionesPorDia.map(d => formatearFecha(d.fecha)),
+                            labels: previewData.fechas.map((d: any) => formatearFecha(d.fecha)),
                             datasets: [{
                               label: "Marcaciones",
-                              data: previewData.summary.marcacionesPorDia.map(d => d.count),
+                              data: previewData.fechas.map((d: any) => d.count),
                               backgroundColor: PALETA[0],
                               borderRadius: 4
                             }]
@@ -1330,10 +1352,10 @@ export default function MarcacionesMitraPage() {
                       <div className="h-64">
                         <Bar
                           data={{
-                            labels: previewData.summary.marcacionesPorZona.map(z => z.zona),
+                            labels: previewData.zonas.map((z: any) => z.zona),
                             datasets: [{
                               label: "Marcaciones",
-                              data: previewData.summary.marcacionesPorZona.map(z => z.count),
+                              data: previewData.zonas.map((z: any) => z.count),
                               backgroundColor: PALETA[1],
                               borderRadius: 4
                             }]
@@ -1358,10 +1380,10 @@ export default function MarcacionesMitraPage() {
                       <div className="h-64">
                         <Bar
                           data={{
-                            labels: previewData.summary.marcacionesPorHora.map(h => h.hora),
+                            labels: previewData.horas.map((h: any) => h.hora),
                             datasets: [{
                               label: "Marcaciones",
-                              data: previewData.summary.marcacionesPorHora.map(h => h.count),
+                              data: previewData.horas.map((h: any) => h.count),
                               backgroundColor: PALETA[2],
                               borderRadius: 4
                             }]
