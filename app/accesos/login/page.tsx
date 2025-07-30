@@ -11,7 +11,7 @@ export default function AccesosLoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl mb-6">
             <Shield className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Acceso de Vigilantes</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Registro Operativo</h1>
           <p className="text-gray-600">
             Sistema de control de acceso
           </p>
