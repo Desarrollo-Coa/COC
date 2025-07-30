@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, User, Eye, EyeOff, AlertCircle, Building2, MapPin, ChevronDown } from 'lucide-react';
+import { User, Eye, EyeOff, AlertCircle, Building2, MapPin, ChevronDown } from 'lucide-react';
+import Image from 'next/image';
 
 interface LoginFormProps {
   negocioHash: string;
@@ -197,14 +198,28 @@ export default function LoginForm({ negocioHash, business }: LoginFormProps) {
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
         <div className="w-full max-w-sm">
           <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-t-3xl p-8 relative overflow-hidden">
+            <div className="absolute inset-0">
+              <Image 
+                src="/img/FORTOX.jpeg" 
+                alt="FORTOX" 
+                fill
+                className="object-cover"
+              />
+            </div>
             <div className="absolute inset-0 opacity-10">
               <div className="absolute top-4 left-4 w-8 h-8 border-2 border-white transform rotate-45"></div>
               <div className="absolute top-8 right-8 w-6 h-6 border-2 border-white transform rotate-12"></div>
               <div className="absolute bottom-6 left-8 w-4 h-4 bg-white transform rotate-45"></div>
             </div>
             <div className="relative z-10 text-center">
-              <div className="w-16 h-16 bg-white rounded-2xl mx-auto mb-4 flex items-center justify-center">
-                <Shield className="w-8 h-8 text-gray-900 animate-pulse" />
+              <div className="w-16 h-16 bg-white rounded-2xl mx-auto mb-4 flex items-center justify-center overflow-hidden">
+                <Image 
+                  src="/img/FORTOX.jpeg" 
+                  alt="FORTOX" 
+                  width={48} 
+                  height={48} 
+                  className="object-cover"
+                />
               </div>
             </div>
           </div>
@@ -223,17 +238,21 @@ export default function LoginForm({ negocioHash, business }: LoginFormProps) {
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
       <div className="w-full max-w-sm">
         {/* Header con patrón geométrico */}
-        <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-t-3xl p-8 relative overflow-hidden">
+        <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-t-3xl p-8 relative overflow-hidden h-48">
+          <div className="absolute inset-0">
+            <Image 
+              src="/img/FORTOX.jpeg" 
+              alt="FORTOX" 
+              fill
+              className="object-cover"
+            />
+          </div>
           <div className="absolute inset-0 opacity-10">
             <div className="absolute top-4 left-4 w-8 h-8 border-2 border-white transform rotate-45"></div>
             <div className="absolute top-8 right-8 w-6 h-6 border-2 border-white transform rotate-12"></div>
             <div className="absolute bottom-6 left-8 w-4 h-4 bg-white transform rotate-45"></div>
           </div>
-          <div className="relative z-10 text-center">
-            <div className="w-16 h-16 bg-white rounded-2xl mx-auto mb-4 flex items-center justify-center">
-              <Shield className="w-8 h-8 text-gray-900" />
-            </div>
-          </div>
+          
         </div>
 
         {/* Contenido principal */}
