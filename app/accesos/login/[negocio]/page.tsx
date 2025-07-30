@@ -30,7 +30,7 @@ export default async function AccesosLoginPage({ params }: PageProps) {
           </div>
           <div className="bg-white rounded-b-3xl p-8 shadow-xl">
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Acceso Vigilantes</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Registro Operativo</h1>
               <p className="text-gray-600">Falta el parámetro de negocio en el link.</p>
             </div>
           </div>

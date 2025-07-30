@@ -240,7 +240,7 @@ export default function LoginForm({ negocioHash, business }: LoginFormProps) {
         <div className="bg-white rounded-b-3xl p-8 shadow-xl">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Acceso de Vigilantes
+              Registro Operativo
             </h1>
             <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mb-4">
               <Building2 className="w-4 h-4" />
