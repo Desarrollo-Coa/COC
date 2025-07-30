@@ -446,10 +446,10 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
             />
           </div>
           <div className="flex-1">
-            <h2 className="text-xs font-bold text-gray-900 mb-0.5" style={{ fontFamily: 'cursive' }}>
+            <h2 className="text-xs font-bold text-gray-900 mb-0.5">
               {user}
             </h2>
-            <div className="text-xs text-gray-600" style={{ fontFamily: 'cursive' }}>
+            <div className="text-xs text-gray-600">
               <div>HORA: {currentTime}</div>
               <div>{stats.dias_activo} dias / {new Date().toLocaleDateString('es-ES', { month: 'long' }).toUpperCase()}</div>
             </div>
