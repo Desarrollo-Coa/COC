@@ -200,7 +200,7 @@ export default function LoginForm({ negocioHash, business }: LoginFormProps) {
           <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-t-3xl p-8 relative overflow-hidden">
             <div className="absolute inset-0">
               <Image 
-                src="/img/FORTOX.jpeg" 
+                src="/img/FORTOX.png" 
                 alt="FORTOX" 
                 fill
                 className="object-cover"
@@ -214,7 +214,7 @@ export default function LoginForm({ negocioHash, business }: LoginFormProps) {
             <div className="relative z-10 text-center">
               <div className="w-16 h-16 bg-white rounded-2xl mx-auto mb-4 flex items-center justify-center overflow-hidden">
                 <Image 
-                  src="/img/FORTOX.jpeg" 
+                  src="/img/FORTOX.png" 
                   alt="FORTOX" 
                   width={48} 
                   height={48} 
@@ -241,7 +241,7 @@ export default function LoginForm({ negocioHash, business }: LoginFormProps) {
         <div className="bg-gradient-to-br from-gray-900 to-gray-700 rounded-t-3xl p-8 relative overflow-hidden h-48">
           <div className="absolute inset-0">
             <Image 
-              src="/img/FORTOX.jpeg" 
+              src="/img/FORTOX.png" 
               alt="FORTOX" 
               fill
               className="object-cover"
