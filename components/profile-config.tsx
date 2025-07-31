@@ -505,7 +505,7 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
                         {turno.nombre_tipo_turno}
                       </h3>
                       <p className="text-xs text-gray-600">
-                        {turno.id_tipo_turno === 1 ? "06:00 - 18:00" : "18:00 - 06:00"}
+                        {turno.id_tipo_turno === 1 ? "06:00 - 18:00" : turno.id_tipo_turno === 3 ? "14:00 - 22:00" : "18:00 - 06:00"}
                       </p>
                       {turno.ocupado && turno.colaborador && (
                         <p className="text-xs text-red-600">
