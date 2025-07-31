@@ -172,9 +172,6 @@ export default function LoginForm({ negocioHash, business }: LoginFormProps) {
           // Guardar token en cookies
           setTokenInCookies(data.token);
           
-          // Guardar puesto en cookies
-          document.cookie = `vigilante_puesto=${encodeURIComponent(JSON.stringify(selectedPuesto))}; path=/; max-age=${12 * 60 * 60}; SameSite=Strict`;
-          
           // Redirigir a la página principal
           router.push(`/accesos/login/${negocioHash}/principal`);
         } else {

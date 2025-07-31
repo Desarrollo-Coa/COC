@@ -10,21 +10,29 @@ import { Badge } from "@/components/ui/badge"
 import { Camera, Sun, Moon, LogOut, Shield, Clock, MapPin, MessageSquare } from "lucide-react"
 
 interface ProfileConfigProps {
-  user: string
-  id_colaborador: number
-  id_puesto: number
+  userData: {
+    id: number
+    nombre: string
+    apellido: string
+    cedula: string
+    foto_url?: string
+    activo: boolean
+  }
+  negocioData: {
+    id: number
+    nombre: string
+    activo: boolean
+  }
+  puestoData?: {
+    id_puesto: number
+    nombre_puesto: string
+    id_unidad: number
+    id_tipo_turno: number
+  } | null
   onLogout: () => void
-  negocio?: {
-    id: number
-    nombre: string
-  }
-  puesto?: {
-    id: number
-    nombre: string
-  }
 }
 
-export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogout, negocio, puesto }: ProfileConfigProps) {
+export default function ProfileConfig({ userData, negocioData, puestoData, onLogout }: ProfileConfigProps) {
   const [profileImage, setProfileImage] = useState<string>("")
   const [selectedShift, setSelectedShift] = useState<number | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString())
@@ -100,7 +108,7 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
         
         console.log('Fetching turnos con:', { negocioHash, fecha, token: !!token });
         
-        const response = await fetch(`/api/accesos/turnos?fecha=${fecha}&negocioHash=${negocioHash}&idPuesto=${id_puesto}`, {
+        const response = await fetch(`/api/accesos/turnos?fecha=${fecha}&negocioHash=${negocioHash}&idPuesto=${puestoData?.id_puesto}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'X-Negocio-Hash': negocioHash
@@ -116,7 +124,7 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
           
           // Verificar si el usuario ya tiene un turno asignado
           const miTurno = data.find((turno: any) => 
-            turno.colaborador && turno.colaborador.id === id_colaborador
+            turno.colaborador && turno.colaborador.id === userData.id
           );
           console.log('Mi turno encontrado:', miTurno);
           if (miTurno) {
@@ -134,7 +142,7 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
     };
 
     fetchTurnos();
-  }, [id_colaborador])
+  }, [userData.id, puestoData?.id_puesto])
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -211,7 +219,7 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
   const handleShiftSelection = async (turno: any) => {
     console.log('handleShiftSelection llamado con:', turno);
     console.log('selectedShift actual:', selectedShift);
-    console.log('id_colaborador:', id_colaborador);
+    console.log('id_colaborador:', userData.id);
     
     // Si ya está seleccionado, mostrar confirmación para quitar
     if (selectedShift === turno.id_tipo_turno) {
@@ -222,8 +230,8 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
     }
 
     // Si está ocupado por otro, no permitir selección
-    if (turno.ocupado && turno.colaborador?.id !== id_colaborador) {
-      console.log('Turno ocupado por otro:', turno.colaborador?.id, 'vs', id_colaborador);
+    if (turno.ocupado && turno.colaborador?.id !== userData.id) {
+      console.log('Turno ocupado por otro:', turno.colaborador?.id, 'vs', userData.id);
       alert('Este turno ya está ocupado por otro vigilante');
       return;
     }
@@ -245,7 +253,7 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
     if (!turnoToConfirm) return;
 
     console.log('confirmShiftSelection iniciado con:', turnoToConfirm);
-    console.log('Datos a enviar:', { id_puesto, fecha: new Date().toISOString().split('T')[0], id_tipo_turno: turnoToConfirm.id_tipo_turno, id_colaborador });
+    console.log('Datos a enviar:', { id_puesto: puestoData?.id_puesto, fecha: new Date().toISOString().split('T')[0], id_tipo_turno: turnoToConfirm.id_tipo_turno, id_colaborador: userData.id });
 
     try {
       const fecha = new Date().toISOString().split('T')[0];
@@ -269,10 +277,10 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
           'X-Negocio-Hash': negocioHash
         },
         body: JSON.stringify({
-          id_puesto,
+          id_puesto: puestoData?.id_puesto,
           fecha,
           id_tipo_turno: turnoToConfirm.id_tipo_turno,
-          id_colaborador
+          id_colaborador: userData.id
         })
       });
 
@@ -283,7 +291,7 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
         console.log('Response data:', responseData);
         setSelectedShift(turnoToConfirm.id_tipo_turno);
         // Recargar turnos para actualizar estado
-        const turnosResponse = await fetch(`/api/accesos/turnos?fecha=${fecha}&negocioHash=${negocioHash}&idPuesto=${id_puesto}`, {
+        const turnosResponse = await fetch(`/api/accesos/turnos?fecha=${fecha}&negocioHash=${negocioHash}&idPuesto=${puestoData?.id_puesto}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'X-Negocio-Hash': negocioHash
@@ -323,7 +331,7 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
           'X-Negocio-Hash': negocioHash
         },
         body: JSON.stringify({
-          id_puesto,
+          id_puesto: puestoData?.id_puesto,
           fecha,
           id_tipo_turno: idTipoTurno,
           id_colaborador: null // Quitar asignación
@@ -337,7 +345,7 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
         console.log('Remove response data:', responseData);
         setSelectedShift(null);
         // Recargar turnos para actualizar estado
-        const turnosResponse = await fetch(`/api/accesos/turnos?fecha=${fecha}&negocioHash=${negocioHash}&idPuesto=${id_puesto}`, {
+        const turnosResponse = await fetch(`/api/accesos/turnos?fecha=${fecha}&negocioHash=${negocioHash}&idPuesto=${puestoData?.id_puesto}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'X-Negocio-Hash': negocioHash
@@ -388,7 +396,7 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
   }
 
   if (showReports) {
-    return <ReportSystem user={user} shift={selectedShift === 1 ? "diurno" : selectedShift === 2 ? "nocturno" : ""} onBack={() => setShowReports(false)} />
+    return <ReportSystem user={userData.nombre} shift={selectedShift === 1 ? "diurno" : selectedShift === 2 ? "nocturno" : ""} onBack={() => setShowReports(false)} />
   }
 
   return (
@@ -398,12 +406,12 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-xl font-bold text-gray-900">
-              {negocio?.nombre || "Cliente"}
+              {negocioData?.nombre || "Cliente"}
             </h1>
             <div className="flex items-center gap-1 mt-0.5">
               <MapPin className="w-3 h-3 text-blue-600" />
               <p className="text-blue-600 font-medium text-xs">
-                {puesto?.nombre || "Puesto Principal"}
+                {puestoData?.nombre_puesto || "Puesto Principal"}
               </p>
             </div>
           </div>
@@ -427,7 +435,7 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="text-lg font-bold text-gray-600">{getInitials(user)}</span>
+                    <span className="text-lg font-bold text-gray-600">{getInitials(userData.nombre)}</span>
                   )}
                 </div>
                 <button
@@ -447,7 +455,7 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
           </div>
           <div className="flex-1">
             <h2 className="text-xs font-bold text-gray-900 mb-0.5">
-              {user}
+              {userData.nombre}
             </h2>
             <div className="text-xs text-gray-600">
               <div>HORA: {currentTime}</div>
@@ -477,14 +485,14 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
                   className={`w-full p-3 rounded-lg border transition-all ${
                     selectedShift === turno.id_tipo_turno
                       ? "border-yellow-400 bg-yellow-50"
-                      : turno.ocupado && turno.colaborador?.id !== id_colaborador
+                      : turno.ocupado && turno.colaborador?.id !== userData.id
                       ? "border-gray-300 bg-gray-100 opacity-50 cursor-not-allowed"
                       : selectedShift && selectedShift !== turno.id_tipo_turno
                       ? "border-gray-300 bg-gray-100 opacity-50 cursor-not-allowed"
                       : "border-gray-200 hover:border-yellow-300"
                   }`}
                   disabled={
-                    turno.ocupado && turno.colaborador?.id !== id_colaborador ||
+                    turno.ocupado && turno.colaborador?.id !== userData.id ||
                     (selectedShift && selectedShift !== turno.id_tipo_turno)
                   }
                 >
@@ -516,7 +524,7 @@ export default function ProfileConfig({ user, id_colaborador, id_puesto, onLogou
                     {selectedShift === turno.id_tipo_turno && (
                       <Badge className="bg-yellow-400 text-white text-xs">Seleccionado</Badge>
                     )}
-                    {turno.ocupado && turno.colaborador?.id !== id_colaborador && (
+                    {turno.ocupado && turno.colaborador?.id !== userData.id && (
                       <Badge className="bg-red-400 text-white text-xs">Ocupado</Badge>
                     )}
                     {selectedShift && selectedShift !== turno.id_tipo_turno && (

@@ -22,7 +22,7 @@ export async function GET(request: Request) {
 
     // Traer todos los cumplidos y su reporte (LEFT JOIN)
     let cumplidosQuery = `
-      SELECT c.id_cumplido, c.id_colaborador, c.id_tipo_turno, p.nombre_puesto, col.nombre, col.apellido, rc.calificaciones
+      SELECT c.id_cumplido, c.id_colaborador, c.id_tipo_turno, p.nombre_puesto, col.nombre, col.apellido, col.foto_url, rc.calificaciones
       FROM cumplidos c
       JOIN puestos p ON c.id_puesto = p.id_puesto
       LEFT JOIN colaboradores col ON c.id_colaborador = col.id
@@ -54,7 +54,8 @@ export async function GET(request: Request) {
       id_cumplido,
       colaborador: {
         id: colaboradorId,
-        nombre: [cumplido.nombre, cumplido.apellido].filter(Boolean).join(' ')
+        nombre: [cumplido.nombre, cumplido.apellido].filter(Boolean).join(' '),
+        foto_url: cumplido.foto_url
       },
       puesto: cumplido.nombre_puesto,
       fecha,

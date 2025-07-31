@@ -9,8 +9,7 @@ interface PageProps {
 }
 
 export default function PrincipalPage({ params }: PageProps) {
-  const [userData, setUserData] = useState<any>(null);
-  const [puestoData, setPuestoData] = useState<any>(null);
+  const [sessionData, setSessionData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -27,23 +26,6 @@ export default function PrincipalPage({ params }: PageProps) {
     document.cookie = 'vigilante_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
   };
 
-  // Función para obtener puesto de cookies
-  const getPuestoFromCookies = () => {
-    const cookies = document.cookie.split(';');
-    const puestoCookie = cookies.find(cookie => cookie.trim().startsWith('vigilante_puesto='));
-    if (!puestoCookie) return null;
-    try {
-      return JSON.parse(decodeURIComponent(puestoCookie.split('=')[1]));
-    } catch {
-      return null;
-    }
-  };
-
-  // Función para eliminar puesto de cookies
-  const removePuestoFromCookies = () => {
-    document.cookie = 'vigilante_puesto=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-  };
-
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -56,7 +38,7 @@ export default function PrincipalPage({ params }: PageProps) {
           return;
         }
 
-        // Obtener datos del usuario
+        // Obtener datos del usuario (ahora incluye puesto)
         const userResponse = await fetch('/api/accesos/auth/me', {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -65,22 +47,11 @@ export default function PrincipalPage({ params }: PageProps) {
         });
         
         if (userResponse.ok) {
-          const sessionData = await userResponse.json();
-          setUserData(sessionData);
-
-          // Obtener puesto desde la cookie
-          const puestoFromCookie = getPuestoFromCookies();
-          if (puestoFromCookie) {
-            setPuestoData({
-              id: puestoFromCookie.id_puesto,
-              nombre: puestoFromCookie.nombre_puesto,
-              unidad: puestoFromCookie.nombre_unidad
-            });
-          }
+          const data = await userResponse.json();
+          setSessionData(data);
         } else {
           // Token inválido, limpiar y redirigir
           removeTokenFromCookies();
-          removePuestoFromCookies();
           router.push(`/accesos/login/${negocioHash}`);
           return;
         }
@@ -98,34 +69,19 @@ export default function PrincipalPage({ params }: PageProps) {
   const handleLogout = async () => {
     try {
       const { negocio: negocioHash } = await params;
-      const token = getTokenFromCookies();
-      
-      if (token) {
-        await fetch('/api/accesos/auth/logout', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'X-Negocio-Hash': negocioHash
-          }
-        });
-      }
-      
       removeTokenFromCookies();
-      removePuestoFromCookies();
       router.push(`/accesos/login/${negocioHash}`);
     } catch (error) {
-      console.error('Error cerrando sesión:', error);
+      console.error('Error en logout:', error);
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl mx-auto mb-4 flex items-center justify-center animate-pulse">
-            <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-          </div>
-          <p className="text-gray-600">Cargando perfil...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Verificando sesión...</p>
         </div>
       </div>
     );
@@ -133,32 +89,38 @@ export default function PrincipalPage({ params }: PageProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-red-500 rounded-2xl mx-auto mb-4 flex items-center justify-center">
-            <div className="w-8 h-8 text-white">!</div>
-          </div>
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Reintentar
+          </button>
         </div>
       </div>
     );
   }
 
-  if (!userData) {
-    return null; // No debería llegar aquí, pero por si acaso
+  if (!sessionData) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">No se pudo cargar la información de la sesión</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <ProfileConfig
-      user={`${userData.nombre} ${userData.apellido}`}
-      id_colaborador={userData.id}
-      id_puesto={puestoData?.id || 1}
-      onLogout={handleLogout}
-      negocio={userData.negocio}
-      puesto={{
-        id: puestoData?.id || 1,
-        nombre: puestoData?.nombre || "Puesto Principal"
-      }}
-    />
+    <div className="min-h-screen bg-gray-100">
+      <ProfileConfig 
+        userData={sessionData.colaborador}
+        negocioData={sessionData.negocio}
+        puestoData={sessionData.puesto}
+        onLogout={handleLogout}
+      />
+    </div>
   );
 } 

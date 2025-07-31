@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
 import pool from '@/lib/db';
-import { RowDataPacket } from 'mysql2';
-import Hashids from 'hashids';
+import { jwtVerify } from 'jose';
+import { RowDataPacket } from 'mysql2/promise';
 
 interface Colaborador extends RowDataPacket {
   id: number;
@@ -11,6 +10,12 @@ interface Colaborador extends RowDataPacket {
   cedula: string;
   foto_url?: string;
   activo: boolean;
+}
+
+interface Puesto extends RowDataPacket {
+  id_puesto: number;
+  nombre_puesto: string;
+  id_unidad: number;
 }
 
 export async function GET(request: NextRequest) {
@@ -82,10 +87,7 @@ export async function GET(request: NextRequest) {
       
       // Verificar que el negocio sigue activo
       const [negocios] = await pool.query<RowDataPacket[]>(
-        `SELECT n.id_negocio, n.nombre_negocio
-         FROM negocios n
-         INNER JOIN codigos_seguridad_negocio csn ON n.id_negocio = csn.id_negocio
-         WHERE n.id_negocio = ? AND csn.activo = TRUE AND n.activo = TRUE`,
+        'SELECT id_negocio, nombre_negocio, activo FROM negocios WHERE id_negocio = ? AND activo = TRUE',
         [id_negocio]
       );
 
@@ -98,19 +100,46 @@ export async function GET(request: NextRequest) {
 
       const negocio = negocios[0];
 
+      // Obtener el puesto asignado al vigilante para hoy
+      const fecha = new Date().toISOString().split('T')[0];
+      const [asignaciones] = await pool.query<RowDataPacket[]>(
+        `SELECT c.id_puesto, p.nombre_puesto, p.id_unidad, c.id_tipo_turno
+         FROM cumplidos c
+         JOIN puestos p ON c.id_puesto = p.id_puesto
+         WHERE c.id_colaborador = ? AND c.fecha = ?
+         ORDER BY c.id_tipo_turno ASC
+         LIMIT 1`,
+        [colaboradorId, fecha]
+      );
+
+      let puestoAsignado = null;
+      if (asignaciones.length > 0) {
+        const asignacion = asignaciones[0];
+        puestoAsignado = {
+          id_puesto: asignacion.id_puesto,
+          nombre_puesto: asignacion.nombre_puesto,
+          id_unidad: asignacion.id_unidad,
+          id_tipo_turno: asignacion.id_tipo_turno
+        };
+      }
+
       return NextResponse.json({
-        id: colaborador.id,
-        nombre: colaborador.nombre,
-        apellido: colaborador.apellido,
-        cedula: colaborador.cedula,
-        foto_url: colaborador.foto_url,
+        colaborador: {
+          id: colaborador.id,
+          nombre: colaborador.nombre,
+          apellido: colaborador.apellido,
+          cedula: colaborador.cedula,
+          foto_url: colaborador.foto_url,
+          activo: colaborador.activo
+        },
         negocio: {
           id: negocio.id_negocio,
-          nombre: negocio.nombre_negocio
+          nombre: negocio.nombre_negocio,
+          activo: negocio.activo
         },
-        exp: payload.exp
+        puesto: puestoAsignado,
+        fecha: fecha
       });
-
     } catch (jwtError) {
       console.error('Error verificando JWT:', jwtError);
       return NextResponse.json(
@@ -118,9 +147,8 @@ export async function GET(request: NextRequest) {
         { status: 401 }
       );
     }
-
   } catch (error) {
-    console.error('Error en verificación de sesión:', error);
+    console.error('Error en /api/accesos/auth/me:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
