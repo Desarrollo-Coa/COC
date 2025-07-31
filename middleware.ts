@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getTokenFromRequest, verifyToken } from '@/lib/auth';
 import { 
   isPublicRoute, 
-  isAuthenticatedRoute, 
-  getRouteConfig, 
-  hasRoutePermission,
+  isAuthenticatedRoute,  
   normalizePath 
 } from '@/lib/route-config';
 
@@ -105,12 +103,32 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Verificar rutas que solo requieren autenticación
+    // Verificar rutas que solo requieren autenticación
   if (isAuthenticatedRoute(normalizedPath)) {
     console.log('[MIDDLEWARE] Ruta de usuario autenticado, acceso permitido');
     return NextResponse.next();
   }
 
+  // Para rutas que requieren token principal, verificar antes de ir a BD
+  if (normalizedPath.startsWith('/users/') || normalizedPath.startsWith('/api/users/') || normalizedPath.startsWith('/api/modules/user/')) {
+    const tokenFromCookies = request.cookies.get('token')?.value;
+    if (!tokenFromCookies) {
+      console.log('[MIDDLEWARE] Ruta requiere token principal, redirigiendo a login');
+      const loginUrl = new URL('/login', request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+    
+    // Verificar que el token principal sea válido
+    const principalPayload = await verifyToken(tokenFromCookies);
+    if (!principalPayload) {
+      console.log('[MIDDLEWARE] Token principal inválido, redirigiendo a login');
+      const loginUrl = new URL('/login', request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+    
+    console.log('[MIDDLEWARE] Token principal válido, continuando con verificación de módulos');
+  }
+  
   // Para usuarios no administradores, verificar permisos de módulos desde la base de datos
   console.log('[MIDDLEWARE] Verificando permisos de módulos desde BD para:', normalizedPath);
   const hasPermission = await checkModulePermissions(userId, normalizedPath, token);

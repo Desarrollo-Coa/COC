@@ -27,7 +27,6 @@ interface ProfileConfigProps {
     id_puesto: number
     nombre_puesto: string
     id_unidad: number
-    id_tipo_turno: number
   } | null
   onLogout: () => void
 }
@@ -59,7 +58,16 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const token = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='))?.split('=')[1];
+        const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
+        let token = null;
+        if (tokenCookie) {
+          try {
+            const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+            token = sessionData.token;
+          } catch (error) {
+            console.error('Error parsing session data:', error);
+          }
+        }
         
         if (token) {
           // Obtener estadísticas
@@ -104,7 +112,16 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
       try {
         const negocioHash = window.location.pathname.split('/')[3];
         const fecha = new Date().toISOString().split('T')[0];
-        const token = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='))?.split('=')[1];
+        const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
+        let token = null;
+        if (tokenCookie) {
+          try {
+            const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+            token = sessionData.token;
+          } catch (error) {
+            console.error('Error parsing session data:', error);
+          }
+        }
         
         console.log('Fetching turnos con:', { negocioHash, fecha, token: !!token });
         
@@ -158,7 +175,16 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
       formData.append('file', file)
 
       // Obtener token
-      const token = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='))?.split('=')[1]
+      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
+      let token = null;
+      if (tokenCookie) {
+        try {
+          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+          token = sessionData.token;
+        } catch (error) {
+          console.error('Error parsing session data:', error);
+        }
+      }
       
       if (!token) {
         throw new Error('No se encontró el token de autenticación')
@@ -193,7 +219,16 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
       setUploadingPhoto(false)
       
       // Recargar la foto actual desde el servidor
-      const token = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='))?.split('=')[1]
+      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
+      let token = null;
+      if (tokenCookie) {
+        try {
+          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+          token = sessionData.token;
+        } catch (error) {
+          console.error('Error parsing session data:', error);
+        }
+      }
       if (token) {
         try {
           const userResponse = await fetch('/api/accesos/auth/me', {
@@ -257,7 +292,16 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
 
     try {
       const fecha = new Date().toISOString().split('T')[0];
-      const token = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='))?.split('=')[1];
+      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
+      let token = null;
+      if (tokenCookie) {
+        try {
+          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+          token = sessionData.token;
+        } catch (error) {
+          console.error('Error parsing session data:', error);
+        }
+      }
       const negocioHash = window.location.pathname.split('/')[3];
       
       console.log('Token encontrado:', !!token);
@@ -320,7 +364,16 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
     try {
       console.log('Removiendo turno:', idTipoTurno);
       const fecha = new Date().toISOString().split('T')[0];
-      const token = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='))?.split('=')[1];
+      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
+      let token = null;
+      if (tokenCookie) {
+        try {
+          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+          token = sessionData.token;
+        } catch (error) {
+          console.error('Error parsing session data:', error);
+        }
+      }
       const negocioHash = window.location.pathname.split('/')[3];
       
       const response = await fetch('/api/accesos/asignaciones', {

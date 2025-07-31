@@ -100,27 +100,24 @@ export async function GET(request: NextRequest) {
 
       const negocio = negocios[0];
 
-      // Obtener el puesto asignado al vigilante para hoy
-      const fecha = new Date().toISOString().split('T')[0];
-      const [asignaciones] = await pool.query<RowDataPacket[]>(
-        `SELECT c.id_puesto, p.nombre_puesto, p.id_unidad, c.id_tipo_turno
-         FROM cumplidos c
-         JOIN puestos p ON c.id_puesto = p.id_puesto
-         WHERE c.id_colaborador = ? AND c.fecha = ?
-         ORDER BY c.id_tipo_turno ASC
-         LIMIT 1`,
-        [colaboradorId, fecha]
-      );
-
+      // Obtener el puesto desde la cookie del request
+      const cookies = request.headers.get('cookie') || '';
+      const tokenCookie = cookies.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
+      
       let puestoAsignado = null;
-      if (asignaciones.length > 0) {
-        const asignacion = asignaciones[0];
-        puestoAsignado = {
-          id_puesto: asignacion.id_puesto,
-          nombre_puesto: asignacion.nombre_puesto,
-          id_unidad: asignacion.id_unidad,
-          id_tipo_turno: asignacion.id_tipo_turno
-        };
+      if (tokenCookie) {
+        try {
+          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+          if (sessionData.puesto) {
+            puestoAsignado = {
+              id_puesto: sessionData.puesto.id_puesto,
+              nombre_puesto: sessionData.puesto.nombre_puesto,
+              id_unidad: sessionData.puesto.id_unidad
+            };
+          }
+        } catch (error) {
+          console.error('Error parsing session data:', error);
+        }
       }
 
       return NextResponse.json({
@@ -137,8 +134,7 @@ export async function GET(request: NextRequest) {
           nombre: negocio.nombre_negocio,
           activo: negocio.activo
         },
-        puesto: puestoAsignado,
-        fecha: fecha
+        puesto: puestoAsignado
       });
     } catch (jwtError) {
       console.error('Error verificando JWT:', jwtError);

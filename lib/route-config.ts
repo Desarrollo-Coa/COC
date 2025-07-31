@@ -38,14 +38,11 @@ export const publicRoutes = [
 // Rutas que requieren autenticación pero son accesibles para todos los usuarios autenticados
 export const authenticatedRoutes = [
   '/',
-  '/users/dashboard',
-  '/users/settings',
   '/novedades/estadisticas-generales',
   '/api/users/password',
   '/api/logout',
   '/api/stats/active-users',
   '/api/stats/users',
-  '/api/modules/user/assigned',
 ];
 
 // Configuración de módulos principales
@@ -200,6 +197,15 @@ export const apiRoutes: RouteConfig[] = [
   // API de Cumplimiento de Servicios
   {
     path: '/api/cumplimiento-servicios',
+    requiresAuth: true,
+    requiresAdmin: false,
+    allowedRoles: ['administrador'],
+    acceptsSubroutes: true,
+  },
+  
+  // API de Módulos de Usuario
+  {
+    path: '/api/modules/user',
     requiresAuth: true,
     requiresAdmin: false,
     allowedRoles: ['administrador'],

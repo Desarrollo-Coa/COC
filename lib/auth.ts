@@ -15,21 +15,40 @@ export function getTokenFromRequest(request: NextRequest) {
     return token;
   }
   
-  // Si no está en el header, buscar en las cookies (tanto 'token' como 'vigilante_token')
+  // Si no está en el header, buscar en las cookies
   const token = request.cookies.get('token')?.value;
-  const vigilanteToken = request.cookies.get('vigilante_token')?.value;
   
   console.log('🍪 getTokenFromRequest - Token encontrado en cookies:', !!token);
-  console.log('🍪 getTokenFromRequest - Vigilante token encontrado en cookies:', !!vigilanteToken);
   
-  // Priorizar vigilante_token si existe, sino usar token normal
-  const finalToken = vigilanteToken || token;
+  // Usar solo el token principal
+  const finalToken = token;
   
   if (finalToken) {
     console.log('🍪 Token (primeros 20 chars):', finalToken.substring(0, 20) + '...');
   }
   
   return finalToken;
+}
+
+export function getVigilanteTokenFromRequest(request: NextRequest) {
+  // Buscar en el header Authorization
+  const authHeader = request.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    console.log('🍪 getVigilanteTokenFromRequest - Token encontrado en header:', !!token);
+    return token;
+  }
+  
+  // Buscar en las cookies de vigilante
+  const vigilanteToken = request.cookies.get('vigilante_token')?.value;
+  
+  console.log('🍪 getVigilanteTokenFromRequest - Vigilante token encontrado en cookies:', !!vigilanteToken);
+  
+  if (vigilanteToken) {
+    console.log('🍪 Vigilante Token (primeros 20 chars):', vigilanteToken.substring(0, 20) + '...');
+  }
+  
+  return vigilanteToken;
 }
 
 export async function verifyToken(token: string) {

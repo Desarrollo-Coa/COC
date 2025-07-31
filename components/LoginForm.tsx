@@ -32,16 +32,34 @@ export default function LoginForm({ negocioHash, business }: LoginFormProps) {
   const [loadingPuestos, setLoadingPuestos] = useState(false);
   const router = useRouter();
 
-  // Función para obtener token de cookies
-  const getTokenFromCookies = () => {
+  // Función para obtener datos de sesión de cookies
+  const getSessionFromCookies = () => {
     const cookies = document.cookie.split(';');
     const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('vigilante_token='));
-    return tokenCookie ? tokenCookie.split('=')[1] : null;
+    if (!tokenCookie) return null;
+    
+    try {
+      const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+      return sessionData;
+    } catch (error) {
+      console.error('Error parsing session data:', error);
+      return null;
+    }
   };
 
-  // Función para guardar token en cookies
-  const setTokenInCookies = (token: string) => {
-    document.cookie = `vigilante_token=${token}; path=/; max-age=${12 * 60 * 60}; SameSite=Strict`;
+  // Función para obtener solo el token (compatibilidad)
+  const getTokenFromCookies = () => {
+    const sessionData = getSessionFromCookies();
+    return sessionData?.token || null;
+  };
+
+  // Función para guardar token y puesto en una sola cookie
+  const setTokenInCookies = (token: string, puesto: Puesto) => {
+    const sessionData = {
+      token,
+      puesto
+    };
+    document.cookie = `vigilante_token=${JSON.stringify(sessionData)}; path=/; max-age=${12 * 60 * 60}; SameSite=Strict`;
   };
 
   // Función para eliminar token de cookies
@@ -87,17 +105,23 @@ export default function LoginForm({ negocioHash, business }: LoginFormProps) {
     const loadPuestos = async () => {
       setLoadingPuestos(true);
       try {
+        console.log('Cargando puestos para negocio hash:', negocioHash);
         const response = await fetch(`/api/accesos/puestos?negocioHash=${negocioHash}`);
         
         if (response.ok) {
           const data = await response.json();
+          console.log('Puestos cargados:', data);
           setPuestos(data);
           // Seleccionar el primer puesto por defecto
           if (data.length > 0) {
+            console.log('Seleccionando primer puesto:', data[0]);
             setSelectedPuesto(data[0]);
+          } else {
+            console.warn('No se encontraron puestos para este negocio');
           }
         } else {
-          console.error('Error cargando puestos:', await response.json());
+          const errorData = await response.json();
+          console.error('Error cargando puestos:', errorData);
         }
       } catch (error) {
         console.error('Error cargando puestos:', error);
@@ -151,33 +175,20 @@ export default function LoginForm({ negocioHash, business }: LoginFormProps) {
       const data = await response.json();
 
       if (response.ok) {
-        // Asignar el puesto seleccionado al usuario
-        const fecha = new Date().toISOString().split('T')[0];
-        const asignacionResponse = await fetch('/api/accesos/asignaciones', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${data.token}`,
-            'X-Negocio-Hash': negocioHash
-          },
-          body: JSON.stringify({
-            id_puesto: selectedPuesto.id_puesto,
-            fecha: fecha,
-            id_tipo_turno: 1, // Turno diurno por defecto
-            id_colaborador: null // Se asignará automáticamente desde el token
-          })
-        });
-
-        if (asignacionResponse.ok) {
-          // Guardar token en cookies
-          setTokenInCookies(data.token);
-          
-          // Redirigir a la página principal
-          router.push(`/accesos/login/${negocioHash}/principal`);
-        } else {
-          const errorData = await asignacionResponse.json();
-          setError(errorData.error || 'Error al asignar puesto');
+        // Verificar que selectedPuesto tenga un valor válido
+        if (!selectedPuesto || !selectedPuesto.id_puesto) {
+          console.error('selectedPuesto es null o undefined:', selectedPuesto);
+          setError('Error: No se pudo obtener el puesto seleccionado');
+          return;
         }
+
+        console.log('Guardando puesto seleccionado en cookie:', selectedPuesto);
+        
+        // Guardar token y puesto en una sola cookie
+        setTokenInCookies(data.token, selectedPuesto);
+        
+        // Redirigir a la página principal
+        router.push(`/accesos/login/${negocioHash}/principal`);
       } else {
         setError(data.error || 'Error al iniciar sesión');
       }

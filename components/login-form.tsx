@@ -172,9 +172,24 @@ export default function LoginForm({ negocioHash, business, onLogin }: LoginFormP
   if (step === "perfil" && selectedUser && selectedUnidad && selectedPuesto) {
     return (
       <ProfileConfig
-        user={`${selectedUser.nombres} ${selectedUser.apellidos}`}
-        id_colaborador={selectedUser.id}
-        id_puesto={selectedPuesto.id_puesto}
+        userData={{
+          id: selectedUser.id,
+          nombre: selectedUser.nombres,
+          apellido: selectedUser.apellidos,
+          cedula: "",
+          activo: true,
+          foto_url: selectedUser.foto_url
+        }}
+        negocioData={{
+          id: business.id_negocio,
+          nombre: business.name,
+          activo: true
+        }}
+        puestoData={{
+          id_puesto: selectedPuesto.id_puesto,
+          nombre_puesto: selectedPuesto.nombre_puesto,
+          id_unidad: selectedPuesto.id_unidad
+        }}
         onLogout={() => {
           setStep("business")
           setBusinessCode("")
