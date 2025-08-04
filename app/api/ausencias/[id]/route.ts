@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { uploadToSpacesV2 } from '@/utils/uploadToSpacesV2';
+import { uploadToSpaces } from '@/utils/uploadToSpaces';
 import { deleteFromSpaces } from '@/utils/deleteFromSpaces';
 
 export async function PUT(
@@ -109,7 +109,7 @@ export async function PUT(
       try {
         const arrayBuffer = await archivo.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        const url_archivo = await uploadToSpacesV2(
+        const url_archivo = await uploadToSpaces(
           buffer,
           archivo.name,
           archivo.type,

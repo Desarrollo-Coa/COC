@@ -3,7 +3,7 @@ import pool from '@/lib/db';
 import { ResultSetHeader } from 'mysql2';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
-import { uploadToSpacesV2 } from '@/utils/uploadToSpacesV2';
+import { uploadToSpaces } from '@/utils/uploadToSpaces';
 
 async function verifyAdmin() {
   const cookieStore = await cookies();
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       const buffer = Buffer.from(await file.arrayBuffer());
       const key = `${Date.now()}-${file.name}`;
       console.log('Key generada:', key);
-      imagen_url = await uploadToSpacesV2(
+              imagen_url = await uploadToSpaces(
         buffer,
         key,
         file.type,

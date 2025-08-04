@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadToSpacesV2 } from '@/utils/uploadToSpacesV2';
+import { uploadToSpaces } from '@/utils/uploadToSpaces';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
 import pool from '@/lib/db';
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     const folder = `colaboradores/${colaboradorId}`;
 
     // Subir nueva foto a DigitalOcean Spaces
-    const nuevaFotoUrl = await uploadToSpacesV2(
+          const nuevaFotoUrl = await uploadToSpaces(
       optimizedBuffer,
       fileName,
       optimizedMimeType,

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { uploadToSpacesV2 } from '@/utils/uploadToSpacesV2';
+import { uploadToSpaces } from '@/utils/uploadToSpaces';
 
 export const revalidate = 0;
 
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       }
       const arrayBuffer = await archivo.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      const url_archivo = await uploadToSpacesV2(
+      const url_archivo = await uploadToSpaces(
         buffer,
         archivo.name,
         archivo.type,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getVigilanteTokenFromRequest } from '@/lib/auth';
-import { uploadToSpacesV2 } from '@/utils/uploadToSpacesV2';
+import { uploadToSpaces } from '@/utils/uploadToSpaces';
 import pool from '@/lib/db';
 import { RowDataPacket } from 'mysql2';
 import { v4 as uuidv4 } from 'uuid';
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     const fileName = `cumplido_${idCumplido}_${uuid}.${extension}`;
 
     // Subir archivo a DigitalOcean Spaces
-    const url = await uploadToSpacesV2(
+          const url = await uploadToSpaces(
       buffer,
       fileName,
       file.type,

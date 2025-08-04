@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import { uploadToSpacesV2 } from '@/utils/uploadToSpacesV2';
+import { uploadToSpaces } from '@/utils/uploadToSpaces';
 import { deleteFromSpaces } from '@/utils/deleteFromSpaces';
 import { ResultSetHeader } from 'mysql2';
 import { cookies } from 'next/headers';
@@ -77,7 +77,7 @@ export async function PUT(
       console.log('Procesando nueva imagen...');
       const buffer = Buffer.from(await file.arrayBuffer());
       const key = `${Date.now()}-${file.name}`;
-      imagen_url = await uploadToSpacesV2(
+              imagen_url = await uploadToSpaces(
         buffer,
         key,
         file.type,
