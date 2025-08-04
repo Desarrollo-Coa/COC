@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getVigilanteTokenFromRequest } from '@/lib/auth';
+import { jwtVerify } from 'jose';
 import pool from '@/lib/db';
 import { RowDataPacket } from 'mysql2';
 import { deleteFromSpaces } from '@/utils/deleteFromSpaces';
@@ -9,9 +9,35 @@ export async function GET(
   { params }: { params: Promise<{ idCumplido: string }> }
 ) {
   try {
-    const token = getVigilanteTokenFromRequest(request);
-    if (!token) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    // Obtener token del header Authorization
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Token de autorización requerido' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+
+    // Verificar el token JWT
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+      const { payload } = await jwtVerify(token, secret);
+
+      // Verificar que es un token de vigilante
+      if (payload.tipo !== 'vigilante') {
+        return NextResponse.json(
+          { error: 'Token inválido para vigilantes' },
+          { status: 401 }
+        );
+      }
+    } catch (error) {
+      console.error('Error verificando token:', error);
+      return NextResponse.json(
+        { error: 'Token inválido' },
+        { status: 401 }
+      );
     }
 
     const { idCumplido } = await params;
@@ -45,9 +71,35 @@ export async function DELETE(
   { params }: { params: Promise<{ idCumplido: string }> }
 ) {
   try {
-    const token = getVigilanteTokenFromRequest(request);
-    if (!token) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    // Obtener token del header Authorization
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Token de autorización requerido' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+
+    // Verificar el token JWT
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+      const { payload } = await jwtVerify(token, secret);
+
+      // Verificar que es un token de vigilante
+      if (payload.tipo !== 'vigilante') {
+        return NextResponse.json(
+          { error: 'Token inválido para vigilantes' },
+          { status: 401 }
+        );
+      }
+    } catch (error) {
+      console.error('Error verificando token:', error);
+      return NextResponse.json(
+        { error: 'Token inválido' },
+        { status: 401 }
+      );
     }
 
     const { idCumplido } = await params;
