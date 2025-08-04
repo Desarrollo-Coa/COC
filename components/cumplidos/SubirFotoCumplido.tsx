@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Camera, X } from 'lucide-react'
+import { Camera, X, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -27,6 +27,12 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
   const [watermarkedImage, setWatermarkedImage] = useState<File | null>(null)
   const [existingPhoto, setExistingPhoto] = useState<{ url: string; descripcion: string } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment')
+  
+  // Detectar si es dispositivo móvil
+  const isMobile = () => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  }
 
   // Función para cargar foto existente
   const fetchExistingPhoto = async () => {
@@ -111,68 +117,102 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
       // Crear un canvas para agregar la marca de agua
       const canvas = document.createElement('canvas')
       const img = new Image()
-    
+      
+      // Configurar crossOrigin para evitar problemas de CORS en móviles
+      img.crossOrigin = 'anonymous'
+      
       img.onload = () => {
-      canvas.width = img.width
-      canvas.height = img.height
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
-
-      // Dibujar la imagen original
-      ctx.drawImage(img, 0, 0)
-
-      // Configurar estilo para la marca de agua
-      const fontSize = Math.min(canvas.width * 0.04, 36) // Tamaño responsivo
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
-      ctx.font = `bold ${fontSize}px Arial`
-      ctx.textAlign = 'left'
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)'
-      ctx.lineWidth = 2
-
-      // Agregar FORTOX y hora actual
-      const watermarkText = `FORTOX - ${currentTime}`
-      const padding = 20
-      const textY = canvas.height - padding
-      
-      // Dibujar sombra del texto
-      ctx.strokeText(watermarkText, padding, textY)
-      // Dibujar texto
-      ctx.fillText(watermarkText, padding, textY)
-
-      // Convertir canvas a URL de datos y a File
-      const watermarkedDataUrl = canvas.toDataURL('image/jpeg')
-      setPreviewUrl(watermarkedDataUrl)
-      
-      // Convertir data URL a File para subir
-      const byteString = atob(watermarkedDataUrl.split(',')[1]);
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) {
-        ia[i] = byteString.charCodeAt(i);
-      }
-      const watermarkedBlob = new Blob([ab], { type: 'image/jpeg' });
-      const watermarkedFile = new File([watermarkedBlob], 'webcam-photo-watermarked.jpg', { type: 'image/jpeg' });
-      setWatermarkedImage(watermarkedFile);
-      
-      setShowCamera(false)
-
-      // Obtener ubicación
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setCoords({
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            })
-          },
-          (error) => {
-            console.error('Error obteniendo ubicación:', error)
+        try {
+          canvas.width = img.width
+          canvas.height = img.height
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            console.error('No se pudo obtener el contexto del canvas')
+            return
           }
-        )
-      }
-    }
 
-    img.src = imageSrc;
+          // Dibujar la imagen original
+          ctx.drawImage(img, 0, 0)
+
+          // Configurar estilo para la marca de agua
+          const fontSize = Math.max(Math.min(canvas.width * 0.04, 36), 16) // Tamaño responsivo con mínimo
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.95)' // Más opaco para mejor visibilidad
+          ctx.font = `bold ${fontSize}px Arial, sans-serif`
+          ctx.textAlign = 'left'
+          ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)' // Sombra más opaca
+          ctx.lineWidth = Math.max(fontSize * 0.1, 1) // Grosor proporcional
+
+          // Agregar FORTOX y hora actual
+          const watermarkText = `FORTOX - ${currentTime}`
+          const padding = Math.max(canvas.width * 0.02, 15) // Padding responsivo
+          const textY = canvas.height - padding
+          
+          // Ajustes específicos para móviles
+          if (isMobile()) {
+            // En móviles, hacer el texto más grande y más visible
+            ctx.fillStyle = 'rgba(255, 255, 255, 1)' // Completamente opaco
+            ctx.strokeStyle = 'rgba(0, 0, 0, 1)' // Sombra completamente opaca
+            ctx.lineWidth = Math.max(fontSize * 0.15, 2) // Línea más gruesa
+          }
+          
+          // Dibujar sombra del texto
+          ctx.strokeText(watermarkText, padding, textY)
+          // Dibujar texto
+          ctx.fillText(watermarkText, padding, textY)
+          
+          // Convertir canvas a URL de datos y a File
+          let quality = 0.9
+          if (isMobile()) {
+            quality = 0.8 // Calidad más baja en móviles para mejor rendimiento
+          }
+          const watermarkedDataUrl = canvas.toDataURL('image/jpeg', quality)
+          setPreviewUrl(watermarkedDataUrl)
+          
+          // Convertir data URL a File para subir
+          const byteString = atob(watermarkedDataUrl.split(',')[1]);
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+          }
+          const watermarkedBlob = new Blob([ab], { type: 'image/jpeg' });
+          const watermarkedFile = new File([watermarkedBlob], 'webcam-photo-watermarked.jpg', { type: 'image/jpeg' });
+          setWatermarkedImage(watermarkedFile);
+          
+          setShowCamera(false)
+
+          // Obtener ubicación
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                setCoords({
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude
+                })
+              },
+              (error) => {
+                console.error('Error obteniendo ubicación:', error)
+              }
+            )
+          }
+        } catch (error) {
+          console.error('Error procesando imagen con marca de agua:', error)
+          // Fallback: usar la imagen sin marca de agua
+          setPreviewUrl(imageSrc)
+          setWatermarkedImage(optimizedFile)
+          setShowCamera(false)
+        }
+      }
+
+      img.onerror = (error) => {
+        console.error('Error cargando imagen:', error)
+        // Fallback: usar la imagen sin marca de agua
+        setPreviewUrl(imageSrc)
+        setWatermarkedImage(optimizedFile)
+        setShowCamera(false)
+      }
+
+      img.src = imageSrc
     } catch (error) {
       console.error('Error al capturar imagen:', error);
     }
@@ -241,10 +281,14 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
     }
   }
 
+  const toggleCamera = () => {
+    setFacingMode(prev => prev === 'environment' ? 'user' : 'environment')
+  }
+
   const videoConstraints = {
     width: 1280,
     height: 720,
-    facingMode: "environment"
+    facingMode: facingMode
   }
 
   if (loading) {
@@ -315,6 +359,14 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
                   size="sm"
                 >
                   Capturar
+                </Button>
+                <Button 
+                  onClick={toggleCamera}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/80 hover:bg-white"
+                >
+                  <RotateCcw className="w-4 h-4" />
                 </Button>
                 <Button 
                   onClick={() => setShowCamera(false)}
