@@ -35,6 +35,66 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reportesArray, setReportesArray] = useState<Reporte[]>([]);
+  const [cumplidoPhoto, setCumplidoPhoto] = useState<string | null>(null);
+
+  // Función para obtener iniciales del nombre
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Función para obtener la foto del cumplido
+  const fetchCumplidoPhoto = async (idCumplido: number) => {
+    try {
+      console.log('🔍 Iniciando búsqueda de foto para cumplido:', idCumplido);
+      
+      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
+      let token = null;
+      if (tokenCookie) {
+        try {
+          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+          token = sessionData.token;
+        } catch (error) {
+          console.error('Error parsing session data:', error);
+        }
+      }
+
+      console.log('🔑 Token obtenido:', !!token);
+
+      const response = await fetch(`/api/cumplidos/archivos/${idCumplido}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('📡 Response status:', response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('📸 Data de la foto:', data);
+        
+        if (data.foto && data.foto.url) {
+          console.log('✅ Foto encontrada:', data.foto.url);
+          setCumplidoPhoto(data.foto.url);
+        } else {
+          console.log('❌ No se encontró foto en la respuesta');
+          setCumplidoPhoto(null);
+        }
+      } else {
+        console.error('❌ Error en la respuesta:', response.status);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Error data:', errorData);
+        setCumplidoPhoto(null);
+      }
+    } catch (error) {
+      console.error('❌ Error cargando foto del cumplido:', error);
+      setCumplidoPhoto(null);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen || !colaboradorId || !fecha || !puestoId) return;
@@ -42,6 +102,7 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
     setError(null);
     setData(null);
     setReportesArray([]);
+    setCumplidoPhoto(null);
     const fetchData = async () => {
       // Incluir tipoTurno en la petición si está definido
       const url = `/api/reporte-comunicacion/por-colaborador?colaboradorId=${colaboradorId}&fecha=${fecha}&puestoId=${puestoId}` + (tipoTurno ? `&tipoTurno=${tipoTurno}` : "");
@@ -53,7 +114,17 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
           throw new Error(errorData.error || "Error al cargar los datos");
         }
         const d = await res.json();
+        console.log('📊 Datos recibidos del backend:', d);
         setData(d);
+        
+        // Obtener la foto del cumplido si hay un id_cumplido
+        if (d.id_cumplido) {
+          console.log('🔍 Buscando foto para cumplido ID:', d.id_cumplido);
+          await fetchCumplidoPhoto(d.id_cumplido);
+        } else {
+          console.log('❌ No se encontró id_cumplido en la respuesta');
+        }
+        
         // Procesar reportes: convertir objeto a array de Reporte
         if (d.reportes && typeof d.reportes === 'object') {
           const arr: Reporte[] = [];
@@ -90,29 +161,77 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
         <VisuallyHidden>
           <DialogTitle>Detalle de Reportes</DialogTitle>
         </VisuallyHidden>
-        <div className="bg-gray-800 text-white rounded-t-lg flex flex-col items-center p-6">
-          <div className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center mb-2 overflow-hidden">
-            {data?.colaborador?.foto_url ? (
-              <img
-                src={data.colaborador.foto_url}
-                alt={data.colaborador.nombre}
-                className="w-24 h-24 object-cover rounded-full border-2 border-blue-300"
-              />
-            ) : (
-              <BarChart2 className="w-12 h-12 text-blue-600" />
-            )}
+                {cumplidoPhoto ? (
+          // CON FOTO DE CUMPLIDO: Foto de cumplido como background, perfil abajo
+          <>
+            <div 
+              className="text-white rounded-t-lg flex flex-col items-center p-6 relative overflow-hidden"
+              style={{
+                backgroundImage: `url(${cumplidoPhoto})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'fixed',
+                minHeight: '200px',
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              {/* La foto de cumplido queda libre de texto */}
+            </div>
+            
+            {/* Sección del perfil del colaborador debajo */}
+            <div className="bg-white p-4 flex items-center space-x-4">
+              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden border-2 border-blue-300 flex-shrink-0">
+                {data?.colaborador?.foto_url ? (
+                  <img
+                    src={data.colaborador.foto_url}
+                    alt={data.colaborador.nombre}
+                    className="w-16 h-16 object-cover rounded-full"
+                  />
+                ) : (
+                  <span className="text-sm font-bold text-blue-600">
+                    {data?.colaborador?.nombre ? getInitials(data.colaborador.nombre) : "U"}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-gray-900 text-base">{data?.colaborador?.nombre || (loading ? <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" /> : "-")}</div>
+                <div className="text-xs text-gray-600">{data?.puesto || (loading ? <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" /> : "-")}</div>
+              </div>
+            </div>
+          </>
+        ) : (
+          // SIN FOTO DE CUMPLIDO: Foto del colaborador centrada
+          <div className="bg-gray-800 text-white rounded-t-lg flex flex-col items-center p-6">
+            <div className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center mb-4 overflow-hidden border-2 border-blue-300">
+              {data?.colaborador?.foto_url ? (
+                <img
+                  src={data.colaborador.foto_url}
+                  alt={data.colaborador.nombre}
+                  className="w-24 h-24 object-cover rounded-full"
+                />
+              ) : (
+                <span className="text-xl font-bold text-blue-600">
+                  {data?.colaborador?.nombre ? getInitials(data.colaborador.nombre) : "U"}
+                </span>
+              )}
+            </div>
+            <div className="text-center text-white font-semibold text-lg">{data?.colaborador?.nombre || (loading ? <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" /> : "-")}</div>
+            <div className="text-sm opacity-75 text-white">{data?.puesto || (loading ? <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" /> : "-")}</div>
+            <div className="text-sm opacity-75 text-white mt-2">{data?.fecha ? (() => {
+              const [year, month, day] = data.fecha.split('-');
+              return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString('es-ES', { 
+                day: 'numeric', 
+                month: 'long', 
+                year: 'numeric' 
+              });
+            })() : (loading ? <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" /> : "-")}</div>
           </div>
-          <div className="text-center text-white font-semibold text-lg">{data?.colaborador?.nombre || (loading ? <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" /> : "-")}</div>
-          <div className="text-sm opacity-75">{data?.puesto || (loading ? <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" /> : "-")}</div>
-          <div className="text-sm opacity-75">{data?.fecha ? (() => {
-            const [year, month, day] = data.fecha.split('-');
-            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toLocaleDateString('es-ES', { 
-              day: 'numeric', 
-              month: 'long', 
-              year: 'numeric' 
-            });
-          })() : (loading ? <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" /> : "-")}</div>
-        </div>
+        )}
         <div className="p-4">
           {loading ? (
             <div className="space-y-4">
