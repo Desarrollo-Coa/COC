@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { deleteFromSpaces } from '@/utils/deleteFromSpaces';
 
 export async function POST(request: Request) {
   try {
@@ -59,11 +60,41 @@ export async function POST(request: Request) {
             [registroExistente.id_cumplido]
           ) as [any[], any];
           if (!notas || notas.length === 0) {
+            // Obtener archivos asociados al cumplido antes de eliminarlo
+            const [archivos] = await pool.query(
+              'SELECT url FROM file_rc WHERE id_cumplido = ?',
+              [registroExistente.id_cumplido]
+            ) as [any[], any];
+            
+            // Eliminar archivos de Digital Ocean Spaces
+            for (const archivo of archivos) {
+              try {
+                // Extraer la key del archivo de la URL
+                const url = archivo.url;
+                const keyMatch = url.match(/cumplidos\/fotos\/([^?]+)/);
+                if (keyMatch) {
+                  const key = `cumplidos/fotos/${keyMatch[1]}`;
+                  console.log('[BATCH] Eliminando archivo de Spaces:', key);
+                  await deleteFromSpaces(key);
+                }
+              } catch (error) {
+                console.error('[BATCH] Error eliminando archivo de Spaces:', error);
+                // Continuar con la eliminación aunque falle la eliminación del archivo
+              }
+            }
+            
+            // Eliminar registros de archivos de la base de datos
+            await pool.query(
+              'DELETE FROM file_rc WHERE id_cumplido = ?',
+              [registroExistente.id_cumplido]
+            );
+            
+            // Eliminar el cumplido
             await pool.query(
               'DELETE FROM cumplidos WHERE id_cumplido = ?',
               [registroExistente.id_cumplido]
             );
-            console.log('[BATCH] Eliminado registro vacío sin notas:', registroExistente.id_cumplido);
+            console.log('[BATCH] Eliminado registro y archivos:', registroExistente.id_cumplido);
             continue;
           } else {
             await pool.query(

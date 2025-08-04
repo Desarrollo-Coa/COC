@@ -1,26 +1,54 @@
-import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 
-const rawEndpoint = process.env.DO_SPACES_ENDPOINT!;
-const spacesEndpoint = rawEndpoint.startsWith('http') ? rawEndpoint : `https://${rawEndpoint}`;
 const s3 = new S3Client({
-  region: "us-east-1",
-  endpoint: spacesEndpoint,
+  region: "nyc3",
+  endpoint: process.env.DO_SPACES_ENDPOINT!.startsWith('http')
+    ? process.env.DO_SPACES_ENDPOINT!
+    : `https://${process.env.DO_SPACES_ENDPOINT!}`,
   credentials: {
     accessKeyId: process.env.DO_SPACES_KEY!,
     secretAccessKey: process.env.DO_SPACES_SECRET!,
   },
 });
 
-/**
- * Borra un archivo de DigitalOcean Spaces.
- * @param key Ruta completa del archivo dentro del bucket (ej: 'modulos/rutas/archivo.jpg')
- */
 export async function deleteFromSpaces(key: string): Promise<void> {
   const bucket = process.env.DO_SPACES_BUCKET!;
-  await s3.send(
-    new DeleteObjectCommand({
-      Bucket: bucket,
-      Key: key,
-    })
-  );
-} 
+
+  console.log('🔧 deleteFromSpaces - Configuración:');
+  console.log('  - Bucket:', bucket);
+  console.log('  - Key:', key);
+  console.log('  - Endpoint:', process.env.DO_SPACES_ENDPOINT);
+
+  try {
+    // Verificar si el archivo existe
+    console.log('🔍 Verificando si el archivo existe...');
+    await s3.send(
+      new HeadObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      })
+    );
+    console.log('✅ Archivo encontrado, procediendo a eliminar...');
+
+    // Eliminar el archivo
+    await s3.send(
+      new DeleteObjectCommand({
+        Bucket: bucket,
+        Key: key,
+      })
+    );
+    console.log('✅ Archivo eliminado exitosamente:', key);
+  } catch (error: any) {
+    if (error.name === 'NotFound') {
+      console.warn('⚠️ El archivo no existe en Spaces:', key);
+      return; // No es un error crítico si el archivo no existe
+    }
+    console.error('❌ Error en deleteFromSpaces:', {
+      bucket,
+      key,
+      error: error.message,
+      stack: error.stack,
+    });
+    throw new Error(`No se pudo eliminar el archivo ${key} del bucket ${bucket}: ${error.message}`);
+  }
+}

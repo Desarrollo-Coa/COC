@@ -32,7 +32,15 @@ export default function VigilanteLoginLayout({
   const getTokenFromCookies = () => {
     const cookies = document.cookie.split(';');
     const tokenCookie = cookies.find(cookie => cookie.trim().startsWith('vigilante_token='));
-    return tokenCookie ? tokenCookie.split('=')[1] : null;
+    if (!tokenCookie) return null;
+    
+    try {
+      const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+      return sessionData.token || null;
+    } catch (error) {
+      console.error('Error parsing session data:', error);
+      return null;
+    }
   };
 
   // Función para eliminar token de cookies

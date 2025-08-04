@@ -152,16 +152,99 @@ export async function POST(request: NextRequest) {
         console.log('Notas encontradas para el registro:', notas);
         
         if (!notas || notas.length === 0) {
-          // Si no hay notas, eliminar el registro completamente
-          console.log('Eliminando registro completo por no tener notas');
+          // Verificar si hay archivos asociados al cumplido
+          try {
+            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+            const verifyUrl = `${baseUrl}/api/cumplidos/verificar-archivos?idCumplido=${registroExistente.id_cumplido}`;
+            console.log('Verificando archivos:', verifyUrl);
+            
+            const archivosResponse = await fetch(verifyUrl, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (archivosResponse.ok) {
+              const archivosData = await archivosResponse.json();
+              console.log('Verificación de archivos:', archivosData);
+              
+              if (archivosData.tieneArchivos) {
+                return NextResponse.json({ 
+                  success: false, 
+                  error: 'No puedes quitar este turno porque ya tienes fotos o audios vinculados. Comunícate con la central para solicitar la eliminación.',
+                  tieneArchivos: true,
+                  totalArchivos: archivosData.totalArchivos
+                }, { status: 400 });
+              }
+            } else {
+              console.error('Error verificando archivos:', archivosResponse.status);
+            }
+          } catch (error) {
+            console.error('Error al verificar archivos:', error);
+            // Por seguridad, si no se puede verificar, no permitir eliminar
+            return NextResponse.json({ 
+              success: false, 
+              error: 'No se pudo verificar los archivos asociados. Comunícate con la central para solicitar la eliminación.',
+              errorVerificacion: true
+            }, { status: 400 });
+          }
+          
+          // Si no hay archivos, proceder con la eliminación
+          console.log('Eliminando registro completo por no tener notas ni archivos');
+          
           await pool.query(
             'DELETE FROM cumplidos WHERE id_cumplido = ?',
             [registroExistente.id_cumplido]
           );
           return NextResponse.json({ success: true, deleted: true, id_cumplido: registroExistente.id_cumplido, message: 'Asignación removida correctamente' });
         } else {
-          // Si hay notas, solo limpiar el colaborador pero mantener el registro
-          console.log('Registro tiene notas, solo limpiando colaborador');
+          // Si hay notas, verificar archivos antes de limpiar el colaborador
+          console.log('Registro tiene notas, verificando archivos antes de limpiar colaborador');
+          
+          // Verificar si hay archivos asociados al cumplido
+          try {
+            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+            const verifyUrl = `${baseUrl}/api/cumplidos/verificar-archivos?idCumplido=${registroExistente.id_cumplido}`;
+            console.log('Verificando archivos (con notas):', verifyUrl);
+            
+            const archivosResponse = await fetch(verifyUrl, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (archivosResponse.ok) {
+              const archivosData = await archivosResponse.json();
+              console.log('Verificación de archivos (con notas):', archivosData);
+              
+              if (archivosData.tieneArchivos) {
+                return NextResponse.json({ 
+                  success: false, 
+                  error: 'No puedes quitar este turno porque ya tienes fotos o audios vinculados. Comunícate con la central para solicitar la eliminación.',
+                  tieneArchivos: true,
+                  totalArchivos: archivosData.totalArchivos
+                }, { status: 400 });
+              }
+            } else {
+              console.error('Error verificando archivos (con notas):', archivosResponse.status);
+            }
+          } catch (error) {
+            console.error('Error al verificar archivos (con notas):', error);
+            // Por seguridad, si no se puede verificar, no permitir limpiar
+            return NextResponse.json({ 
+              success: false, 
+              error: 'No se pudo verificar los archivos asociados. Comunícate con la central para solicitar la eliminación.',
+              errorVerificacion: true
+            }, { status: 400 });
+          }
+          
+          // Si no hay archivos, proceder con la limpieza del colaborador
+          console.log('Limpiando colaborador por no tener archivos');
+          
           await pool.query(
             'UPDATE cumplidos SET id_colaborador = NULL WHERE id_cumplido = ?',
             [registroExistente.id_cumplido]

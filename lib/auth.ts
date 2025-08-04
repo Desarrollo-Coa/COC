@@ -40,15 +40,23 @@ export function getVigilanteTokenFromRequest(request: NextRequest) {
   }
   
   // Buscar en las cookies de vigilante
-  const vigilanteToken = request.cookies.get('vigilante_token')?.value;
+  const vigilanteTokenCookie = request.cookies.get('vigilante_token')?.value;
   
-  console.log('🍪 getVigilanteTokenFromRequest - Vigilante token encontrado en cookies:', !!vigilanteToken);
+  console.log('🍪 getVigilanteTokenFromRequest - Vigilante token encontrado en cookies:', !!vigilanteTokenCookie);
   
-  if (vigilanteToken) {
-    console.log('🍪 Vigilante Token (primeros 20 chars):', vigilanteToken.substring(0, 20) + '...');
+  if (vigilanteTokenCookie) {
+    try {
+      const sessionData = JSON.parse(vigilanteTokenCookie);
+      const token = sessionData.token;
+      console.log('🍪 Vigilante Token (primeros 20 chars):', token.substring(0, 20) + '...');
+      return token;
+    } catch (error) {
+      console.error('Error parsing vigilante token cookie:', error);
+      return null;
+    }
   }
   
-  return vigilanteToken;
+  return null;
 }
 
 export async function verifyToken(token: string) {

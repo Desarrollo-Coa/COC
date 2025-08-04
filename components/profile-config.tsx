@@ -8,6 +8,17 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Camera, Sun, Moon, LogOut, Shield, Clock, MapPin, MessageSquare } from "lucide-react"
+import SubirFotoCumplido from './cumplidos/SubirFotoCumplido'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel
+} from '@/components/ui/alert-dialog'
 
 interface ProfileConfigProps {
   userData: {
@@ -34,6 +45,7 @@ interface ProfileConfigProps {
 export default function ProfileConfig({ userData, negocioData, puestoData, onLogout }: ProfileConfigProps) {
   const [profileImage, setProfileImage] = useState<string>("")
   const [selectedShift, setSelectedShift] = useState<number | null>(null)
+  const [selectedCumplidoId, setSelectedCumplidoId] = useState<number | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString())
   const [stats, setStats] = useState({ dias_activo: 0 })
   const [turnos, setTurnos] = useState<any[]>([])
@@ -45,6 +57,8 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [showReports, setShowReports] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [dialogMessage, setDialogMessage] = useState('')
 
   // Actualizar hora cada segundo
   useEffect(() => {
@@ -145,7 +159,13 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
           );
           console.log('Mi turno encontrado:', miTurno);
           if (miTurno) {
+            console.log('Estableciendo turno seleccionado:', miTurno.id_tipo_turno);
             setSelectedShift(miTurno.id_tipo_turno);
+            // Obtener el id_cumplido para este turno
+            console.log('Obteniendo id_cumplido para turno:', miTurno.id_tipo_turno);
+            await obtenerCumplidoId(miTurno.id_tipo_turno);
+          } else {
+            console.log('No se encontró turno asignado para el usuario');
           }
         } else {
           const error = await response.json();
@@ -334,6 +354,7 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
         const responseData = await response.json();
         console.log('Response data:', responseData);
         setSelectedShift(turnoToConfirm.id_tipo_turno);
+        setSelectedCumplidoId(responseData.id_cumplido);
         // Recargar turnos para actualizar estado
         const turnosResponse = await fetch(`/api/accesos/turnos?fecha=${fecha}&negocioHash=${negocioHash}&idPuesto=${puestoData?.id_puesto}`, {
           headers: {
@@ -349,7 +370,14 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
       } else {
         const error = await response.json();
         console.error('Error response:', error);
-        alert(error.error || 'Error al asignar turno');
+        
+        if (error.tieneArchivos) {
+          alert(`No puedes quitar este turno porque ya tienes ${error.totalArchivos} foto(s) o audio(s) vinculado(s). Comunícate con la central para solicitar la eliminación.`);
+        } else if (error.errorVerificacion) {
+          alert('No se pudo verificar los archivos asociados. Comunícate con la central para solicitar la eliminación.');
+        } else {
+          alert(error.error || 'Error al asignar turno');
+        }
       }
     } catch (error) {
       console.error('Error asignando turno:', error);
@@ -397,6 +425,7 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
         const responseData = await response.json();
         console.log('Remove response data:', responseData);
         setSelectedShift(null);
+        setSelectedCumplidoId(null);
         // Recargar turnos para actualizar estado
         const turnosResponse = await fetch(`/api/accesos/turnos?fecha=${fecha}&negocioHash=${negocioHash}&idPuesto=${puestoData?.id_puesto}`, {
           headers: {
@@ -410,13 +439,30 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
           setTurnos(data);
         }
       } else {
-        const error = await response.json();
-        console.error('Error removiendo turno:', error);
-        alert(error.error || 'Error al quitar turno');
+        try {
+          const error = await response.json();
+          console.log('Respuesta del servidor (no es un error de red):', error);
+          
+          if (error.tieneArchivos) {
+            setDialogMessage(`No puedes quitar este turno porque ya tienes ${error.totalArchivos} foto(s) o audio(s) vinculado(s). Comunícate con la central para solicitar la eliminación.`);
+            setDialogOpen(true);
+          } else if (error.errorVerificacion) {
+            setDialogMessage('No se pudo verificar los archivos asociados. Comunícate con la central para solicitar la eliminación.');
+            setDialogOpen(true);
+          } else {
+            setDialogMessage(error.error || 'Error al quitar turno');
+            setDialogOpen(true);
+          }
+        } catch (parseError) {
+          console.error('Error al parsear la respuesta del servidor:', parseError);
+          setDialogMessage('Error al procesar la respuesta del servidor');
+          setDialogOpen(true);
+        }
       }
     } catch (error) {
-      console.error('Error removiendo turno:', error);
-      alert('Error al quitar turno');
+      console.error('Error de red al quitar turno:', error);
+      setDialogMessage('Error de conexión al quitar turno');
+      setDialogOpen(true);
     }
   }
 
@@ -441,6 +487,59 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
       .map((n) => n[0])
       .join("")
       .toUpperCase()
+  }
+
+  const obtenerCumplidoId = async (idTipoTurno: number) => {
+    try {
+      const fecha = new Date().toISOString().split('T')[0];
+      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
+      let token = null;
+      if (tokenCookie) {
+        try {
+          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+          token = sessionData.token;
+        } catch (error) {
+          console.error('Error parsing session data:', error);
+        }
+      }
+      
+      if (!token || !puestoData?.id_puesto) {
+        console.error('Token o puesto no disponible');
+        return;
+      }
+
+      console.log('Buscando cumplido con parámetros:', {
+        fecha,
+        id_puesto: puestoData.id_puesto,
+        id_tipo_turno: idTipoTurno,
+        id_colaborador: userData.id
+      });
+
+      // Buscar el cumplido existente para este usuario, puesto, fecha y turno
+      const response = await fetch(`/api/cumplidos/buscar-cumplido?fecha=${fecha}&id_puesto=${puestoData.id_puesto}&id_tipo_turno=${idTipoTurno}&id_colaborador=${userData.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('Response status:', response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Response data:', data);
+        if (data.id_cumplido) {
+          console.log('Cumplido encontrado:', data.id_cumplido);
+          setSelectedCumplidoId(data.id_cumplido);
+          console.log('selectedCumplidoId establecido:', data.id_cumplido);
+        } else {
+          console.log('No se encontró cumplido para estos parámetros');
+        }
+      } else {
+        console.error('Error obteniendo cumplido:', response.status);
+      }
+    } catch (error) {
+      console.error('Error en obtenerCumplidoId:', error);
+    }
   }
 
   const getCurrentShiftRecommendation = () => {
@@ -617,12 +716,29 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                 <div>
                   <p className="font-medium text-blue-800 text-sm">Adjuntar fotografía de llegada al puesto</p>
-                  <p className="text-xs text-blue-700">Turno {selectedShift} seleccionado - Captura tu llegada</p>
-                </div>
+                 </div>
               </div>
             </CardContent>
           </Card>
         )}
+
+        {/* Componente de Subir Foto */}
+        {selectedShift && selectedCumplidoId && (
+          <div className="mb-4">
+            <SubirFotoCumplido 
+              idCumplido={selectedCumplidoId}
+              isActive={true}
+              onSuccess={() => {
+                console.log('Foto subida exitosamente');
+                // Aquí puedes agregar lógica adicional si es necesario
+              }}
+            />
+          </div>
+        )}
+        {/* Debug info */}
+        <div className="text-xs text-gray-500 mb-2">
+          Debug: selectedShift={selectedShift}, selectedCumplidoId={selectedCumplidoId}
+        </div>
 
         {showConfirm && turnoToConfirm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -661,6 +777,17 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
             </div>
           </div>
         )}
+        <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>No puedes quitar el turno</AlertDialogTitle>
+              <AlertDialogDescription>{dialogMessage}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => setDialogOpen(false)}>Aceptar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )
