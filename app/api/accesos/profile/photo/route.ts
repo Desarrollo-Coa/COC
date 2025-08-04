@@ -112,7 +112,12 @@ export async function POST(request: NextRequest) {
     const [updateResult] = await pool.query(
       'UPDATE colaboradores SET foto_url = ? WHERE id = ?',
       [nuevaFotoUrl, colaboradorId]
-    );
+    ) as [any, any];
+
+    // Verificar que la actualización fue exitosa
+    if (updateResult.affectedRows === 0) {
+      throw new Error('No se pudo actualizar la foto de perfil');
+    }
 
     // Eliminar foto anterior si existe
     if (fotoAnterior) {
