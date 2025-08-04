@@ -574,29 +574,29 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
 
         {/* User Info Compacto */}
         <div className="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
-                        <div className="relative">
-                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300">
-                  {uploadingPhoto ? (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                    </div>
-                  ) : profileImage ? (
-                    <img
-                      src={profileImage}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-lg font-bold text-gray-600">{getInitials(userData.nombre)}</span>
-                  )}
+          <div className="relative">
+            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300">
+              {uploadingPhoto ? (
+                <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                 </div>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingPhoto}
-                  className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Camera className="w-2.5 h-2.5" />
-                </button>
+              ) : profileImage ? (
+                <img
+                  src={profileImage}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-lg font-bold text-gray-600">{getInitials(userData.nombre)}</span>
+              )}
+            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingPhoto}
+              className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Camera className="w-2.5 h-2.5" />
+            </button>
             <input
               ref={fileInputRef}
               type="file"
@@ -614,6 +614,12 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
               <div>{stats.dias_activo} dias / {new Date().toLocaleDateString('es-ES', { month: 'long' }).toUpperCase()}</div>
             </div>
           </div>
+          <button 
+            onClick={() => setShowReports(true)}
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+          >
+            <MessageSquare className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Shift Selection Compacto */}
@@ -689,24 +695,7 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
           </CardContent>
         </Card>
 
-        {/* Quick Actions Compacto */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <Card className="cursor-pointer hover:shadow-sm transition-shadow border-0 shadow-sm">
-            <CardContent className="p-3 text-center">
-              <MapPin className="w-6 h-6 text-green-600 mx-auto mb-1" />
-              <h3 className="font-medium text-gray-900 text-xs">Marcar Ubicación</h3>
-              <p className="text-xs text-gray-600">Registrar posición</p>
-            </CardContent>
-          </Card>
 
-          <Card className="cursor-pointer hover:shadow-sm transition-shadow border-0 shadow-sm" onClick={() => setShowReports(true)}>
-            <CardContent className="p-3 text-center">
-              <MessageSquare className="w-6 h-6 text-blue-600 mx-auto mb-1" />
-              <h3 className="font-medium text-gray-900 text-xs">Reportes</h3>
-              <p className="text-xs text-gray-600">Comunicación</p>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Status Compacto */}
         {selectedShift && (
