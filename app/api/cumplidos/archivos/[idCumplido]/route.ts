@@ -41,6 +41,34 @@ export async function GET(
     }
 
     const { idCumplido } = await params;
+    
+    console.log('🔍 Buscando foto para cumplido:', idCumplido);
+
+    // Primero verificar si existe el tipo de archivo IC
+    const [tiposArchivo] = await pool.query<RowDataPacket[]>(
+      'SELECT id, codigo, descripcion, activo FROM tipo_archivo WHERE codigo = "IC"'
+    );
+    
+    console.log('📋 Tipos de archivo IC encontrados:', tiposArchivo);
+    
+
+    
+    if (!tiposArchivo.length) {
+      console.error('❌ Tipo de archivo IC no encontrado en la base de datos');
+      return NextResponse.json(
+        { error: 'Tipo de archivo no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    const tipoArchivo = tiposArchivo[0];
+    if (!tipoArchivo.activo) {
+      console.error('❌ Tipo de archivo IC no está activo');
+      return NextResponse.json(
+        { error: 'Tipo de archivo no está activo' },
+        { status: 404 }
+      );
+    }
 
     const [archivos] = await pool.query<RowDataPacket[]>(
       `SELECT f.*, ta.codigo as tipo_codigo
@@ -52,10 +80,14 @@ export async function GET(
       [idCumplido]
     );
 
+    console.log('📁 Archivos encontrados:', archivos.length);
+
     if (!archivos.length) {
+      console.log('📭 No se encontraron archivos para el cumplido');
       return NextResponse.json({ foto: null });
     }
 
+    console.log('✅ Foto encontrada:', archivos[0]);
     return NextResponse.json({ foto: archivos[0] });
   } catch (error) {
     console.error('Error al obtener foto del cumplido:', error);
@@ -113,7 +145,7 @@ export async function DELETE(
 
     // Obtener archivos asociados al cumplido
     const [archivos] = await pool.query<RowDataPacket[]>(
-      'SELECT id_file, url FROM file_rc WHERE id_cumplido = ?',
+      'SELECT id, url FROM file_rc WHERE id_cumplido = ?',
       [idCumplidoInt]
     );
 

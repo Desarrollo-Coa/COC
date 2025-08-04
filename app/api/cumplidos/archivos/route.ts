@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getVigilanteTokenFromRequest } from '@/lib/auth';
+import { jwtVerify } from 'jose';
 import { uploadToSpaces } from '@/utils/uploadToSpaces';
 import pool from '@/lib/db';
 import { RowDataPacket } from 'mysql2';
@@ -9,12 +9,35 @@ export async function POST(request: NextRequest) {
   try {
     console.log('📁 Subiendo archivo de cumplido...');
     
-    // Verificar token
-    const token = getVigilanteTokenFromRequest(request);
-    console.log('📁 Token obtenido:', !!token);
-    
-    if (!token) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    // Obtener token del header Authorization
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Token de autorización requerido' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+
+    // Verificar el token JWT
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+      const { payload } = await jwtVerify(token, secret);
+
+      // Verificar que es un token de vigilante
+      if (payload.tipo !== 'vigilante') {
+        return NextResponse.json(
+          { error: 'Token inválido para vigilantes' },
+          { status: 401 }
+        );
+      }
+    } catch (error) {
+      console.error('Error verificando token:', error);
+      return NextResponse.json(
+        { error: 'Token inválido' },
+        { status: 401 }
+      );
     }
 
     // Obtener datos del formulario
@@ -50,13 +73,26 @@ export async function POST(request: NextRequest) {
     );
 
     // Obtener el tipo de archivo para imágenes de cumplido (IC)
+    console.log('🔍 Buscando tipo de archivo IC...');
     const [tipoArchivos] = await pool.query<RowDataPacket[]>(
-      'SELECT id FROM tipo_archivo WHERE codigo = "IC" AND activo = TRUE LIMIT 1'
+      'SELECT id, codigo, descripcion, activo FROM tipo_archivo WHERE codigo = "IC"'
     );
+    
+    console.log('📋 Tipos de archivo IC encontrados:', tipoArchivos);
 
     if (!tipoArchivos.length) {
+      console.error('❌ Tipo de archivo IC no encontrado en la base de datos');
       return NextResponse.json(
         { error: 'Tipo de archivo no encontrado' },
+        { status: 404 }
+      );
+    }
+
+    const tipoArchivo = tipoArchivos[0];
+    if (!tipoArchivo.activo) {
+      console.error('❌ Tipo de archivo IC no está activo');
+      return NextResponse.json(
+        { error: 'Tipo de archivo no está activo' },
         { status: 404 }
       );
     }
@@ -73,7 +109,7 @@ export async function POST(request: NextRequest) {
       ) VALUES (?, ?, ?, ?, ?, ?)`,
       [
         idCumplido,
-        tipoArchivos[0].id,
+        tipoArchivo.id,
         url,
         latitud || null,
         longitud || null,
