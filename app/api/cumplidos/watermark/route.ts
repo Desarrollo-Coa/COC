@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken } from '@/lib/auth'
+import { getVigilanteTokenFromRequest, verifyToken } from '@/lib/auth'
 import sharp from 'sharp'
 
 export async function POST(request: NextRequest) {
   try {
-    // Verificar token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
+    // Verificar token usando el mismo patrón que otros endpoints
+    const token = getVigilanteTokenFromRequest(request);
     if (!token) {
       return NextResponse.json({ error: 'Token no proporcionado' }, { status: 401 })
     }
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         .toBuffer()
 
       // Devolver la imagen con marca de agua
-      return new NextResponse(watermarkedImage, {
+      return new NextResponse(new Uint8Array(watermarkedImage), {
         headers: {
           'Content-Type': 'image/jpeg',
           'Content-Disposition': 'attachment; filename="watermarked-image.jpg"'
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         .jpeg({ quality: 80 })
         .toBuffer()
 
-      return new NextResponse(originalImage, {
+      return new NextResponse(new Uint8Array(originalImage), {
         headers: {
           'Content-Type': 'image/jpeg',
           'Content-Disposition': 'attachment; filename="original-image.jpg"'
