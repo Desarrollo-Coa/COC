@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getVigilanteTokenFromRequest, verifyToken } from '@/lib/auth'
 import sharp from 'sharp'
 
+// Configurar Sharp para evitar errores de Fontconfig
+sharp.cache(false)
+sharp.concurrency(1)
+
 export async function POST(request: NextRequest) {
   try {
     // Verificar token usando el mismo patrón que otros endpoints
-    const token = getVigilanteTokenFromRequest(request);
+    const token = getVigilanteTokenFromRequest(request)
     if (!token) {
       return NextResponse.json({ error: 'Token no proporcionado' }, { status: 401 })
     }
@@ -46,16 +50,16 @@ export async function POST(request: NextRequest) {
 
     try {
       // Obtener dimensiones de la imagen
-      const imageInfo = await sharp(imageBuffer).metadata();
-      const imageWidth = imageInfo.width || 800;
-      const imageHeight = imageInfo.height || 600;
+      const imageInfo = await sharp(imageBuffer).metadata()
+      const imageWidth = imageInfo.width || 800
+      const imageHeight = imageInfo.height || 600
 
       // Calcular tamaño del texto basado en las dimensiones de la imagen
-      const fontSize = Math.max(Math.min(imageWidth * 0.035, 28), 14); // Tamaño más pequeño para texto más largo
-      const textWidth = watermarkText.length * fontSize * 0.6;
-      const textHeight = fontSize * 1.2;
+      const fontSize = Math.max(Math.min(imageWidth * 0.035, 28), 14)
+      const textWidth = watermarkText.length * fontSize * 0.6
+      const textHeight = fontSize * 1.2
 
-      // Crear marca de agua con Sharp usando SVG dinámico
+      // Crear marca de agua con Sharp usando SVG dinámico con fuente web-safe
       const svgText = `
         <svg width="${textWidth + 20}" height="${textHeight + 10}" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -63,12 +67,12 @@ export async function POST(request: NextRequest) {
               <feDropShadow dx="1" dy="1" stdDeviation="1" flood-color="black" flood-opacity="0.8"/>
             </filter>
           </defs>
-          <text x="10" y="${fontSize + 5}" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" 
-                 fill="white" filter="url(#shadow)">
+          <text x="10" y="${fontSize + 5}" font-family="monospace, 'Courier New', Courier, sans-serif" font-size="${fontSize}" font-weight="bold" 
+                fill="white" filter="url(#shadow)">
             ${watermarkText}
           </text>
         </svg>
-      `;
+      `
 
       const watermarkedImage = await sharp(imageBuffer)
         .resize(800, 600, { 
@@ -116,4 +120,4 @@ export async function POST(request: NextRequest) {
     console.error('Error procesando marca de agua:', error)
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
-} 
+}
