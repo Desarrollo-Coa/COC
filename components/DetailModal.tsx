@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { BarChart2, MessageSquare, Play, Pause, Volume2, Clock } from "lucide-react";
+import { BarChart2, MessageSquare, Play, Pause, Volume2, Clock, MapPin } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -20,6 +20,8 @@ interface DetailData {
   reportes: any;
   nota: string;
   id_cumplido?: number;
+  cumplido_latitud?: number;
+  cumplido_longitud?: number;
 }
 
 interface ChatMessage {
@@ -29,6 +31,8 @@ interface ChatMessage {
   audio_url?: string;
   fecha_creacion: string;
   hora_mensaje: string;
+  latitud?: number;
+  longitud?: number;
 }
 
 interface DetailModalProps {
@@ -46,11 +50,18 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
   const [error, setError] = useState<string | null>(null);
   const [reportesArray, setReportesArray] = useState<Reporte[]>([]);
   const [cumplidoPhoto, setCumplidoPhoto] = useState<string | null>(null);
+  const [cumplidoCoords, setCumplidoCoords] = useState<{latitud: number, longitud: number} | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [loadingChat, setLoadingChat] = useState(false);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Función para abrir ubicación en nueva ventana
+  const openLocation = (latitud: number, longitud: number) => {
+    const url = `https://www.google.com/maps?q=${latitud},${longitud}`;
+    window.open(url, '_blank');
+  };
 
   // Función para obtener iniciales del nombre
   const getInitials = (name: string) => {
@@ -165,9 +176,20 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
         if (data.foto && data.foto.url) {
           console.log('✅ Foto encontrada:', data.foto.url);
           setCumplidoPhoto(data.foto.url);
+          
+          // Guardar coordenadas si están disponibles
+          if (data.foto.latitud && data.foto.longitud) {
+            setCumplidoCoords({
+              latitud: data.foto.latitud,
+              longitud: data.foto.longitud
+            });
+          } else {
+            setCumplidoCoords(null);
+          }
         } else {
           console.log('❌ No se encontró foto en la respuesta');
           setCumplidoPhoto(null);
+          setCumplidoCoords(null);
         }
       } else {
         console.error('❌ Error en la respuesta:', response.status);
@@ -188,6 +210,7 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
     setData(null);
     setReportesArray([]);
     setCumplidoPhoto(null);
+    setCumplidoCoords(null);
     const fetchData = async () => {
       // Incluir tipoTurno en la petición si está definido
       const url = `/api/reporte-comunicacion/por-colaborador?colaboradorId=${colaboradorId}&fecha=${fecha}&puestoId=${puestoId}` + (tipoTurno ? `&tipoTurno=${tipoTurno}` : "");
@@ -290,6 +313,26 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
                 <div className="font-semibold text-gray-900 text-base">{data?.colaborador?.nombre || (loading ? <div className="h-6 w-32 bg-gray-200 rounded animate-pulse" /> : "-")}</div>
                 <div className="text-xs text-gray-600">{data?.puesto || (loading ? <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" /> : "-")}</div>
               </div>
+              {/* Icono de ubicación para la foto de cumplido */}
+              {cumplidoPhoto && cumplidoCoords && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openLocation(cumplidoCoords.latitud, cumplidoCoords.longitud)}
+                        className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                      >
+                        <MapPin className="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Ver ubicación de la foto</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           </>
         ) : (
@@ -455,32 +498,72 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm font-medium text-gray-900">
-                                  {message.tipo_mensaje === 'audio' ? 'Audio' : 'Mensaje'}
-                                </span>
                                 <span className="text-xs text-gray-500">
                                   {formatTime(message.fecha_creacion)}
                                 </span>
                               </div>
                               <div className="text-sm text-gray-700">
                                 {message.tipo_mensaje === 'audio' ? (
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-gray-600">Reporte de voz</span>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => isPlaying ? pauseAudio() : playAudio(message.audio_url!)}
-                                      className="h-6 w-6 p-0"
-                                    >
-                                      {isPlaying ? (
-                                        <Pause className="w-3 h-3" />
-                                      ) : (
-                                        <Play className="w-3 h-3" />
-                                      )}
-                                    </Button>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => isPlaying ? pauseAudio() : playAudio(message.audio_url!)}
+                                        className="h-6 w-6 p-0"
+                                      >
+                                        {isPlaying ? (
+                                          <Pause className="w-3 h-3" />
+                                        ) : (
+                                          <Play className="w-3 h-3" />
+                                        )}
+                                      </Button>
+                                    </div>
+                                    {/* Icono de ubicación para audio */}
+                                    {message.latitud && message.longitud && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => openLocation(message.latitud!, message.longitud!)}
+                                              className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700"
+                                            >
+                                              <MapPin className="w-3 h-3" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Ver ubicación del audio</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
                                   </div>
                                 ) : (
-                                  <p className="text-gray-700">{message.contenido}</p>
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-gray-700 flex-1 min-w-0">{message.contenido}</p>
+                                    {/* Icono de ubicación para mensaje de texto */}
+                                    {message.latitud && message.longitud && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => openLocation(message.latitud!, message.longitud!)}
+                                              className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 flex-shrink-0"
+                                            >
+                                              <MapPin className="w-3 h-3" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Ver ubicación del mensaje</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             </div>
