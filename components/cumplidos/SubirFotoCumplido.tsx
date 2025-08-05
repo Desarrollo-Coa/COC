@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import Webcam from 'react-webcam'
 import { useImageOptimizer } from '@/lib/imageOptimizer'
+import { getWatermarkApiUrl, getWatermarkHeaders, WATERMARK_CONFIG } from '@/lib/watermark-config'
 
 interface SubirFotoCumplidoProps {
   idCumplido: number
@@ -123,11 +124,23 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
       });
       setOptimizedImage(optimizedFile);
 
-      // Función para agregar marca de agua usando el API
+      // Función para agregar marca de agua usando la API independiente
       const addWatermarkViaAPI = async (imageFile: File): Promise<{ dataUrl: string; file: File }> => {
         try {
           const formData = new FormData();
           formData.append('image', imageFile);
+          // Crear texto dinámico con fecha y hora
+          const watermarkText = `${WATERMARK_CONFIG.DEFAULT_TEXT} - ${new Date().toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          })} ${currentTime}`;
+          formData.append('text', watermarkText);
+          formData.append('color', WATERMARK_CONFIG.DEFAULT_COLOR);
+          formData.append('fontSize', WATERMARK_CONFIG.DEFAULT_FONT_SIZE);
+          formData.append('position', WATERMARK_CONFIG.DEFAULT_POSITION);
+          formData.append('shadowColor', WATERMARK_CONFIG.DEFAULT_SHADOW_COLOR);
+          formData.append('shadowOpacity', WATERMARK_CONFIG.DEFAULT_SHADOW_OPACITY);
           formData.append('timestamp', currentTime);
           formData.append('fecha', new Date().toLocaleDateString('es-ES', {
             day: '2-digit',
@@ -135,27 +148,16 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
             year: 'numeric'
           }));
 
-          const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-          let token = null;
-          if (tokenCookie) {
-            try {
-              const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-              token = sessionData.token;
-            } catch (error) {
-              console.error('Error parsing session data:', error);
-            }
-          }
-
-          const response = await fetch('/api/cumplidos/watermark', {
+          // Usar la API independiente
+          const response = await fetch(getWatermarkApiUrl(), {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`
-            },
+            headers: getWatermarkHeaders(),
             body: formData
           });
 
           if (!response.ok) {
-            throw new Error(`Error del servidor: ${response.status}`);
+            const errorText = await response.text();
+            throw new Error(`Error del servidor: ${response.status} - ${errorText}`);
           }
 
           // Convertir la respuesta a blob
