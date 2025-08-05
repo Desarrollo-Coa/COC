@@ -24,6 +24,7 @@ interface ReportSystemProps {
   user: string
   shift: "diurno" | "nocturno" | ""
   onBack: () => void
+  idCumplido?: number
 }
 
 interface ChatMessage {
@@ -63,7 +64,7 @@ const AudioWaveform = ({ isPlaying, duration = "0:00" }: { isPlaying: boolean; d
   )
 }
 
-export default function ReportSystem({ user, shift, onBack }: ReportSystemProps) {
+export default function ReportSystem({ user, shift, onBack, idCumplido: propIdCumplido }: ReportSystemProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [inputMessage, setInputMessage] = useState("")
   const [isRecording, setIsRecording] = useState(false)
@@ -71,182 +72,92 @@ export default function ReportSystem({ user, shift, onBack }: ReportSystemProps)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null)
   const [recordingDuration, setRecordingDuration] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [idCumplido, setIdCumplido] = useState<number | null>(null)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Mensaje inicial del sistema
+    // Obtener ID del cumplido y cargar mensajes reales
   useEffect(() => {
-    const today = new Date()
-    const formattedDate = today.toLocaleDateString('es-ES', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-    
-    const initialMessage: ChatMessage = {
-      id: "1",
-      type: "system",
-      content: `${formattedDate} - Turno ${shift}`,
-      timestamp: new Date(),
-      messageType: "comunicacion"
-    }
+    const obtenerCumplidoYcargarMensajes = async () => {
+      try {
+        setLoading(true);
+        
+        // Si ya tenemos el ID del cumplido desde props, usarlo directamente
+        if (propIdCumplido) {
+          setIdCumplido(propIdCumplido);
+          
+          // Obtener token
+          const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
+          let token = null;
+          if (tokenCookie) {
+            try {
+              const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+              token = sessionData.token;
+            } catch (error) {
+              console.error('Error parsing session data:', error);
+            }
+          }
 
-    // Datos de ejemplo con diferentes fechas
-    const exampleMessages: ChatMessage[] = [
-      // 1 de agosto de 2025
-      {
-        id: "2",
-        type: "user",
-        content: "Reporte de seguridad - Área A",
-        timestamp: new Date('2025-08-01T08:30:00'),
-        messageType: "reporte"
-      },
-      {
-        id: "3",
-        type: "user",
-        content: "Audio de reporte",
-        timestamp: new Date('2025-08-01T10:15:00'),
-        isAudio: true,
-        audioUrl: "#",
-        duration: "2:34",
-        messageType: "reporte"
-      },
-      {
-        id: "4",
-        type: "user",
-        content: "Audio de reporte",
-        timestamp: new Date('2025-08-01T12:45:00'),
-        isAudio: true,
-        audioUrl: "#",
-        duration: "1:52",
-        messageType: "reporte"
-      },
-      {
-        id: "5",
-        type: "user",
-        content: "Audio de reporte",
-        timestamp: new Date('2025-08-01T15:20:00'),
-        isAudio: true,
-        audioUrl: "#",
-        duration: "3:15",
-        messageType: "reporte"
-      },
-      {
-        id: "6",
-        type: "user",
-        content: "Audio de reporte",
-        timestamp: new Date('2025-08-01T18:00:00'),
-        isAudio: true,
-        audioUrl: "#",
-        duration: "2:08",
-        messageType: "reporte"
-      },
+          if (token) {
+            // Cargar mensajes reales usando el ID del cumplido
+            const mensajesResponse = await fetch(`/api/comunicacion/mensajes?idCumplido=${propIdCumplido}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
 
-      // 3 de agosto de 2025
-      {
-        id: "7",
-        type: "user",
-        content: "Reporte de vigilancia - Área B",
-        timestamp: new Date('2025-08-03T09:00:00'),
-        messageType: "reporte"
-      },
-      {
-        id: "8",
-        type: "user",
-        content: "Audio de reporte",
-        timestamp: new Date('2025-08-03T11:30:00'),
-        isAudio: true,
-        audioUrl: "#",
-        duration: "1:45",
-        messageType: "reporte"
-      },
-      {
-        id: "9",
-        type: "user",
-        content: "Audio de reporte",
-        timestamp: new Date('2025-08-03T14:15:00'),
-        isAudio: true,
-        audioUrl: "#",
-        duration: "2:22",
-        messageType: "reporte"
-      },
-      {
-        id: "10",
-        type: "user",
-        content: "Audio de reporte",
-        timestamp: new Date('2025-08-03T16:45:00'),
-        isAudio: true,
-        audioUrl: "#",
-        duration: "1:58",
-        messageType: "reporte"
-      },
-      {
-        id: "11",
-        type: "user",
-        content: "Audio de reporte",
-        timestamp: new Date('2025-08-03T19:30:00'),
-        isAudio: true,
-        audioUrl: "#",
-        duration: "2:41",
-        messageType: "reporte"
-      },
+            if (mensajesResponse.ok) {
+              const mensajesData = await mensajesResponse.json();
+              
+              // Convertir mensajes de la base de datos al formato del componente
+              const mensajesConvertidos: ChatMessage[] = mensajesData.mensajes.map((msg: any) => ({
+                id: msg.id.toString(),
+                type: "user",
+                content: msg.contenido,
+                timestamp: new Date(msg.fecha_creacion),
+                isAudio: msg.tipo_mensaje === 'audio',
+                audioUrl: msg.audio_url,
+                duration: msg.duracion ? formatDuration(msg.duracion) : undefined,
+                messageType: "reporte"
+              }));
 
-      // 5 de agosto de 2025
-      {
-        id: "12",
-        type: "user",
-        content: "Reporte de patrullaje - Área C",
-        timestamp: new Date('2025-08-05T08:45:00'),
-        messageType: "reporte"
-      },
-      {
-        id: "13",
-        type: "user",
-        content: "Audio de reporte",
-        timestamp: new Date('2025-08-05T10:30:00'),
-        isAudio: true,
-        audioUrl: "#",
-        duration: "2:15",
-        messageType: "reporte"
-      },
-      {
-        id: "14",
-        type: "user",
-        content: "Audio de reporte",
-        timestamp: new Date('2025-08-05T13:20:00'),
-        isAudio: true,
-        audioUrl: "#",
-        duration: "1:33",
-        messageType: "reporte"
-      },
-      {
-        id: "15",
-        type: "user",
-        content: "Audio de reporte",
-        timestamp: new Date('2025-08-05T15:55:00'),
-        isAudio: true,
-        audioUrl: "#",
-        duration: "3:02",
-        messageType: "reporte"
-      },
-      {
-        id: "16",
-        type: "user",
-        content: "Audio de reporte",
-        timestamp: new Date('2025-08-05T18:40:00'),
-        isAudio: true,
-        audioUrl: "#",
-        duration: "2:47",
-        messageType: "reporte"
+              // Agregar mensaje inicial del sistema
+              const today = new Date();
+              const formattedDate = today.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              });
+              
+              const initialMessage: ChatMessage = {
+                id: "system-1",
+                type: "system",
+                content: `${formattedDate} - Turno ${shift}`,
+                timestamp: new Date(),
+                messageType: "comunicacion"
+              };
+
+              setMessages([initialMessage, ...mensajesConvertidos]);
+            }
+          }
+        } else {
+          console.error('No se proporcionó ID de cumplido');
+        }
+      } catch (error) {
+        console.error('Error cargando mensajes:', error);
+      } finally {
+        setLoading(false);
       }
-    ]
+    };
 
-    setMessages([initialMessage, ...exampleMessages])
-  }, [shift])
+    obtenerCumplidoYcargarMensajes();
+  }, [shift, propIdCumplido]);
 
   // Auto-scroll al final
   useEffect(() => {
@@ -284,7 +195,7 @@ export default function ReportSystem({ user, shift, onBack }: ReportSystemProps)
         audioChunksRef.current.push(event.data)
       }
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" })
         setAudioBlob(audioBlob)
         stream.getTracks().forEach((track) => track.stop())
@@ -292,19 +203,8 @@ export default function ReportSystem({ user, shift, onBack }: ReportSystemProps)
         // Calcular duración real del audio
         const duration = formatDuration(recordingDuration)
         
-        // Agregar mensaje de audio del usuario
-        const audioMessage: ChatMessage = {
-          id: Date.now().toString(),
-          type: "user",
-          content: "Reporte de voz",
-          timestamp: new Date(),
-          isAudio: true,
-          audioBlob: audioBlob,
-          audioUrl: URL.createObjectURL(audioBlob),
-          duration: duration,
-          messageType: "reporte"
-        }
-        setMessages(prev => [...prev, audioMessage])
+        // Enviar audio al servidor
+        await enviarMensajeAudio(audioBlob, duration)
       }
 
       mediaRecorder.start()
@@ -319,6 +219,95 @@ export default function ReportSystem({ user, shift, onBack }: ReportSystemProps)
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop()
       setIsRecording(false)
+    }
+  }
+
+  const enviarMensajeAudio = async (audioBlob: Blob, duration: string) => {
+    if (!idCumplido) {
+      console.error('No hay ID de cumplido disponible');
+      return;
+    }
+
+    try {
+      setSending(true);
+
+      // Obtener token
+      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
+      let token = null;
+      if (tokenCookie) {
+        try {
+          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+          token = sessionData.token;
+        } catch (error) {
+          console.error('Error parsing session data:', error);
+        }
+      }
+
+      if (!token) {
+        throw new Error('No se encontró el token de autenticación');
+      }
+
+      // Obtener ubicación
+      let latitud = null;
+      let longitud = null;
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            timeout: 10000,
+            enableHighAccuracy: true
+          });
+        });
+        latitud = position.coords.latitude;
+        longitud = position.coords.longitude;
+      } catch (error) {
+        console.log('No se pudo obtener la ubicación:', error);
+      }
+
+      // Crear FormData
+      const formData = new FormData();
+      formData.append('contenido', 'Reporte de voz');
+      formData.append('tipoMensaje', 'audio');
+      formData.append('idCumplido', idCumplido.toString());
+      formData.append('audioFile', audioBlob, 'audio.wav');
+      if (latitud) formData.append('latitud', latitud.toString());
+      if (longitud) formData.append('longitud', longitud.toString());
+
+      // Enviar al servidor
+      const response = await fetch('/api/comunicacion/mensajes', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al enviar mensaje de audio');
+      }
+
+      const data = await response.json();
+      
+      // Agregar mensaje a la lista local
+      const audioMessage: ChatMessage = {
+        id: data.mensajeId.toString(),
+        type: "user",
+        content: "Reporte de voz",
+        timestamp: new Date(),
+        isAudio: true,
+        audioUrl: data.audioUrl,
+        duration: duration,
+        messageType: "reporte"
+      };
+      
+      setMessages(prev => [...prev, audioMessage]);
+      console.log('✅ Mensaje de audio enviado exitosamente');
+
+    } catch (error: any) {
+      console.error('Error enviando mensaje de audio:', error);
+      alert(`Error al enviar mensaje de audio: ${error.message}`);
+    } finally {
+      setSending(false);
     }
   }
 
@@ -344,19 +333,87 @@ export default function ReportSystem({ user, shift, onBack }: ReportSystemProps)
     }
   }
 
-  const sendMessage = () => {
-    if (!inputMessage.trim()) return
+  const sendMessage = async () => {
+    if (!inputMessage.trim() || !idCumplido) return
 
-    // Agregar mensaje del usuario
+    try {
+      setSending(true);
+
+      // Obtener token
+      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
+      let token = null;
+      if (tokenCookie) {
+        try {
+          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+          token = sessionData.token;
+        } catch (error) {
+          console.error('Error parsing session data:', error);
+        }
+      }
+
+      if (!token) {
+        throw new Error('No se encontró el token de autenticación');
+      }
+
+      // Obtener ubicación
+      let latitud = null;
+      let longitud = null;
+      try {
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            timeout: 10000,
+            enableHighAccuracy: true
+          });
+        });
+        latitud = position.coords.latitude;
+        longitud = position.coords.longitude;
+      } catch (error) {
+        console.log('No se pudo obtener la ubicación:', error);
+      }
+
+      // Crear FormData
+      const formData = new FormData();
+      formData.append('contenido', inputMessage);
+      formData.append('tipoMensaje', 'texto');
+      formData.append('idCumplido', idCumplido.toString());
+      if (latitud) formData.append('latitud', latitud.toString());
+      if (longitud) formData.append('longitud', longitud.toString());
+
+      // Enviar al servidor
+      const response = await fetch('/api/comunicacion/mensajes', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al enviar mensaje');
+      }
+
+      const data = await response.json();
+      
+      // Agregar mensaje a la lista local
     const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+        id: data.mensajeId.toString(),
       type: "user",
       content: inputMessage,
       timestamp: new Date(),
       messageType: "reporte"
+      };
+      
+      setMessages(prev => [...prev, userMessage]);
+      setInputMessage("");
+      console.log('✅ Mensaje de texto enviado exitosamente');
+
+    } catch (error: any) {
+      console.error('Error enviando mensaje de texto:', error);
+      alert(`Error al enviar mensaje: ${error.message}`);
+    } finally {
+      setSending(false);
     }
-    setMessages(prev => [...prev, userMessage])
-    setInputMessage("")
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -451,7 +508,24 @@ export default function ReportSystem({ user, shift, onBack }: ReportSystemProps)
 
         {/* Chat Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-black">
-          {groupMessagesByDate().map((group, groupIndex) => (
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="w-8 h-8 border-2 border-zinc-600 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-zinc-400 text-sm">Cargando mensajes...</p>
+              </div>
+            </div>
+          ) : !idCumplido ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MessageSquare className="w-8 h-8 text-zinc-400" />
+                </div>
+                <p className="text-zinc-400 text-sm mb-2">No hay turno seleccionado</p>
+                <p className="text-zinc-500 text-xs">Selecciona un turno para poder enviar mensajes</p>
+              </div>
+            </div>
+          ) : groupMessagesByDate().map((group, groupIndex) => (
             <div key={group.date}>
               {/* Fecha centrada */}
               <div className="flex justify-center mb-6">
@@ -533,42 +607,53 @@ export default function ReportSystem({ user, shift, onBack }: ReportSystemProps)
           </div>
         )}
 
-        {/* Input Area */}
+                {/* Input Area */}
         <div className="p-4 bg-zinc-900 border-t border-zinc-800">
-          <div className="flex items-center gap-2">
-            <div className="flex-1 relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
-              <Textarea
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Escribe tu reporte de comunicación..."
-                className="pl-10 pr-4 py-3 resize-none bg-zinc-800 border-zinc-700 text-white placeholder-zinc-400 focus:border-zinc-600 focus:ring-zinc-600"
-                rows={1}
-              />
+          {!idCumplido ? (
+            <div className="text-center py-4">
+              <p className="text-zinc-500 text-sm">Selecciona un turno para poder enviar mensajes</p>
             </div>
-            
-            {/* Botón de envío */}
-            <Button
-              onClick={sendMessage}
-              disabled={!inputMessage.trim()}
-              className="w-12 h-12 rounded-full bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Send className="w-5 h-5 text-white" />
-            </Button>
-            
-            {/* Botón de grabación */}
-            <Button
-              onClick={isRecording ? stopRecording : startRecording}
-              className={`w-12 h-12 rounded-full ${
-                isRecording 
-                  ? "bg-red-600 hover:bg-red-700 animate-pulse" 
-                  : "bg-zinc-700 hover:bg-zinc-600"
-              } text-white`}
-            >
-              {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-            </Button>
-          </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="flex-1 relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+                <Textarea
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Escribe tu reporte de comunicación..."
+                  className="pl-10 pr-4 py-3 resize-none bg-zinc-800 border-zinc-700 text-white placeholder-zinc-400 focus:border-zinc-600 focus:ring-zinc-600"
+                  rows={1}
+                />
+              </div>
+              
+              {/* Botón de envío */}
+              <Button
+                onClick={sendMessage}
+                disabled={!inputMessage.trim() || sending}
+                className="w-12 h-12 rounded-full bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sending ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Send className="w-5 h-5 text-white" />
+                )}
+              </Button>
+              
+              {/* Botón de grabación */}
+              <Button
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={sending}
+                className={`w-12 h-12 rounded-full ${
+                  isRecording 
+                    ? "bg-red-600 hover:bg-red-700 animate-pulse" 
+                    : "bg-zinc-700 hover:bg-zinc-600"
+                } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
