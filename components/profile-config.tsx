@@ -536,7 +536,7 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
   if (showReports) {
     return <ReportSystem 
       user={userData.nombre} 
-      shift={selectedShift === 1 ? "diurno" : selectedShift === 2 ? "nocturno" : ""} 
+      shift={selectedShift === 1 ? "diurno" : selectedShift === 2 ? "nocturno" : selectedShift === 3 ? "turno_b" : ""} 
       onBack={() => setShowReports(false)}
       idCumplido={selectedCumplidoId || undefined}
     />

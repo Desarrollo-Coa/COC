@@ -22,7 +22,7 @@ import {
 
 interface ReportSystemProps {
   user: string
-  shift: "diurno" | "nocturno" | ""
+  shift: "diurno" | "nocturno" | "turno_b" | ""
   onBack: () => void
   idCumplido?: number
 }
@@ -135,10 +135,19 @@ export default function ReportSystem({ user, shift, onBack, idCumplido: propIdCu
                 day: 'numeric'
               });
               
+              const getTurnoDisplayName = (shift: string) => {
+                switch (shift) {
+                  case "diurno": return "Diurno";
+                  case "nocturno": return "Nocturno";
+                  case "turno_b": return "Turno B";
+                  default: return "Sin turno";
+                }
+              };
+
               const initialMessage: ChatMessage = {
                 id: "system-1",
                 type: "system",
-                content: `${formattedDate} - Turno ${shift}`,
+                content: `${formattedDate} - ${getTurnoDisplayName(shift)}`,
                 timestamp: new Date(),
                 messageType: "comunicacion"
               };
@@ -493,7 +502,10 @@ export default function ReportSystem({ user, shift, onBack, idCumplido: propIdCu
           
           <div className="flex items-center gap-3 flex-1">
             <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center">
-              {shift === "diurno" ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+              {shift === "diurno" ? <Sun className="w-6 h-6" /> : 
+               shift === "nocturno" ? <Moon className="w-6 h-6" /> : 
+               shift === "turno_b" ? <Clock className="w-6 h-6" /> : 
+               <Clock className="w-6 h-6" />}
             </div>
           <div>
               <h1 className="font-semibold text-white">Reportes de Comunicación</h1>
