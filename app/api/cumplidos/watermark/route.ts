@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const imageFile = formData.get('image') as File
     const timestamp = formData.get('timestamp') as string
+    const fecha = formData.get('fecha') as string
 
     if (!imageFile) {
       return NextResponse.json({ error: 'No se proporcionó imagen' }, { status: 400 })
@@ -34,6 +35,14 @@ export async function POST(request: NextRequest) {
 
     // Obtener la hora actual si no se proporciona
     const currentTime = timestamp || new Date().toLocaleTimeString()
+    const currentDate = fecha || new Date().toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+
+    // Crear texto de marca de agua con fecha y hora
+    const watermarkText = `FORTOX - ${currentDate} ${currentTime}`
 
     try {
       // Obtener dimensiones de la imagen
@@ -42,8 +51,8 @@ export async function POST(request: NextRequest) {
       const imageHeight = imageInfo.height || 600;
 
       // Calcular tamaño del texto basado en las dimensiones de la imagen
-      const fontSize = Math.max(Math.min(imageWidth * 0.04, 32), 16);
-      const textWidth = `FORTOX - ${currentTime}`.length * fontSize * 0.6;
+      const fontSize = Math.max(Math.min(imageWidth * 0.035, 28), 14); // Tamaño más pequeño para texto más largo
+      const textWidth = watermarkText.length * fontSize * 0.6;
       const textHeight = fontSize * 1.2;
 
       // Crear marca de agua con Sharp usando SVG dinámico
@@ -56,7 +65,7 @@ export async function POST(request: NextRequest) {
           </defs>
           <text x="10" y="${fontSize + 5}" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" 
                  fill="white" filter="url(#shadow)">
-            FORTOX - ${currentTime}
+            ${watermarkText}
           </text>
         </svg>
       `;

@@ -129,6 +129,11 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
           const formData = new FormData();
           formData.append('image', imageFile);
           formData.append('timestamp', currentTime);
+          formData.append('fecha', new Date().toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          }));
 
           const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
           let token = null;
@@ -167,6 +172,38 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
         }
       };
 
+      // Obtener ubicación primero (antes del procesamiento de imagen)
+      const getLocation = (): Promise<{ lat: number; lng: number } | null> => {
+        return new Promise((resolve) => {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const coords = {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude
+                };
+                setCoords(coords);
+                resolve(coords);
+              },
+              (error) => {
+                console.error('Error obteniendo ubicación:', error);
+                resolve(null);
+              },
+              {
+                timeout: 5000, // 5 segundos de timeout
+                enableHighAccuracy: false, // Mejor compatibilidad en Android
+                maximumAge: 60000 // Cache de 1 minuto
+              }
+            );
+          } else {
+            resolve(null);
+          }
+        });
+      };
+
+      // Obtener ubicación y luego procesar imagen
+      const locationCoords = await getLocation();
+
       // Intentar agregar marca de agua con fallback
       try {
         const { dataUrl, file } = await addWatermarkViaAPI(optimizedFile);
@@ -179,26 +216,6 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
         setPreviewUrl(optimizedPreviewUrl);
         setWatermarkedImage(optimizedFile);
         setShowCamera(false);
-      }
-
-      // Obtener ubicación en segundo plano (no bloquear la UI)
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setCoords({
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            });
-          },
-          (error) => {
-            console.error('Error obteniendo ubicación:', error);
-          },
-          {
-            timeout: 5000, // Reducir timeout a 5 segundos
-            enableHighAccuracy: false,
-            maximumAge: 60000
-          }
-        );
       }
     } catch (error) {
       console.error('Error al capturar imagen:', error);
