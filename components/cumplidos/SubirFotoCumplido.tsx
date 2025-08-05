@@ -8,6 +8,60 @@ import { Textarea } from '@/components/ui/textarea'
 import Webcam from 'react-webcam'
 import { useImageOptimizer } from '@/lib/imageOptimizer'
 
+// Función para agregar marca de agua directamente en la imagen
+const addWatermarkToImage = async (imageFile: File, watermarkText: string): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+      // Configurar canvas con el tamaño de la imagen
+      canvas.width = img.width;
+      canvas.height = img.height;
+      
+      // Dibujar la imagen original
+      ctx?.drawImage(img, 0, 0);
+      
+      // Configurar el texto de marca de agua
+      if (ctx) {
+        ctx.font = 'bold 24px Arial';
+        ctx.fillStyle = 'white';
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+        ctx.textAlign = 'left';
+        
+        // Posición de la marca de agua (esquina inferior izquierda)
+        const x = 20;
+        const y = img.height - 20;
+        
+        // Dibujar texto con sombra
+        ctx.strokeText(watermarkText, x, y);
+        ctx.fillText(watermarkText, x, y);
+        
+        // Agregar fecha y hora
+        const timestamp = new Date().toLocaleString('es-ES');
+        ctx.font = 'bold 16px Arial';
+        ctx.strokeText(timestamp, x, y - 30);
+        ctx.fillText(timestamp, x, y - 30);
+      }
+      
+      // Convertir canvas a blob
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const watermarkedFile = new File([blob], 'watermarked-image.jpg', { type: 'image/jpeg' });
+          resolve(watermarkedFile);
+        } else {
+          reject(new Error('Error al procesar imagen'));
+        }
+      }, 'image/jpeg', 0.9);
+    };
+    
+    img.onerror = () => reject(new Error('Error al cargar imagen'));
+    img.src = URL.createObjectURL(imageFile);
+  });
+};
+
 interface SubirFotoCumplidoProps {
   idCumplido: number
   onSuccess?: () => void
@@ -123,66 +177,6 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
       });
       setOptimizedImage(optimizedFile);
 
-      // Función para agregar marca de agua usando la API route interna
-      const addWatermarkViaAPI = async (imageFile: File): Promise<{ dataUrl: string; file: File }> => {
-        try {
-          console.log('📤 [MOBILE] Enviando imagen a watermark API:', {
-            size: imageFile.size,
-            type: imageFile.type,
-            name: imageFile.name
-          });
-          
-          const formData = new FormData();
-          formData.append('image', imageFile);
-          // Agregar fecha y hora para el watermark
-          formData.append('timestamp', currentTime);
-          formData.append('fecha', new Date().toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-          }));
-          // Agregar el texto del watermark
-          formData.append('text', 'FORTOX');
-          formData.append('color', 'white');
-          formData.append('fontSize', '16');
-          formData.append('position', 'southwest');
-          formData.append('shadowColor', 'black');
-          formData.append('shadowOpacity', '0.8');
-
-          // Usar la API route interna (sin problemas de Mixed Content)
-          const response = await fetch('/api/watermark', {
-            method: 'POST',
-            body: formData
-          });
-
-          console.log('📥 [MOBILE] Respuesta watermark API:', response.status, response.statusText);
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ [MOBILE] Error watermark API:', errorText);
-            throw new Error(`Error del servidor: ${response.status} - ${errorText}`);
-          }
-
-          // Convertir la respuesta a blob
-          const watermarkedBlob = await response.blob();
-          console.log('✅ [MOBILE] Imagen con watermark recibida:', {
-            size: watermarkedBlob.size,
-            type: watermarkedBlob.type
-          });
-          
-          const watermarkedFile = new File([watermarkedBlob], 'webcam-photo-watermarked.jpg', { type: 'image/jpeg' });
-          
-          // Crear data URL para preview
-          const dataUrl = URL.createObjectURL(watermarkedBlob);
-          console.log('🖼️ [MOBILE] Data URL creada:', dataUrl.substring(0, 50) + '...');
-
-          return { dataUrl, file: watermarkedFile };
-        } catch (error) {
-          console.error('❌ [MOBILE] Error agregando marca de agua via API:', error);
-          throw error;
-        }
-      };
-
       // Obtener ubicación primero (antes del procesamiento de imagen)
       const getLocation = (): Promise<{ lat: number; lng: number } | null> => {
         return new Promise((resolve) => {
@@ -215,15 +209,18 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
       // Obtener ubicación y luego procesar imagen
       await getLocation();
 
-      // Intentar agregar marca de agua con fallback
+      // Agregar marca de agua directamente en la imagen
       try {
-        const { dataUrl, file } = await addWatermarkViaAPI(optimizedFile);
-        console.log('🎯 [MOBILE] Estableciendo vista previa con marca de agua');
+        console.log('🎨 [MOBILE] Agregando marca de agua directamente');
+        const watermarkedFile = await addWatermarkToImage(optimizedFile, 'FORTOX');
+        const dataUrl = URL.createObjectURL(watermarkedFile);
+        
+        console.log('✅ [MOBILE] Marca de agua agregada exitosamente');
         setPreviewUrl(dataUrl);
-        setWatermarkedImage(file);
+        setWatermarkedImage(watermarkedFile);
         setShowCamera(false);
       } catch (watermarkError) {
-        console.warn('⚠️ [MOBILE] No se pudo agregar marca de agua, usando imagen sin marca:', watermarkError);
+        console.warn('⚠️ [MOBILE] Error agregando marca de agua directa:', watermarkError);
         // Fallback: usar imagen sin marca de agua
         console.log('🎯 [MOBILE] Estableciendo vista previa sin marca de agua');
         setPreviewUrl(optimizedPreviewUrl);
