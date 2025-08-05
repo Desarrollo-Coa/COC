@@ -2,21 +2,22 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
 import {
   ArrowLeft,
   Mic,
   MicOff,
   Send,
-  CheckCircle,
   Clock,
   Sun,
   Moon,
-  MessageSquare,
   Volume2,
-  Trash2,
+  Search,
+  MoreHorizontal,
+  Play,
+  Pause,
+  MessageSquare,
+  FileText, 
 } from "lucide-react"
 
 interface ReportSystemProps {
@@ -25,59 +26,252 @@ interface ReportSystemProps {
   onBack: () => void
 }
 
-interface ReportSlot {
+interface ChatMessage {
   id: string
-  time: string
-  title: string
-  completed: boolean
-  message?: string
+  type: "user" | "system"
+  content: string
+  timestamp: Date
+  isAudio?: boolean
   audioBlob?: Blob
-  timestamp?: string
+  audioUrl?: string
+  duration?: string
+  messageType?: "reporte" | "evidencia" | "comunicacion"
+}
+
+// Componente para visualización de frecuencia de audio
+const AudioWaveform = ({ isPlaying, duration = "0:00" }: { isPlaying: boolean; duration?: string }) => {
+  const bars = Array.from({ length: 12 }, (_, i) => Math.random() * 60 + 20) // Menos barras y altura más baja
+  
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-0.5">
+        {bars.map((height, index) => (
+          <div
+            key={index}
+            className={`w-0.5 bg-white rounded-full transition-all duration-300 ${
+              isPlaying ? 'animate-pulse' : ''
+            }`}
+            style={{ 
+              height: `${height}%`,
+              animationDelay: `${index * 0.1}s`
+            }}
+          />
+        ))}
+      </div>
+      <span className="text-xs text-white/70 font-mono ml-2">{duration}</span>
+    </div>
+  )
 }
 
 export default function ReportSystem({ user, shift, onBack }: ReportSystemProps) {
-  const [selectedReport, setSelectedReport] = useState<ReportSlot | null>(null)
-  const [message, setMessage] = useState("")
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [inputMessage, setInputMessage] = useState("")
   const [isRecording, setIsRecording] = useState(false)
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null)
-  const [reports, setReports] = useState<ReportSlot[]>([])
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null)
+  const [recordingDuration, setRecordingDuration] = useState(0)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Definir reportes según el turno
-  const diurnoReports: Omit<ReportSlot, "completed" | "message" | "audioBlob" | "timestamp">[] = [
-    { id: "diurno-1", time: "12:00", title: "Reporte Mediodía" },
-    { id: "diurno-2", time: "17:00", title: "Reporte Tarde" },
-  ]
-
-  const nocturnoReports: Omit<ReportSlot, "completed" | "message" | "audioBlob" | "timestamp">[] = [
-    { id: "nocturno-1", time: "20:00", title: "Reporte Inicio" },
-    { id: "nocturno-2", time: "23:00", title: "Reporte Noche" },
-    { id: "nocturno-3", time: "02:00", title: "Reporte Madrugada" },
-    { id: "nocturno-4", time: "04:00", title: "Reporte Pre-Alba" },
-    { id: "nocturno-5", time: "06:00", title: "Reporte Final" },
-  ]
-
+  // Mensaje inicial del sistema
   useEffect(() => {
-    const baseReports = shift === "diurno" ? diurnoReports : nocturnoReports
-    const savedReports = localStorage.getItem(`reports-${shift}`)
-
-    if (savedReports) {
-      setReports(JSON.parse(savedReports))
-    } else {
-      const initialReports = baseReports.map((report) => ({
-        ...report,
-        completed: false,
-      }))
-      setReports(initialReports)
+    const today = new Date()
+    const formattedDate = today.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+    
+    const initialMessage: ChatMessage = {
+      id: "1",
+      type: "system",
+      content: `${formattedDate} - Turno ${shift}`,
+      timestamp: new Date(),
+      messageType: "comunicacion"
     }
+
+    // Datos de ejemplo con diferentes fechas
+    const exampleMessages: ChatMessage[] = [
+      // 1 de agosto de 2025
+      {
+        id: "2",
+        type: "user",
+        content: "Reporte de seguridad - Área A",
+        timestamp: new Date('2025-08-01T08:30:00'),
+        messageType: "reporte"
+      },
+      {
+        id: "3",
+        type: "user",
+        content: "Audio de reporte",
+        timestamp: new Date('2025-08-01T10:15:00'),
+        isAudio: true,
+        audioUrl: "#",
+        duration: "2:34",
+        messageType: "reporte"
+      },
+      {
+        id: "4",
+        type: "user",
+        content: "Audio de reporte",
+        timestamp: new Date('2025-08-01T12:45:00'),
+        isAudio: true,
+        audioUrl: "#",
+        duration: "1:52",
+        messageType: "reporte"
+      },
+      {
+        id: "5",
+        type: "user",
+        content: "Audio de reporte",
+        timestamp: new Date('2025-08-01T15:20:00'),
+        isAudio: true,
+        audioUrl: "#",
+        duration: "3:15",
+        messageType: "reporte"
+      },
+      {
+        id: "6",
+        type: "user",
+        content: "Audio de reporte",
+        timestamp: new Date('2025-08-01T18:00:00'),
+        isAudio: true,
+        audioUrl: "#",
+        duration: "2:08",
+        messageType: "reporte"
+      },
+
+      // 3 de agosto de 2025
+      {
+        id: "7",
+        type: "user",
+        content: "Reporte de vigilancia - Área B",
+        timestamp: new Date('2025-08-03T09:00:00'),
+        messageType: "reporte"
+      },
+      {
+        id: "8",
+        type: "user",
+        content: "Audio de reporte",
+        timestamp: new Date('2025-08-03T11:30:00'),
+        isAudio: true,
+        audioUrl: "#",
+        duration: "1:45",
+        messageType: "reporte"
+      },
+      {
+        id: "9",
+        type: "user",
+        content: "Audio de reporte",
+        timestamp: new Date('2025-08-03T14:15:00'),
+        isAudio: true,
+        audioUrl: "#",
+        duration: "2:22",
+        messageType: "reporte"
+      },
+      {
+        id: "10",
+        type: "user",
+        content: "Audio de reporte",
+        timestamp: new Date('2025-08-03T16:45:00'),
+        isAudio: true,
+        audioUrl: "#",
+        duration: "1:58",
+        messageType: "reporte"
+      },
+      {
+        id: "11",
+        type: "user",
+        content: "Audio de reporte",
+        timestamp: new Date('2025-08-03T19:30:00'),
+        isAudio: true,
+        audioUrl: "#",
+        duration: "2:41",
+        messageType: "reporte"
+      },
+
+      // 5 de agosto de 2025
+      {
+        id: "12",
+        type: "user",
+        content: "Reporte de patrullaje - Área C",
+        timestamp: new Date('2025-08-05T08:45:00'),
+        messageType: "reporte"
+      },
+      {
+        id: "13",
+        type: "user",
+        content: "Audio de reporte",
+        timestamp: new Date('2025-08-05T10:30:00'),
+        isAudio: true,
+        audioUrl: "#",
+        duration: "2:15",
+        messageType: "reporte"
+      },
+      {
+        id: "14",
+        type: "user",
+        content: "Audio de reporte",
+        timestamp: new Date('2025-08-05T13:20:00'),
+        isAudio: true,
+        audioUrl: "#",
+        duration: "1:33",
+        messageType: "reporte"
+      },
+      {
+        id: "15",
+        type: "user",
+        content: "Audio de reporte",
+        timestamp: new Date('2025-08-05T15:55:00'),
+        isAudio: true,
+        audioUrl: "#",
+        duration: "3:02",
+        messageType: "reporte"
+      },
+      {
+        id: "16",
+        type: "user",
+        content: "Audio de reporte",
+        timestamp: new Date('2025-08-05T18:40:00'),
+        isAudio: true,
+        audioUrl: "#",
+        duration: "2:47",
+        messageType: "reporte"
+      }
+    ]
+
+    setMessages([initialMessage, ...exampleMessages])
   }, [shift])
 
-  const saveReports = (updatedReports: ReportSlot[]) => {
-    setReports(updatedReports)
-    localStorage.setItem(`reports-${shift}`, JSON.stringify(updatedReports))
-  }
+  // Auto-scroll al final
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
+  // Timer para grabación
+  useEffect(() => {
+    if (isRecording) {
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1)
+      }, 1000)
+    } else {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current)
+        setRecordingDuration(0)
+      }
+    }
+
+    return () => {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current)
+      }
+    }
+  }, [isRecording])
 
   const startRecording = async () => {
     try {
@@ -94,6 +288,23 @@ export default function ReportSystem({ user, shift, onBack }: ReportSystemProps)
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" })
         setAudioBlob(audioBlob)
         stream.getTracks().forEach((track) => track.stop())
+        
+        // Calcular duración real del audio
+        const duration = formatDuration(recordingDuration)
+        
+        // Agregar mensaje de audio del usuario
+        const audioMessage: ChatMessage = {
+          id: Date.now().toString(),
+          type: "user",
+          content: "Reporte de voz",
+          timestamp: new Date(),
+          isAudio: true,
+          audioBlob: audioBlob,
+          audioUrl: URL.createObjectURL(audioBlob),
+          duration: duration,
+          messageType: "reporte"
+        }
+        setMessages(prev => [...prev, audioMessage])
       }
 
       mediaRecorder.start()
@@ -111,265 +322,254 @@ export default function ReportSystem({ user, shift, onBack }: ReportSystemProps)
     }
   }
 
-  const playAudio = () => {
-    if (audioBlob) {
-      const audioUrl = URL.createObjectURL(audioBlob)
-      const audio = new Audio(audioUrl)
-      audio.play()
+  const playAudio = (audioUrl: string) => {
+    if (currentAudio) {
+      currentAudio.pause()
+      currentAudio.currentTime = 0
+    }
+
+    const audio = new Audio(audioUrl)
+    audio.onended = () => setIsPlaying(false)
+    audio.onplay = () => setIsPlaying(true)
+    audio.onpause = () => setIsPlaying(false)
+    
+    audio.play()
+    setCurrentAudio(audio)
+  }
+
+  const pauseAudio = () => {
+    if (currentAudio) {
+      currentAudio.pause()
+      setIsPlaying(false)
     }
   }
 
-  const deleteAudio = () => {
-    setAudioBlob(null)
+  const sendMessage = () => {
+    if (!inputMessage.trim()) return
+
+    // Agregar mensaje del usuario
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      type: "user",
+      content: inputMessage,
+      timestamp: new Date(),
+      messageType: "reporte"
+    }
+    setMessages(prev => [...prev, userMessage])
+    setInputMessage("")
   }
 
-  const handleQuickReport = (type: "sin-novedad" | "custom") => {
-    if (!selectedReport) return
-
-    const reportMessage = type === "sin-novedad" ? "Todo sin novedad. Área segura y sin incidentes." : message
-
-    const updatedReports = reports.map((report) =>
-      report.id === selectedReport.id
-        ? {
-            ...report,
-            completed: true,
-            message: reportMessage,
-            audioBlob: audioBlob || undefined,
-            timestamp: new Date().toISOString(),
-          }
-        : report,
-    )
-
-    saveReports(updatedReports)
-    setSelectedReport(null)
-    setMessage("")
-    setAudioBlob(null)
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
   }
 
-  const openReport = (report: ReportSlot) => {
-    setSelectedReport(report)
-    setMessage(report.message || "")
-    setAudioBlob(report.audioBlob || null)
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString("es-ES", { 
+      hour: "2-digit", 
+      minute: "2-digit" 
+    })
   }
 
-  if (selectedReport) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
-        <div className="max-w-md mx-auto">
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-6 pt-4">
-            <Button onClick={() => setSelectedReport(null)} variant="outline" size="icon" className="rounded-full">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">{selectedReport.title}</h1>
-              <p className="text-gray-600 text-sm flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                {selectedReport.time}
-              </p>
-            </div>
-          </div>
+  const formatDuration = (seconds: number) => {
+    return `${Math.floor(seconds / 60)}:${(seconds % 60).toString().padStart(2, '0')}`
+  }
 
-          {/* Quick Action - Sin Novedad */}
-          <Card className="mb-6 bg-green-50 border-green-200">
-            <CardContent className="p-4">
-              <Button
-                onClick={() => handleQuickReport("sin-novedad")}
-                className="w-full bg-green-600 hover:bg-green-700 text-white h-12 rounded-xl font-medium"
-              >
-                <CheckCircle className="w-5 h-5 mr-2" />
-                Todo Sin Novedad
-              </Button>
-              <p className="text-xs text-green-700 text-center mt-2">Envía reporte automático de área segura</p>
-            </CardContent>
-          </Card>
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
 
-          {/* Message Input */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-blue-600" />
-                Mensaje Personalizado
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Escriba su reporte aquí..."
-                className="min-h-[100px] resize-none"
-              />
+  const getMessageTypeIcon = (messageType?: string) => {
+    switch (messageType) {
+      case "reporte":
+        return <FileText className="w-4 h-4" />
+      case "evidencia":
+        return <MessageSquare className="w-4 h-4" />
+      case "comunicacion":
+        return <Clock className="w-4 h-4" />
+      default:
+        return <MessageSquare className="w-4 h-4" />
+    }
+  }
 
-              <Button
-                onClick={() => handleQuickReport("custom")}
-                disabled={!message.trim() && !audioBlob}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-xl font-medium disabled:opacity-50"
-              >
-                <Send className="w-5 h-5 mr-2" />
-                Enviar Reporte
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Audio Recording */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Mic className="w-5 h-5 text-purple-600" />
-                Grabación de Audio
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!audioBlob ? (
-                <div className="text-center">
-                  <Button
-                    onClick={isRecording ? stopRecording : startRecording}
-                    className={`w-20 h-20 rounded-full ${
-                      isRecording ? "bg-red-500 hover:bg-red-600 animate-pulse" : "bg-purple-600 hover:bg-purple-700"
-                    } text-white`}
-                  >
-                    {isRecording ? <MicOff className="w-8 h-8" /> : <Mic className="w-8 h-8" />}
-                  </Button>
-                  <p className="text-sm text-gray-600 mt-2">
-                    {isRecording ? "Grabando... Toque para detener" : "Toque para grabar"}
-                  </p>
-                </div>
-              ) : (
-                <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
-                        <Volume2 className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">Audio grabado</p>
-                        <p className="text-sm text-gray-600">Listo para enviar</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button onClick={playAudio} variant="outline" size="sm">
-                        <Volume2 className="w-4 h-4" />
-                      </Button>
-                      <Button onClick={deleteAudio} variant="outline" size="sm" className="text-red-600 bg-transparent">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
+  // Agrupar mensajes por fecha
+  const groupMessagesByDate = () => {
+    const groups: { date: string; messages: ChatMessage[] }[] = []
+    
+    messages.slice(1).forEach((message) => {
+      const messageDate = formatDate(message.timestamp)
+      const existingGroup = groups.find(group => group.date === messageDate)
+      
+      if (existingGroup) {
+        existingGroup.messages.push(message)
+      } else {
+        groups.push({
+          date: messageDate,
+          messages: [message]
+        })
+      }
+    })
+    
+    return groups
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4">
-      <div className="max-w-md mx-auto">
+    <div className="min-h-screen bg-black text-white">
+      <div className="max-w-md mx-auto h-screen flex flex-col">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-6 pt-4">
-          <Button onClick={onBack} variant="outline" size="icon" className="rounded-full bg-transparent">
-            <ArrowLeft className="w-4 h-4" />
+        <div className="bg-zinc-900 border-b border-zinc-800 p-4 flex items-center gap-3">
+          <Button 
+            onClick={onBack} 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:bg-zinc-800"
+          >
+            <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Reportes de Comunicación</h1>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              {shift === "diurno" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              <span>Turno {shift}</span>
+          
+          <div className="flex items-center gap-3 flex-1">
+            <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center">
+              {shift === "diurno" ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+            </div>
+            <div>
+              <h1 className="font-semibold text-white">Reportes de Comunicación</h1>
+              <p className="text-xs text-zinc-400">{user}</p>
             </div>
           </div>
+          
+          <Button variant="ghost" size="icon" className="text-white hover:bg-zinc-800">
+            <MoreHorizontal className="w-5 h-5" />
+          </Button>
         </div>
 
-        {/* Progress */}
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">Progreso del turno</span>
-              <span className="text-sm text-gray-600">
-                {reports.filter((r) => r.completed).length}/{reports.length}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${(reports.filter((r) => r.completed).length / reports.length) * 100}%` }}
-              ></div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Reports List */}
-        <div className="space-y-4">
-          {reports.map((report) => (
-            <Card
-              key={report.id}
-              className={`cursor-pointer transition-all hover:shadow-md ${
-                report.completed ? "bg-green-50 border-green-200" : "hover:border-blue-300"
-              }`}
-              onClick={() => openReport(report)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+        {/* Chat Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-black">
+          {groupMessagesByDate().map((group, groupIndex) => (
+            <div key={group.date}>
+              {/* Fecha centrada */}
+              <div className="flex justify-center mb-6">
+                <div className="text-xs text-zinc-500 text-center">
+                  {group.date}
+                </div>
+              </div>
+              
+              {/* Mensajes de esa fecha */}
+              <div className="space-y-4">
+                {group.messages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${message.type === "user" ? "justify-end" : "justify-start"}`}
+                  >
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        report.completed ? "bg-green-500" : "bg-gray-100"
+                      className={`max-w-sm lg:max-w-lg px-4 py-3 rounded-2xl ${
+                        message.type === "user"
+                          ? "bg-zinc-800 text-white border border-zinc-700"
+                          : "bg-zinc-900 text-white border border-zinc-700"
                       }`}
                     >
-                      {report.completed ? (
-                        <CheckCircle className="w-6 h-6 text-white" />
+                      {message.isAudio ? (
+                        <div className="flex items-center gap-3 py-1 w-full">
+                          <div className="w-6 h-6 bg-zinc-700 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Volume2 className="w-3 h-3 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <AudioWaveform isPlaying={isPlaying} duration={message.duration} />
+                          </div>
+                          <Button
+                            onClick={() => isPlaying ? pauseAudio() : playAudio(message.audioUrl!)}
+                            variant="ghost"
+                            size="sm"
+                            className="w-6 h-6 p-0 bg-zinc-700 hover:bg-zinc-600 flex-shrink-0"
+                          >
+                            {isPlaying ? (
+                              <Pause className="w-3 h-3 text-white" />
+                            ) : (
+                              <Play className="w-3 h-3 text-white" />
+                            )}
+                          </Button>
+                        </div>
                       ) : (
-                        <Clock className="w-6 h-6 text-gray-600" />
+                        <div className="flex items-start gap-2">
+                          {message.type === "system" && (
+                            <div className="mt-1">
+                              {getMessageTypeIcon(message.messageType)}
+                            </div>
+                          )}
+                          <p className="text-sm text-white">{message.content}</p>
+                        </div>
                       )}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{report.title}</h3>
-                      <p className="text-sm text-gray-600">{report.time}</p>
-                      {report.completed && report.timestamp && (
-                        <p className="text-xs text-green-600">
-                          Completado: {new Date(report.timestamp).toLocaleTimeString()}
-                        </p>
-                      )}
+                      <p className="text-xs mt-2 text-zinc-400">
+                        {formatTime(message.timestamp)}
+                      </p>
                     </div>
                   </div>
-
-                  <div className="flex flex-col items-end gap-1">
-                    <Badge
-                      variant={report.completed ? "default" : "secondary"}
-                      className={report.completed ? "bg-green-500" : ""}
-                    >
-                      {report.completed ? "Completado" : "Pendiente"}
-                    </Badge>
-                    {report.message && (
-                      <Badge variant="outline" className="text-xs">
-                        <MessageSquare className="w-3 h-3 mr-1" />
-                        Texto
-                      </Badge>
-                    )}
-                    {report.audioBlob && (
-                      <Badge variant="outline" className="text-xs">
-                        <Mic className="w-3 h-3 mr-1" />
-                        Audio
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                ))}
+              </div>
+            </div>
           ))}
+
+          <div ref={messagesEndRef} />
         </div>
 
-        {/* Summary */}
-        {reports.every((r) => r.completed) && (
-          <Card className="mt-6 bg-blue-50 border-blue-200">
-            <CardContent className="p-4 text-center">
-              <CheckCircle className="w-12 h-12 text-blue-600 mx-auto mb-2" />
-              <h3 className="font-semibold text-blue-900 mb-1">¡Turno Completado!</h3>
-              <p className="text-sm text-blue-700">Todos los reportes han sido enviados correctamente</p>
-            </CardContent>
-          </Card>
+        {/* Recording Indicator */}
+        {isRecording && (
+          <div className="px-4 py-2 bg-red-900/20 border-t border-red-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                <span className="text-sm text-red-400">Grabando...</span>
+              </div>
+              <span className="text-sm text-red-400 font-mono">
+                {formatDuration(recordingDuration)}
+              </span>
+            </div>
+          </div>
         )}
+
+        {/* Input Area */}
+        <div className="p-4 bg-zinc-900 border-t border-zinc-800">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400" />
+              <Textarea
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Escribe tu reporte de comunicación..."
+                className="pl-10 pr-4 py-3 resize-none bg-zinc-800 border-zinc-700 text-white placeholder-zinc-400 focus:border-zinc-600 focus:ring-zinc-600"
+                rows={1}
+              />
+            </div>
+            
+            {/* Botón de envío */}
+            <Button
+              onClick={sendMessage}
+              disabled={!inputMessage.trim()}
+              className="w-12 h-12 rounded-full bg-zinc-700 hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Send className="w-5 h-5 text-white" />
+            </Button>
+            
+            {/* Botón de grabación */}
+            <Button
+              onClick={isRecording ? stopRecording : startRecording}
+              className={`w-12 h-12 rounded-full ${
+                isRecording 
+                  ? "bg-red-600 hover:bg-red-700 animate-pulse" 
+                  : "bg-zinc-700 hover:bg-zinc-600"
+              } text-white`}
+            >
+              {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   )
