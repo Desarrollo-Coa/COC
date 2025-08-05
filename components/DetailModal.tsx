@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { BarChart2 } from "lucide-react";
+import { BarChart2, MessageSquare, Play, Pause, Volume2, Clock } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -19,6 +19,16 @@ interface DetailData {
   fecha: string;
   reportes: any;
   nota: string;
+  id_cumplido?: number;
+}
+
+interface ChatMessage {
+  id: string;
+  contenido: string;
+  tipo_mensaje: string;
+  audio_url?: string;
+  fecha_creacion: string;
+  hora_mensaje: string;
 }
 
 interface DetailModalProps {
@@ -36,6 +46,11 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
   const [error, setError] = useState<string | null>(null);
   const [reportesArray, setReportesArray] = useState<Reporte[]>([]);
   const [cumplidoPhoto, setCumplidoPhoto] = useState<string | null>(null);
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [loadingChat, setLoadingChat] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Función para obtener iniciales del nombre
   const getInitials = (name: string) => {
@@ -45,6 +60,76 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  // Función para cargar el chat del día
+  const fetchChatMessages = async (idCumplido: number) => {
+    try {
+      setLoadingChat(true);
+      
+      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
+      let token = null;
+      if (tokenCookie) {
+        try {
+          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+          token = sessionData.token;
+        } catch (error) {
+          console.error('Error parsing session data:', error);
+        }
+      }
+
+      const response = await fetch(`/api/comunicacion/mensajes?idCumplido=${idCumplido}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setChatMessages(data.mensajes || []);
+      } else {
+        console.error('Error cargando chat:', response.status);
+        setChatMessages([]);
+      }
+    } catch (error) {
+      console.error('Error cargando chat:', error);
+      setChatMessages([]);
+    } finally {
+      setLoadingChat(false);
+    }
+  };
+
+  // Función para reproducir audio
+  const playAudio = (audioUrl: string) => {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+    }
+
+    const audio = new Audio(audioUrl);
+    audio.onended = () => setIsPlaying(false);
+    audio.onplay = () => setIsPlaying(true);
+    audio.onpause = () => setIsPlaying(false);
+    
+    audio.play();
+    setCurrentAudio(audio);
+  };
+
+  const pauseAudio = () => {
+    if (currentAudio) {
+      currentAudio.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  // Función para formatear hora
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("es-ES", { 
+      hour: "2-digit", 
+      minute: "2-digit",
+      hour12: false
+    });
   };
 
   // Función para obtener la foto del cumplido
@@ -160,6 +245,9 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
       <DialogContent className="sm:max-w-[400px] max-h-[80vh] overflow-y-auto">
         <VisuallyHidden>
           <DialogTitle>Detalle de Reportes</DialogTitle>
+          <DialogDescription>
+            Información detallada de los reportes de comunicación del colaborador
+          </DialogDescription>
         </VisuallyHidden>
                 {cumplidoPhoto ? (
           // CON FOTO DE CUMPLIDO: Foto de cumplido como background, perfil abajo
@@ -254,7 +342,34 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
           ) : data ? (
             <>
               <div className="mt-4">
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">Reportes de Comunicación</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold text-gray-800">Reportes de Comunicación</h3>
+                  {data?.id_cumplido && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setShowChat(!showChat);
+                              if (!showChat && data.id_cumplido) {
+                                fetchChatMessages(data.id_cumplido);
+                              }
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                            Chat del día
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Ver mensajes y audios del día</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
                 <div className="bg-white rounded-lg border">
                   <table className="w-full">
                     <thead>
@@ -303,6 +418,85 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
                   </table>
                 </div>
               </div>
+              
+              {/* Sección del Chat */}
+              {showChat && (
+                <div className="mt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <MessageSquare className="w-5 h-5 text-blue-600" />
+                    <h3 className="text-lg font-semibold text-gray-800">Chat del día</h3>
+                  </div>
+                  
+                  {loadingChat ? (
+                    <div className="bg-white rounded-lg border p-4">
+                      <div className="space-y-3">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+                            <div className="flex-1">
+                              <div className="h-4 w-32 bg-gray-200 rounded animate-pulse mb-2"></div>
+                              <div className="h-3 w-24 bg-gray-200 rounded animate-pulse"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : chatMessages.length > 0 ? (
+                    <div className="bg-white rounded-lg border max-h-64 overflow-y-auto">
+                      <div className="p-4 space-y-3">
+                        {chatMessages.map((message) => (
+                          <div key={message.id} className="flex items-start gap-3">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              {message.tipo_mensaje === 'audio' ? (
+                                <Volume2 className="w-4 h-4 text-blue-600" />
+                              ) : (
+                                <MessageSquare className="w-4 h-4 text-blue-600" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm font-medium text-gray-900">
+                                  {message.tipo_mensaje === 'audio' ? 'Audio' : 'Mensaje'}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {formatTime(message.fecha_creacion)}
+                                </span>
+                              </div>
+                              <div className="text-sm text-gray-700">
+                                {message.tipo_mensaje === 'audio' ? (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-gray-600">Reporte de voz</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => isPlaying ? pauseAudio() : playAudio(message.audio_url!)}
+                                      className="h-6 w-6 p-0"
+                                    >
+                                      {isPlaying ? (
+                                        <Pause className="w-3 h-3" />
+                                      ) : (
+                                        <Play className="w-3 h-3" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <p className="text-gray-700">{message.contenido}</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white rounded-lg border p-6 text-center">
+                      <MessageSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">No hay mensajes para mostrar</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <div className="mt-6">
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">Notas</h3>
                 <div className="p-3 border rounded-md bg-gray-50 min-h-[60px]">
