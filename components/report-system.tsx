@@ -328,12 +328,12 @@ export default function ReportSystem({ user, shift, onBack }: ReportSystemProps)
       currentAudio.currentTime = 0
     }
 
-    const audio = new Audio(audioUrl)
+      const audio = new Audio(audioUrl)
     audio.onended = () => setIsPlaying(false)
     audio.onplay = () => setIsPlaying(true)
     audio.onpause = () => setIsPlaying(false)
     
-    audio.play()
+      audio.play()
     setCurrentAudio(audio)
   }
 
@@ -438,7 +438,7 @@ export default function ReportSystem({ user, shift, onBack }: ReportSystemProps)
             <div className="w-10 h-10 bg-zinc-800 rounded-full flex items-center justify-center">
               {shift === "diurno" ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
             </div>
-            <div>
+          <div>
               <h1 className="font-semibold text-white">Reportes de Comunicación</h1>
               <p className="text-xs text-zinc-400">{user}</p>
             </div>
@@ -457,11 +457,11 @@ export default function ReportSystem({ user, shift, onBack }: ReportSystemProps)
               <div className="flex justify-center mb-6">
                 <div className="text-xs text-zinc-500 text-center">
                   {group.date}
-                </div>
-              </div>
-              
+            </div>
+            </div>
+
               {/* Mensajes de esa fecha */}
-              <div className="space-y-4">
+        <div className="space-y-4">
                 {group.messages.map((message) => (
                   <div
                     key={message.id}
@@ -503,7 +503,7 @@ export default function ReportSystem({ user, shift, onBack }: ReportSystemProps)
                             </div>
                           )}
                           <p className="text-sm text-white">{message.content}</p>
-                        </div>
+                    </div>
                       )}
                       <p className="text-xs mt-2 text-zinc-400">
                         {formatTime(message.timestamp)}
@@ -511,8 +511,8 @@ export default function ReportSystem({ user, shift, onBack }: ReportSystemProps)
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
+                  </div>
+                </div>
           ))}
 
           <div ref={messagesEndRef} />

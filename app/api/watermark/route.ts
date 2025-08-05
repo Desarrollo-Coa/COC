@@ -12,6 +12,8 @@ const WATERMARK_CONFIG = {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🖼️ [WATERMARK API] Petición recibida');
+    
     const formData = await request.formData();
     const image = formData.get('image') as File;
     const text = formData.get('text') as string;
@@ -23,7 +25,16 @@ export async function POST(request: NextRequest) {
     const timestamp = formData.get('timestamp') as string;
     const fecha = formData.get('fecha') as string;
 
+    console.log('📁 [WATERMARK API] Datos recibidos:', {
+      hasImage: !!image,
+      imageSize: image?.size,
+      text,
+      timestamp,
+      fecha
+    });
+
     if (!image) {
+      console.error('❌ [WATERMARK API] No se proporcionó imagen');
       return NextResponse.json({ error: 'No se proporcionó imagen' }, { status: 400 });
     }
 
