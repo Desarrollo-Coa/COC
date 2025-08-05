@@ -107,8 +107,8 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
 
           if (userResponse.ok) {
             const userData = await userResponse.json();
-            if (userData.foto_url) {
-              setProfileImage(userData.foto_url);
+            if (userData.colaborador && userData.colaborador.foto_url) {
+              setProfileImage(userData.colaborador.foto_url);
             }
           }
         }
@@ -137,8 +137,6 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
           }
         }
         
-        console.log('Fetching turnos con:', { negocioHash, fecha, token: !!token });
-        
         const response = await fetch(`/api/accesos/turnos?fecha=${fecha}&negocioHash=${negocioHash}&idPuesto=${puestoData?.id_puesto}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -146,26 +144,18 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
           }
         });
         
-        console.log('Response status:', response.status);
-        
         if (response.ok) {
           const data = await response.json();
-          console.log('Turnos obtenidos:', data);
           setTurnos(data);
           
           // Verificar si el usuario ya tiene un turno asignado
           const miTurno = data.find((turno: any) => 
             turno.colaborador && turno.colaborador.id === userData.id
           );
-          console.log('Mi turno encontrado:', miTurno);
           if (miTurno) {
-            console.log('Estableciendo turno seleccionado:', miTurno.id_tipo_turno);
             setSelectedShift(miTurno.id_tipo_turno);
             // Obtener el id_cumplido para este turno
-            console.log('Obteniendo id_cumplido para turno:', miTurno.id_tipo_turno);
-            await obtenerCumplidoId(miTurno.id_tipo_turno);
-          } else {
-            console.log('No se encontró turno asignado para el usuario');
+            obtenerCumplidoId(miTurno.id_tipo_turno);
           }
         } else {
           const error = await response.json();
@@ -260,8 +250,8 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
 
           if (userResponse.ok) {
             const userData = await userResponse.json();
-            if (userData.foto_url) {
-              setProfileImage(userData.foto_url);
+            if (userData.colaborador && userData.colaborador.foto_url) {
+              setProfileImage(userData.colaborador.foto_url);
             }
           }
         } catch (reloadError) {
@@ -508,13 +498,6 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
         return;
       }
 
-      console.log('Buscando cumplido con parámetros:', {
-        fecha,
-        id_puesto: puestoData.id_puesto,
-        id_tipo_turno: idTipoTurno,
-        id_colaborador: userData.id
-      });
-
       // Buscar el cumplido existente para este usuario, puesto, fecha y turno
       const response = await fetch(`/api/cumplidos/buscar-cumplido?fecha=${fecha}&id_puesto=${puestoData.id_puesto}&id_tipo_turno=${idTipoTurno}&id_colaborador=${userData.id}`, {
         headers: {
@@ -522,17 +505,10 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
         }
       });
 
-      console.log('Response status:', response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log('Response data:', data);
         if (data.id_cumplido) {
-          console.log('Cumplido encontrado:', data.id_cumplido);
           setSelectedCumplidoId(data.id_cumplido);
-          console.log('selectedCumplidoId establecido:', data.id_cumplido);
-        } else {
-          console.log('No se encontró cumplido para estos parámetros');
         }
       } else {
         console.error('Error obteniendo cumplido:', response.status);
