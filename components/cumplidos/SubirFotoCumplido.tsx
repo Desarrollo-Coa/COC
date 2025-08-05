@@ -19,7 +19,12 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
   const [descripcion, setDescripcion] = useState('')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [showCamera, setShowCamera] = useState(false)
-  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString())
+  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString("es-ES", { 
+    hour: "2-digit", 
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  }))
   const webcamRef = useRef<Webcam>(null)
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const { optimizeAndPreview } = useImageOptimizer()
@@ -84,7 +89,12 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
   // Actualizar hora cada segundo
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString())
+      setCurrentTime(new Date().toLocaleTimeString("es-ES", { 
+        hour: "2-digit", 
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      }))
     }, 1000)
     return () => clearInterval(interval)
   }, []);

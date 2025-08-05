@@ -46,7 +46,12 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
   const [profileImage, setProfileImage] = useState<string>("")
   const [selectedShift, setSelectedShift] = useState<number | null>(null)
   const [selectedCumplidoId, setSelectedCumplidoId] = useState<number | null>(null)
-  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString())
+  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString("es-ES", { 
+    hour: "2-digit", 
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  }))
   const [stats, setStats] = useState({ dias_activo: 0 })
   const [turnos, setTurnos] = useState<any[]>([])
   const [loadingTurnos, setLoadingTurnos] = useState(true)
@@ -63,7 +68,12 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
   // Actualizar hora cada segundo
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString())
+      setCurrentTime(new Date().toLocaleTimeString("es-ES", { 
+        hour: "2-digit", 
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      }))
     }, 1000)
     return () => clearInterval(interval)
   }, [])
