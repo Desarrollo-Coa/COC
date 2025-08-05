@@ -7,7 +7,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import Webcam from 'react-webcam'
 import { useImageOptimizer } from '@/lib/imageOptimizer'
-import { getWatermarkApiUrl, getWatermarkHeaders, WATERMARK_CONFIG } from '@/lib/watermark-config'
 
 interface SubirFotoCumplidoProps {
   idCumplido: number
@@ -124,23 +123,12 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
       });
       setOptimizedImage(optimizedFile);
 
-      // Función para agregar marca de agua usando la API independiente
+      // Función para agregar marca de agua usando la API route interna
       const addWatermarkViaAPI = async (imageFile: File): Promise<{ dataUrl: string; file: File }> => {
         try {
           const formData = new FormData();
           formData.append('image', imageFile);
-          // Crear texto dinámico con fecha y hora
-          const watermarkText = `${WATERMARK_CONFIG.DEFAULT_TEXT} - ${new Date().toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-          })} ${currentTime}`;
-          formData.append('text', watermarkText);
-          formData.append('color', WATERMARK_CONFIG.DEFAULT_COLOR);
-          formData.append('fontSize', WATERMARK_CONFIG.DEFAULT_FONT_SIZE);
-          formData.append('position', WATERMARK_CONFIG.DEFAULT_POSITION);
-          formData.append('shadowColor', WATERMARK_CONFIG.DEFAULT_SHADOW_COLOR);
-          formData.append('shadowOpacity', WATERMARK_CONFIG.DEFAULT_SHADOW_OPACITY);
+          // Agregar fecha y hora para el watermark
           formData.append('timestamp', currentTime);
           formData.append('fecha', new Date().toLocaleDateString('es-ES', {
             day: '2-digit',
@@ -148,10 +136,9 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
             year: 'numeric'
           }));
 
-          // Usar la API independiente
-          const response = await fetch(getWatermarkApiUrl(), {
+          // Usar la API route interna (sin problemas de Mixed Content)
+          const response = await fetch('/api/watermark', {
             method: 'POST',
-            headers: getWatermarkHeaders(),
             body: formData
           });
 
