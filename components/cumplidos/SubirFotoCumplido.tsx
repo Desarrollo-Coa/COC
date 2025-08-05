@@ -102,6 +102,9 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
         return;
       }
 
+      // Mostrar indicador de procesamiento
+      setUploading(true);
+
       // Convertir data URL a File
       const byteString = atob(imageSrc.split(',')[1]);
       const mimeString = imageSrc.split(',')[0].split(':')[1].split(';')[0];
@@ -110,105 +113,98 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
       for (let i = 0; i < byteString.length; i++) {
         ia[i] = byteString.charCodeAt(i);
       }
-      const blob = new Blob([ab], { type: mimeString });
+      const blob = new Blob([ab], { type: 'image/jpeg' });
       const file = new File([blob], 'webcam-photo.jpg', { type: 'image/jpeg' });
 
-      // Optimizar la imagen
+      // Optimizar la imagen con configuración más agresiva para móviles
       const { optimizedFile, previewUrl: optimizedPreviewUrl } = await optimizeAndPreview(file, {
-        maxSizeMB: isMobile() ? 0.3 : 0.5, // Menor tamaño para móviles
-        maxWidthOrHeight: isMobile() ? 800 : 1200 // Menor resolución para móviles
+        maxSizeMB: isMobile() ? 0.2 : 0.4, // Tamaño aún menor para móviles
+        maxWidthOrHeight: isMobile() ? 640 : 800 // Resolución más baja
       });
       setOptimizedImage(optimizedFile);
 
-      // Crear un canvas para agregar la marca de agua
-      const canvas = document.createElement('canvas');
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-
-      img.onload = () => {
+      // Función para agregar marca de agua usando el API
+      const addWatermarkViaAPI = async (imageFile: File): Promise<{ dataUrl: string; file: File }> => {
         try {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            console.error('No se pudo obtener el contexto del canvas');
-            setPreviewUrl(optimizedPreviewUrl);
-            setWatermarkedImage(optimizedFile);
-            setShowCamera(false);
-            return;
+          const formData = new FormData();
+          formData.append('image', imageFile);
+          formData.append('timestamp', currentTime);
+
+          const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
+          let token = null;
+          if (tokenCookie) {
+            try {
+              const sessionData = JSON.parse(tokenCookie.split('=')[1]);
+              token = sessionData.token;
+            } catch (error) {
+              console.error('Error parsing session data:', error);
+            }
           }
 
-          // Dibujar la imagen original
-          ctx.drawImage(img, 0, 0);
+          const response = await fetch('/api/cumplidos/watermark', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          });
 
-          // Configurar estilo para la marca de agua
-          const fontSize = Math.max(Math.min(canvas.width * 0.05, 24), 14); // Tamaño más pequeño
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-          ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-          ctx.textAlign = 'left';
-          ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
-          ctx.lineWidth = Math.max(fontSize * 0.1, 1);
-
-          // Agregar FORTOX y hora actual
-          const watermarkText = `FORTOX - ${currentTime}`;
-          const padding = Math.max(canvas.width * 0.02, 10);
-          const textY = canvas.height - padding;
-
-          // Dibujar sombra y texto
-          ctx.strokeText(watermarkText, padding, textY);
-          ctx.fillText(watermarkText, padding, textY);
-
-          // Convertir canvas a URL de datos y a File
-          const quality = isMobile() ? 0.7 : 0.9; // Menor calidad en móviles
-          const watermarkedDataUrl = canvas.toDataURL('image/jpeg', quality);
-          setPreviewUrl(watermarkedDataUrl);
-
-          // Convertir data URL a File
-          const byteString = atob(watermarkedDataUrl.split(',')[1]);
-          const ab = new ArrayBuffer(byteString.length);
-          const ia = new Uint8Array(ab);
-          for (let i = 0; i < byteString.length; i++) {
-            ia[i] = byteString.charCodeAt(i);
+          if (!response.ok) {
+            throw new Error(`Error del servidor: ${response.status}`);
           }
-          const watermarkedBlob = new Blob([ab], { type: 'image/jpeg' });
+
+          // Convertir la respuesta a blob
+          const watermarkedBlob = await response.blob();
           const watermarkedFile = new File([watermarkedBlob], 'webcam-photo-watermarked.jpg', { type: 'image/jpeg' });
-          setWatermarkedImage(watermarkedFile);
+          
+          // Crear data URL para preview
+          const dataUrl = URL.createObjectURL(watermarkedBlob);
 
-          setShowCamera(false);
-
-          // Obtener ubicación
-          if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-              (position) => {
-                setCoords({
-                  lat: position.coords.latitude,
-                  lng: position.coords.longitude
-                });
-              },
-              (error) => {
-                console.error('Error obteniendo ubicación:', error);
-              }
-            );
-          }
+          return { dataUrl, file: watermarkedFile };
         } catch (error) {
-          console.error('Error procesando imagen con marca de agua:', error);
-          setPreviewUrl(optimizedPreviewUrl);
-          setWatermarkedImage(optimizedFile);
-          setShowCamera(false);
+          console.error('Error agregando marca de agua via API:', error);
+          throw error;
         }
       };
 
-      img.onerror = (error) => {
-        console.error('Error cargando imagen:', error);
+      // Intentar agregar marca de agua con fallback
+      try {
+        const { dataUrl, file } = await addWatermarkViaAPI(optimizedFile);
+        setPreviewUrl(dataUrl);
+        setWatermarkedImage(file);
+        setShowCamera(false);
+      } catch (watermarkError) {
+        console.warn('No se pudo agregar marca de agua, usando imagen sin marca:', watermarkError);
+        // Fallback: usar imagen sin marca de agua
         setPreviewUrl(optimizedPreviewUrl);
         setWatermarkedImage(optimizedFile);
         setShowCamera(false);
-      };
+      }
 
-      img.src = optimizedPreviewUrl; // Usar la URL optimizada
+      // Obtener ubicación en segundo plano (no bloquear la UI)
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setCoords({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            });
+          },
+          (error) => {
+            console.error('Error obteniendo ubicación:', error);
+          },
+          {
+            timeout: 5000, // Reducir timeout a 5 segundos
+            enableHighAccuracy: false,
+            maximumAge: 60000
+          }
+        );
+      }
     } catch (error) {
       console.error('Error al capturar imagen:', error);
       setShowCamera(false);
+    } finally {
+      setUploading(false);
     }
   }, [currentTime, optimizeAndPreview]);
 
@@ -348,14 +344,23 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
                   onClick={capture}
                   variant="default"
                   size="sm"
+                  disabled={uploading}
                 >
-                  Capturar
+                  {uploading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Procesando...</span>
+                    </div>
+                  ) : (
+                    'Capturar'
+                  )}
                 </Button>
                 <Button 
                   onClick={toggleCamera}
                   variant="outline"
                   size="sm"
                   className="bg-white/80 hover:bg-white"
+                  disabled={uploading}
                 >
                   <RotateCcw className="w-4 h-4" />
                 </Button>
@@ -363,6 +368,7 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
                   onClick={() => setShowCamera(false)}
                   variant="destructive"
                   size="sm"
+                  disabled={uploading}
                 >
                   Cancelar
                 </Button>
