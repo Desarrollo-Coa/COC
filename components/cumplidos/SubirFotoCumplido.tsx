@@ -310,11 +310,11 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
       <Card className="border-0 shadow-sm">
         <CardContent className="p-4">
           <div className="space-y-4">
-            <div className="relative w-full aspect-video bg-gray-100 rounded-lg overflow-hidden">
+            <div className="relative w-full max-h-80 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
               <img 
                 src={existingPhoto.url} 
                 alt="Foto de llegada" 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain max-h-full"
               />
             </div>
             {existingPhoto.descripcion && (
@@ -333,13 +333,13 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
       <CardContent className="p-4">
         <div className="space-y-4">
           {showCamera ? (
-            <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+            <div className="relative w-full max-h-80 bg-black rounded-lg overflow-hidden flex items-center justify-center">
               <Webcam
                 audio={false}
                 ref={webcamRef}
                 screenshotFormat="image/jpeg"
                 videoConstraints={videoConstraints}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain max-h-full"
                 onUserMediaError={(error) => {
                   console.error('Error accediendo a la cámara:', error);
                   setShowCamera(false);
@@ -381,11 +381,11 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
               </div>
             </div>
           ) : previewUrl ? (
-            <div className="relative w-full aspect-video bg-gray-100 rounded-lg overflow-hidden">
+            <div className="relative w-full max-h-80 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
               <img 
                 src={previewUrl} 
                 alt="Vista previa" 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain max-h-full"
               />
               <button
                 onClick={() => {
@@ -401,7 +401,7 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
           ) : (
             <div 
               onClick={() => setShowCamera(true)}
-              className="w-full aspect-video bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+              className="w-full max-h-80 bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
             >
               <div className="text-center">
                 <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
