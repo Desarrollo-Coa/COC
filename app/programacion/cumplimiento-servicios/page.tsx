@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label" 
-import { ChevronDown, User, ArrowLeft, Menu, Moon, Sun, List, Grid } from "lucide-react"
+import { ChevronDown, User, ArrowLeft, Menu, Moon, Sun, List, Grid, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Pie, PieChart, Label as RechartsLabel } from "recharts"
@@ -239,6 +239,7 @@ export default function CumplimientoServiciosCementos() {
   const [zonesCompliance, setZonesCompliance] = useState<{ id: string, name: string, percentage: number, color: string }[]>([])
   const [isCementoModalOpen, setIsCementoModalOpen] = useState(false)
   const [cementoModalData, setCementoModalData] = useState<{ colaboradorId: string | null, fecha: string | null, puestoId: number | null }>({ colaboradorId: null, fecha: null, puestoId: null })
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Nuevo estado para unidades y puestos
   const [unidadesRaw, setUnidadesRaw] = useState<any[]>([])
@@ -546,6 +547,89 @@ export default function CumplimientoServiciosCementos() {
     setNegocioId("")
   }, [])
 
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true)
+    try {
+      // Recargar datos del personal
+      await loadInitialData()
+      
+      // Recargar datos de unidades si hay negocio seleccionado
+      if (negocioId) {
+        const res = await fetch(`/api/settings/unidades-negocio?id_negocio=${negocioId}`);
+        const data = await res.json();
+        
+        if (Array.isArray(data)) {
+          setUnidadesRaw(data)
+          const colores = ["#3B82F6", "#10B981", "#8B5CF6", "#F59E42", "#F43F5E", "#6366F1"]
+          const fecha = `${selectedYear}-${(months.indexOf(selectedMonth) + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`
+          const unidadesConCumplimiento = await Promise.all(
+            data.map(async (unidad, idx) => {
+              const res = await fetch(`/api/cumplimiento-servicios?fecha=${fecha}&negocioId=${negocioId}&unidadNegocioId=${unidad.id_unidad}`)
+              const datos = await res.json()
+              let porcentaje = 0
+              if (datos && datos.puestos) {
+                const puestos = Object.values(datos.puestos)
+                const totalTurnos = puestos.length * 3 // Ajustado para 3 turnos
+                let turnosCubiertos = 0
+                puestos.forEach((p: any) => {
+                  if (p.diurno?.colaborador) turnosCubiertos++
+                  if (p.turno_b?.colaborador) turnosCubiertos++
+                  if (p.nocturno?.colaborador) turnosCubiertos++
+                })
+                porcentaje = totalTurnos > 0 ? Math.round((turnosCubiertos / totalTurnos) * 100) : 0
+              }
+              return {
+                id: unidad.id_unidad.toString(),
+                name: unidad.nombre_unidad,
+                percentage: porcentaje,
+                color: colores[idx % colores.length]
+              }
+            })
+          )
+          setUnidades(unidadesConCumplimiento)
+        }
+      } else {
+        // Recargar datos de zonas si no hay negocio seleccionado
+        if (negocios.length > 0) {
+          const colores = ["#3B82F6", "#10B981", "#8B5CF6", "#F59E42", "#F43F5E", "#6366F1"]
+          const fecha = `${selectedYear}-${(months.indexOf(selectedMonth) + 1).toString().padStart(2, '0')}-${selectedDay.toString().padStart(2, '0')}`
+          const zonesData = await Promise.all(
+            negocios.map(async (negocio, idx) => {
+              const res = await fetch(`/api/cumplimiento-servicios?fecha=${fecha}&negocioId=${negocio.id_negocio}`)
+              const datos = await res.json()
+              let porcentaje = 0
+              if (datos && datos.puestos) {
+                const puestos = Object.values(datos.puestos)
+                const totalTurnos = puestos.length * 3 // Ajustado para 3 turnos
+                let turnosCubiertos = 0
+                puestos.forEach((p: any) => {
+                  if (p.diurno?.colaborador) turnosCubiertos++
+                  if (p.turno_b?.colaborador) turnosCubiertos++
+                  if (p.nocturno?.colaborador) turnosCubiertos++
+                })
+                porcentaje = totalTurnos > 0 ? Math.round((turnosCubiertos / totalTurnos) * 100) : 0
+              }
+              return {
+                id: negocio.id_negocio.toString(),
+                name: negocio.nombre_negocio,
+                percentage: porcentaje,
+                color: colores[idx % colores.length]
+              }
+            })
+          );
+          setZonesCompliance(zonesData);
+        }
+      }
+      
+      toast.success('Datos actualizados correctamente')
+    } catch (error) {
+      console.error('Error al refrescar datos:', error)
+      toast.error('Error al actualizar los datos')
+    } finally {
+      setIsRefreshing(false)
+    }
+  }, [loadInitialData, negocioId, selectedYear, selectedMonth, selectedDay, negocios, months])
+
   const filteredPersonnel = useMemo(() => 
     personnel.filter(person => 
       (!selectedUnit || person.unit === selectedUnit) &&
@@ -800,15 +884,27 @@ export default function CumplimientoServiciosCementos() {
                 Cumplimiento de Servicios
               </h1>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleDarkMode}
-              className="hover:bg-gray-100 dark:hover:bg-gray-700"
-              aria-label={isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-            >
-              {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="hover:bg-gray-100 dark:hover:bg-gray-700"
+                aria-label="Actualizar datos"
+              >
+                <RefreshCw className={cn("h-5 w-5", isRefreshing && "animate-spin")} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleDarkMode}
+                className="hover:bg-gray-100 dark:hover:bg-gray-700"
+                aria-label={isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+              >
+                {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -827,14 +923,26 @@ export default function CumplimientoServiciosCementos() {
               <CardHeader className="pb-3 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-semibold text-gray-800 dark:text-white">Filtros</CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearFilters}
-                    className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                  >
-                    Limpiar filtros
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleRefresh}
+                      disabled={isRefreshing}
+                      className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      aria-label="Actualizar datos"
+                    >
+                      <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleClearFilters}
+                      className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    >
+                      Limpiar filtros
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4 pt-4">
@@ -1551,14 +1659,26 @@ export default function CumplimientoServiciosCementos() {
                   >
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-lg text-gray-800 dark:text-white">Filtros</h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleClearFilters}
-                        className="text-sm text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
-                      >
-                        Limpiar filtros
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={handleRefresh}
+                          disabled={isRefreshing}
+                          className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          aria-label="Actualizar datos"
+                        >
+                          <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleClearFilters}
+                          className="text-sm text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+                        >
+                          Limpiar filtros
+                        </Button>
+                      </div>
                     </div>
                     <div className="space-y-4">
                       <div className="space-y-2">
