@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useToast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import {
   Table,
   TableBody,
@@ -62,7 +62,7 @@ export default function HistorialNovedades() {
   const [tiposEvento, setTiposEvento] = useState<Array<{id_tipo_evento: number, nombre_tipo_evento: string}>>([])
   const [negocios, setNegocios] = useState<Array<{id_negocio: number, nombre_negocio: string}>>([])
   const [todosNegocios, setTodosNegocios] = useState<Array<{id_negocio: number, nombre_negocio: string}>>([])
-  const { toast } = useToast()
+
   const router = useRouter()
 
   useEffect(() => {
@@ -156,11 +156,7 @@ export default function HistorialNovedades() {
       setNovedades(data)
     } catch (error) {
       console.error('Error al cargar novedades:', error)
-      toast({
-        title: 'Error',
-        description: 'No se pudieron cargar las novedades',
-        variant: 'destructive',
-      })
+      toast.error('No se pudieron cargar las novedades')
     } finally {
       setLoading(false)
     }
@@ -193,18 +189,11 @@ export default function HistorialNovedades() {
         throw new Error('Error al eliminar la novedad')
       }
 
-      toast({
-        title: 'Éxito',
-        description: 'Novedad eliminada correctamente',
-      })
+      toast.success('Novedad eliminada correctamente')
 
       loadNovedades()
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'No se pudo eliminar la novedad',
-        variant: 'destructive',
-      })
+      toast.error('No se pudo eliminar la novedad')
     } finally {
       setShowConfirmModal(false)
       setNovedadToDelete(null)

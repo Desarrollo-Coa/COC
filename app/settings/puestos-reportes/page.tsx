@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
@@ -54,7 +54,7 @@ export default function PuestosReportesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [unidadFiltro, setUnidadFiltro] = useState<string>("todos");
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+
 
   const [formData, setFormData] = useState<PuestoReporte>({
     id_puesto: 0,
@@ -103,11 +103,7 @@ export default function PuestosReportesPage() {
       setPuestosFiltrados(data);
     } catch (error) {
       console.error("Error al obtener puestos para reportes:", error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los puestos para reportes",
-        variant: "destructive",
-      });
+      toast.error("No se pudieron cargar los puestos para reportes");
     } finally {
       setIsLoading(false);
     }
@@ -141,22 +137,15 @@ export default function PuestosReportesPage() {
         throw new Error(data.error);
       }
 
-      toast({
-        title: "Éxito",
-        description: isEditing
-          ? "Puesto actualizado exitosamente"
-          : "Puesto creado exitosamente",
-      });
+      toast.success(isEditing
+        ? "Puesto actualizado exitosamente"
+        : "Puesto creado exitosamente");
 
       setIsDialogOpen(false);
       resetForm();
       fetchPuestos();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(error.message)
     }
   };
 
@@ -180,18 +169,11 @@ export default function PuestosReportesPage() {
         throw new Error(data.error);
       }
 
-      toast({
-        title: "Éxito",
-        description: "Puesto eliminado exitosamente",
-      });
+      toast.success("Puesto eliminado exitosamente");
 
       fetchPuestos();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(error.message)
     }
   };
 

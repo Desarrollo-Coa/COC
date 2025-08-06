@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Pencil, Trash2 } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 
 interface TipoEvento {
   id: number
@@ -48,7 +48,7 @@ export default function TiposEventoPage() {
     nombre: "",
     id_tipo_reporte: "",
   })
-  const { toast } = useToast()
+
 
   const loadTiposEvento = async () => {
     try {
@@ -57,11 +57,7 @@ export default function TiposEventoPage() {
       const data = await response.json()
       setTiposEvento(data)
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los tipos de evento",
-        variant: "destructive",
-      })
+      toast.error("No se pudieron cargar los tipos de evento")
     }
   }
 
@@ -72,11 +68,7 @@ export default function TiposEventoPage() {
       const data = await response.json()
       setTiposReporte(data)
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los tipos de reporte",
-        variant: "destructive",
-      })
+      toast.error("No se pudieron cargar los tipos de reporte")
     }
   }
 
@@ -111,17 +103,9 @@ export default function TiposEventoPage() {
       setIsDialogOpen(false)
       setFormData({ nombre: "", id_tipo_reporte: "" })
       setEditingTipo(null)
-
-      toast({
-        title: "Éxito",
-        description: `Tipo de evento ${editingTipo ? "actualizado" : "creado"} exitosamente`,
-      })
+      toast.success(`Tipo de evento ${editingTipo ? "actualizado" : "creado"} exitosamente`)
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo guardar el tipo de evento",
-        variant: "destructive",
-      })
+      toast.error("No se pudo guardar el tipo de evento")
     }
   }
 
@@ -148,16 +132,9 @@ export default function TiposEventoPage() {
       if (!response.ok) throw new Error("Error al eliminar tipo de evento")
 
       await loadTiposEvento()
-      toast({
-        title: "Éxito",
-        description: "Tipo de evento eliminado exitosamente",
-      })
+      toast.success("Tipo de evento eliminado exitosamente")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar el tipo de evento",
-        variant: "destructive",
-      })
+      toast.error("No se pudo eliminar el tipo de evento")
     }
   }
 

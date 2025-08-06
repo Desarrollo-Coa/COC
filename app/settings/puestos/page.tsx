@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import Skeleton from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
@@ -54,7 +54,7 @@ export default function PuestosPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [unidadFiltro, setUnidadFiltro] = useState<string>("todos");
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+
 
   const [formData, setFormData] = useState<Puesto>({
     id: 0,
@@ -101,11 +101,7 @@ export default function PuestosPage() {
       setPuestosFiltrados(data);
     } catch (error) {
       console.error("Error al obtener puestos:", error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los puestos",
-        variant: "destructive",
-      });
+              toast.error("No se pudieron cargar los puestos");
     } finally {
       setIsLoading(false);
     }
@@ -139,22 +135,15 @@ export default function PuestosPage() {
         throw new Error(data.error || "Error al procesar la solicitud");
       }
 
-      toast({
-        title: "Éxito",
-        description: isEditing
-          ? "Puesto actualizado exitosamente"
-          : "Puesto creado exitosamente",
-      });
+      toast.success(isEditing
+        ? "Puesto actualizado exitosamente"
+        : "Puesto creado exitosamente");
 
       setIsDialogOpen(false);
       resetForm();
       fetchPuestos();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Error al procesar la solicitud",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Error al procesar la solicitud");
     }
   };
 
@@ -177,29 +166,15 @@ export default function PuestosPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast({
-          title: "No se puede eliminar el puesto",
-          description: data.error || "Error desconocido al intentar eliminar",
-          variant: "destructive",
-          duration: 7000,
-        });
+        toast.error(data.error || "Error desconocido al intentar eliminar");
         return;
       }
 
-      toast({
-        title: "Éxito",
-        description: "Puesto eliminado exitosamente",
-        duration: 3000,
-      });
+      toast.success("Puesto eliminado exitosamente");
 
       fetchPuestos();
     } catch (error) {
-      toast({
-        title: "Error del sistema",
-        description: "Ocurrió un error al intentar eliminar el puesto",
-        variant: "destructive",
-        duration: 7000,
-      });
+      toast.error("Ocurrió un error al intentar eliminar el puesto");
     }
   };
 

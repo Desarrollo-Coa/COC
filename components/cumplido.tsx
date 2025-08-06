@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,AlertDialogFooter, AlertDialogAction } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import ReactDOM from 'react-dom';
 
 interface CumplidoNegocioTableProps {
@@ -134,7 +134,7 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
   const [autocompleteOpen, setAutocompleteOpen] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const { toast } = useToast();
+
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [tiposTurno, setTiposTurno] = useState<Array<{ id_tipo_turno: number; nombre_tipo_turno: string }>>([]);
 
@@ -285,11 +285,7 @@ export function CumplidoNegocioTable({ negocioId, negocioNombre }: CumplidoNegoc
       });
       if (!response.ok) throw new Error('Error al guardar los cambios');
       const result = await response.json();
-      toast({
-        title: 'Cambios guardados',
-        description: `Creados: ${result.creados}, Actualizados: ${result.actualizados}${result.errores && result.errores.length > 0 ? ', Errores: ' + result.errores.length : ''}`,
-        variant: result.errores && result.errores.length > 0 ? 'destructive' : 'default',
-      });
+      toast.success(`Creados: ${result.creados}, Actualizados: ${result.actualizados}${result.errores && result.errores.length > 0 ? ', Errores: ' + result.errores.length : ''}`);
       setPendingChanges((prev) => {
         const newMap = new Map(prev);
         changes.forEach((change) => newMap.delete(change.idPuesto));

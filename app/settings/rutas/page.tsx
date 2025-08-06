@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import {
   Plus,
   Pencil,
@@ -116,7 +116,7 @@ export default function RutasPage() {
     acepta_subrutas: false,
     ruta: ''
   });
-  const { toast } = useToast();
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const { optimizeAndPreview } = useImageOptimizer();
@@ -135,11 +135,7 @@ export default function RutasPage() {
       setModules(data);
     } catch (error) {
       console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los módulos",
-        variant: "destructive",
-      });
+      toast.error("No se pudieron cargar los módulos");
     }
   };
 
@@ -157,17 +153,10 @@ export default function RutasPage() {
       setSelectedFile(optimizedFile);
       setPreviewUrl(previewUrl);
       
-      toast({
-        title: "Imagen optimizada",
-        description: "La imagen ha sido optimizada correctamente",
-      });
+      toast.success("La imagen ha sido optimizada correctamente");
     } catch (error) {
       console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo optimizar la imagen",
-        variant: "destructive",
-      });
+      toast.error("No se pudo optimizar la imagen");
     } finally {
       setIsOptimizing(false);
     }
@@ -207,17 +196,10 @@ export default function RutasPage() {
       });
       setSelectedFile(null);
       setPreviewUrl('');
-      toast({
-        title: "Éxito",
-        description: "Módulo creado correctamente",
-      });
+      toast.success("Módulo creado correctamente");
     } catch (error) {
       console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo crear el módulo",
-        variant: "destructive",
-      });
+      toast.error("No se pudo crear el módulo");
     }
   };
 
@@ -257,17 +239,10 @@ export default function RutasPage() {
       setSelectedModule(null);
       setSelectedFile(null);
       setPreviewUrl('');
-      toast({
-        title: "Éxito",
-        description: "Módulo actualizado correctamente",
-      });
+      toast.success("Módulo actualizado correctamente");
     } catch (error) {
       console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el módulo",
-        variant: "destructive",
-      });
+      toast.error("No se pudo actualizar el módulo");
     }
   };
 
@@ -288,17 +263,10 @@ export default function RutasPage() {
       if (!response.ok) throw new Error('Error al eliminar módulo');
 
       await fetchModules();
-      toast({
-        title: "Éxito",
-        description: "Módulo eliminado correctamente",
-      });
+      toast.success("Módulo eliminado correctamente");
     } catch (error) {
       console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "No se pudo eliminar el módulo",
-        variant: "destructive",
-      });
+      toast.error("No se pudo eliminar el módulo");
     } finally {
       setIsDeleteModalOpen(false);
       setModuleToDelete(null);

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'; 
 import { GraficoCard } from '@/components/novedades/GraficoCard';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   ResponsiveContainer,
@@ -376,7 +376,7 @@ function EstadisticasLayoutCementos({
 }
 
 export default function EstadisticasGenerales({ id_negocio, id_unidad, id_puesto }: EstadisticasGeneralesProps) {
-  const { toast } = useToast();
+
 
   console.log('EstadisticasGenerales recibió:', { id_negocio, id_unidad, id_puesto });
 

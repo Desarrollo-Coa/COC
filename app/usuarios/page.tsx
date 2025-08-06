@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Bell, Eye, Map, X, Plus, BarChart, TrendingUp, Pencil, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 import Skeleton from "@/components/ui/skeleton";
 import { ActiveUsersModal } from "@/components/active-users-modal";
 import { Label } from "@/components/ui/label";

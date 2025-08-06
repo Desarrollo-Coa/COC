@@ -143,9 +143,12 @@ export async function DELETE(
 
     console.log('[DELETE ARCHIVO] Eliminando archivos del cumplido:', idCumplidoInt);
 
-    // Obtener archivos asociados al cumplido
+    // Obtener archivos asociados al cumplido (todos los tipos: fotos, audios, etc.)
     const [archivos] = await pool.query<RowDataPacket[]>(
-      'SELECT id, url FROM file_rc WHERE id_cumplido = ?',
+      `SELECT f.id, f.url, ta.codigo as tipo_codigo
+       FROM file_rc f
+       INNER JOIN tipo_archivo ta ON f.tipo_id = ta.id
+       WHERE f.id_cumplido = ?`,
       [idCumplidoInt]
     );
 
@@ -156,11 +159,29 @@ export async function DELETE(
       try {
         // Extraer la key del archivo de la URL
         const url = archivo.url;
-        const keyMatch = url.match(/cumplidos\/fotos\/([^?]+)/);
+        console.log('[DELETE ARCHIVO] Procesando archivo:', archivo.tipo_codigo, url);
+        
+        // Determinar la carpeta según el tipo de archivo y la URL
+        let carpeta = 'cumplidos/fotos'; // Por defecto
+        if (archivo.tipo_codigo === 'AC') { // Audio
+          // Verificar si es audio de comunicación o de cumplido
+          if (url.includes('comunicacion/audio/')) {
+            carpeta = 'comunicacion/audio';
+          } else {
+            carpeta = 'cumplidos/audios';
+          }
+        } else if (archivo.tipo_codigo === 'IC') { // Imagen
+          carpeta = 'cumplidos/fotos';
+        }
+        
+        // Extraer la key del archivo de la URL
+        const keyMatch = url.match(new RegExp(`${carpeta.replace('/', '\\/')}\\/([^?]+)`));
         if (keyMatch) {
-          const key = `cumplidos/fotos/${keyMatch[1]}`;
+          const key = `${carpeta}/${keyMatch[1]}`;
           console.log('[DELETE ARCHIVO] Eliminando archivo de Spaces:', key);
           await deleteFromSpaces(key);
+        } else {
+          console.log('[DELETE ARCHIVO] No se pudo extraer la key de la URL:', url);
         }
       } catch (error) {
         console.error('[DELETE ARCHIVO] Error eliminando archivo de Spaces:', error);
@@ -181,7 +202,8 @@ export async function DELETE(
     return NextResponse.json({ 
       success: true, 
       message: 'Archivos eliminados exitosamente',
-      archivosEliminados
+      archivosEliminados,
+      tiposEliminados: archivos.map(a => a.tipo_codigo)
     });
 
   } catch (error) {

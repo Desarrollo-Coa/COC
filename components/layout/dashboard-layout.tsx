@@ -5,7 +5,7 @@ import type React from "react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,22 +25,15 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, userRole }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const router = useRouter()
-  const { toast } = useToast()
+
 
   const handleLogout = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" })
-      toast({
-        title: "Sesión cerrada",
-        description: "Has cerrado sesión exitosamente",
-      })
+      toast.success("Has cerrado sesión exitosamente")
       router.push("/login")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo cerrar la sesión",
-        variant: "destructive",
-      })
+      toast.error("No se pudo cerrar la sesión")
     }
   }
 

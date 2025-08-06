@@ -18,7 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import Skeleton from "@/components/ui/skeleton";
@@ -35,7 +35,7 @@ export default function TiposNovedadesPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+
 
   const [formData, setFormData] = useState<TipoNovedad>({
     id_tipo_novedad: 0,
@@ -73,11 +73,7 @@ export default function TiposNovedadesPage() {
       setTiposFiltrados(data);
     } catch (error) {
       console.error("Error al obtener tipos de novedades:", error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los tipos de novedades",
-        variant: "destructive",
-      });
+      toast.error("No se pudieron cargar los tipos de novedades");
     } finally {
       setIsLoading(false);
     }
@@ -101,22 +97,15 @@ export default function TiposNovedadesPage() {
         throw new Error(data.error);
       }
 
-      toast({
-        title: "Éxito",
-        description: isEditing
-          ? "Tipo de novedad actualizado exitosamente"
-          : "Tipo de novedad creado exitosamente",
-      });
+      toast.success(isEditing
+        ? "Tipo de novedad actualizado exitosamente"
+        : "Tipo de novedad creado exitosamente");
 
       setIsDialogOpen(false);
       resetForm();
       fetchTiposNovedades();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(error.message);
     }
   };
 
@@ -140,18 +129,11 @@ export default function TiposNovedadesPage() {
         throw new Error(data.error);
       }
 
-      toast({
-        title: "Éxito",
-        description: "Tipo de novedad eliminado exitosamente",
-      });
+      toast.success("Tipo de novedad eliminado exitosamente");
 
       fetchTiposNovedades();
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(error.message);
     }
   };
 

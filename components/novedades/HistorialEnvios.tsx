@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useToast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import {
   Table,
   TableBody,
@@ -27,7 +27,7 @@ interface Envio {
 export default function HistorialEnvios() {
   const [envios, setEnvios] = useState<Envio[]>([])
   const [loading, setLoading] = useState(true)
-  const { toast } = useToast()
+
 
   useEffect(() => {
     loadEnvios()
@@ -42,11 +42,7 @@ export default function HistorialEnvios() {
       setEnvios(data)
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: 'Error',
-        description: 'No se pudieron cargar el historial de envíos',
-        variant: 'destructive',
-      })
+      toast.error('No se pudieron cargar el historial de envíos')
     } finally {
       setLoading(false)
     }

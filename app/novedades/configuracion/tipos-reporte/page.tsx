@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 
 interface TipoReporte {
@@ -32,7 +32,7 @@ export default function TiposReportePage() {
   const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingTipo, setEditingTipo] = useState<TipoReporte | null>(null)
-  const { toast } = useToast()
+
 
   useEffect(() => {
     loadTiposReporte()
@@ -46,11 +46,7 @@ export default function TiposReportePage() {
       setTiposReporte(data)
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: 'Error',
-        description: 'No se pudieron cargar los tipos de reporte',
-        variant: 'destructive',
-      })
+      toast.error('No se pudieron cargar los tipos de reporte')
     } finally {
       setLoading(false)
     }
@@ -76,21 +72,14 @@ export default function TiposReportePage() {
 
       if (!response.ok) throw new Error('Error al guardar el tipo de reporte')
 
-      toast({
-        title: 'Éxito',
-        description: `Tipo de reporte ${editingTipo ? 'actualizado' : 'creado'} correctamente`,
-      })
+      toast.success(`Tipo de reporte ${editingTipo ? 'actualizado' : 'creado'} correctamente`)
 
       setIsDialogOpen(false)
       setEditingTipo(null)
-      loadTiposReporte()
+      loadTiposReporte()  
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: 'Error',
-        description: 'No se pudo guardar el tipo de reporte',
-        variant: 'destructive',
-      })
+      toast.error('No se pudo guardar el tipo de reporte')
     }
   }
 
@@ -104,19 +93,12 @@ export default function TiposReportePage() {
 
       if (!response.ok) throw new Error('Error al eliminar el tipo de reporte')
 
-      toast({
-        title: 'Éxito',
-        description: 'Tipo de reporte eliminado correctamente',
-      })
+      toast.success('Tipo de reporte eliminado correctamente')
 
       loadTiposReporte()
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: 'Error',
-        description: 'No se pudo eliminar el tipo de reporte',
-        variant: 'destructive',
-      })
+      toast.error('No se pudo eliminar el tipo de reporte')
     }
   }
 

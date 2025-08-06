@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast"; 
+import { toast } from "sonner"; 
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import Skeleton from "@/components/ui/skeleton";
 import { registrarColaborador as RegistrarColaborador } from '@/components/registrar-colaborador';
@@ -47,7 +47,7 @@ export default function ColaboradoresPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast();
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -94,11 +94,7 @@ export default function ColaboradoresPage() {
       setColaboradores(data);
     } catch (error) {
       console.error("Error al obtener colaboradores:", error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los colaboradores",
-        variant: "destructive",
-      });
+      toast.error("No se pudieron cargar los colaboradores")
     } finally {
       setIsLoading(false);
     }
@@ -178,23 +174,16 @@ export default function ColaboradoresPage() {
         throw new Error(data.error || "Error al procesar la solicitud");
       }
 
-      toast({
-        title: "Éxito",
-        description: data.message || (isEditing
-          ? "Colaborador actualizado exitosamente"
-          : "Colaborador creado exitosamente"),
-      });
+      toast.success(data.message || (isEditing
+        ? "Colaborador actualizado exitosamente"
+        : "Colaborador creado exitosamente"))
 
       setIsDialogOpen(false);
       resetForm();
       fetchColaboradores();
     } catch (error: any) {
       console.error("Error completo:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Error al procesar la solicitud",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Error al procesar la solicitud")
     }
   };
 
@@ -219,30 +208,16 @@ export default function ColaboradoresPage() {
       console.log('Respuesta del servidor:', data); // Para debugging
 
       if (!response.ok) {
-        toast({
-          title: "No se puede eliminar el colaborador",
-          description: data.error || "Error desconocido al intentar eliminar",
-          variant: "destructive",
-          duration: 7000,
-        });
+        toast.error(data.error || "Error desconocido al intentar eliminar")
         return;
       }
 
-      toast({
-        title: "Éxito",
-        description: data.message,
-        duration: 3000,
-      });
+      toast.success(data.message)
 
       fetchColaboradores();
     } catch (error: any) {
       console.error("Error detallado:", error);
-      toast({
-        title: "Error del sistema",
-        description: "Ocurrió un error al intentar eliminar el colaborador. Por favor, contacte al administrador.",
-        variant: "destructive",
-        duration: 7000,
-      });
+      toast.error("Ocurrió un error al intentar eliminar el colaborador. Por favor, contacte al administrador.")
     }
   };
 

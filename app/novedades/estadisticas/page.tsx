@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { useAuth } from '@/hooks/useAuth'
 import { useRouter, useParams } from 'next/navigation'
 import {
@@ -106,7 +106,7 @@ export default function EstadisticasPage() {
   const [eventosSeleccionados, setEventosSeleccionados] = useState<Evento[]>([])
   const [vistaActual, setVistaActual] = useState<'generales' | 'comparativa' | 'puestos'>('generales')
   const [opcionGenerales, setOpcionGenerales] = useState(true);
-  const { toast } = useToast()
+
   const [eventosPorPuestoDetalle, setEventosPorPuestoDetalle] = useState<{ [key: string]: { cantidad: number, ids: number[] } }>({})
   const [resumenSedes, setResumenSedes] = useState<any[]>([])
   const [tipoGraficoComparativa, setTipoGraficoComparativa] = useState<'comparativa' | 'tendencia'>('comparativa');
@@ -289,11 +289,7 @@ export default function EstadisticasPage() {
         setNegocioSeleccionado(null);
       } catch (error) {
         // Error al cargar negocios
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se pudieron cargar los negocios"
-        })
+        toast.error("No se pudieron cargar los negocios")
       }
     }
 
@@ -386,11 +382,7 @@ export default function EstadisticasPage() {
         procesarEventos(eventosData, eventosData);
       }
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudieron cargar los reportes por puesto o eventos"
-      });
+      toast.error("No se pudieron cargar los reportes por puesto o eventos")
       setPorPuesto([]);
       setPorMes([]);
       setPorTipo([]);

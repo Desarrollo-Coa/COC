@@ -7,14 +7,14 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const { toast } = useToast()
+
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -36,24 +36,13 @@ export function LoginForm() {
       const data = await response.json()
 
       if (response.ok) {
-        toast({
-          title: "Inicio de sesión exitoso",
-          description: `Bienvenido, ${data.user.nombres}`,
-        })
+        toast.success(`Bienvenido, ${data.user.nombres}`)
         router.push("/dashboard")
       } else {
-        toast({
-          title: "Error de autenticación",
-          description: data.error || "Credenciales inválidas",
-          variant: "destructive",
-        })
+        toast.error(data.error || "Credenciales inválidas")
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo conectar con el servidor",
-        variant: "destructive",
-      })
+      toast.error("No se pudo conectar con el servidor")
     } finally {
       setIsLoading(false)
     }

@@ -12,7 +12,7 @@ import {
   Legend,
   ArcElement
 } from 'chart.js'
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 import React from 'react'
 
@@ -61,7 +61,7 @@ interface Evento {
 }
 
 export default function EstadisticasPage() {
-  const { toast } = useToast()
+
   const [negocios, setNegocios] = useState<Negocio[]>([])
   const [negocioSeleccionado, setNegocioSeleccionado] = useState<string>('')
   const [datosPorAnio, setDatosPorAnio] = useState<DatosPorAnio[]>([])
@@ -83,11 +83,7 @@ export default function EstadisticasPage() {
         }
       } catch (error) {
         console.error('Error al obtener negocios:', error)
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se pudieron cargar los negocios"
-        })
+        toast.error("No se pudieron cargar los negocios")
       }
     }
 
@@ -117,11 +113,7 @@ export default function EstadisticasPage() {
         setDatosPorPlanta(Array.isArray(plantaData) ? plantaData : [])
       } catch (error) {
         console.error('Error al obtener datos:', error)
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se pudieron cargar las estadísticas"
-        })
+        toast.error("No se pudieron cargar las estadísticas")
         setDatosPorAnio([])
         setDatosPorTipo([])
         setDatosPorPlanta([])

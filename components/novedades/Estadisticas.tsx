@@ -27,13 +27,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#a4de6c', '#d0ed57']
 
 export default function Estadisticas() {
-  const { toast } = useToast()
+
   const [datosPorAnio, setDatosPorAnio] = useState([])
   const [datosPorTipo, setDatosPorTipo] = useState([])
   const [datosPorPuesto, setDatosPorPuesto] = useState([])
@@ -60,11 +60,7 @@ export default function Estadisticas() {
         setDatosPorPuesto(puestoData)
       } catch (error) {
         console.error('Error al obtener datos:', error)
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se pudieron cargar las estadísticas"
-        })
+        toast.error("No se pudieron cargar las estadísticas")
       } finally {
         setLoading(false)
       }

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input' 
-import { useToast } from '@/components/ui/use-toast'
+import { toast } from 'sonner'
 import { Send, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -44,7 +44,7 @@ export default function ModalEnviarNovedad({ novedad, onClose, onSuccess }: Moda
   const [loading, setLoading] = useState(false)
   const [nuevoEmail, setNuevoEmail] = useState('')
   const [sugerencias, setSugerencias] = useState<Destinatario[]>([])
-  const { toast } = useToast()
+
   const router = useRouter()
   const [destinatariosExistentes, setDestinatariosExistentes] = useState<Set<string>>(new Set())
 
@@ -69,11 +69,7 @@ export default function ModalEnviarNovedad({ novedad, onClose, onSuccess }: Moda
       setDestinatariosExistentes(new Set(destinatariosFormateados.map((d: any) => d.email)))
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: 'Error',
-        description: 'No se pudieron cargar los destinatarios asignados',
-        variant: 'destructive',
-      })
+      toast.error('No se pudieron cargar los destinatarios asignados')
     }
   }
 
@@ -91,11 +87,7 @@ export default function ModalEnviarNovedad({ novedad, onClose, onSuccess }: Moda
       setSugerencias(data)
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: 'Error',
-        description: 'Error al buscar sugerencias',
-        variant: 'destructive',
-      })
+      toast.error('Error al buscar sugerencias')
     }
   }
 
@@ -121,11 +113,7 @@ export default function ModalEnviarNovedad({ novedad, onClose, onSuccess }: Moda
       setSugerencias([])
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: 'Error',
-        description: 'Error al verificar el destinatario',
-        variant: 'destructive',
-      })
+      toast.error('Error al verificar el destinatario')
     }
   }
 
@@ -135,11 +123,7 @@ export default function ModalEnviarNovedad({ novedad, onClose, onSuccess }: Moda
 
   const handleEnviar = async () => {
     if (destinatarios.length === 0) {
-      toast({
-        title: 'Error',
-        description: 'Debe seleccionar al menos un destinatario',
-        variant: 'destructive',
-      })
+      toast.error('Debe seleccionar al menos un destinatario')
       return
     }
 
@@ -162,10 +146,7 @@ export default function ModalEnviarNovedad({ novedad, onClose, onSuccess }: Moda
         throw new Error('Error al enviar la novedad')
       }
 
-      toast({
-        title: 'Éxito',
-        description: 'Novedad enviada correctamente',
-      })
+      toast.success('Novedad enviada correctamente')
 
       onSuccess()
       onClose()
@@ -175,11 +156,7 @@ export default function ModalEnviarNovedad({ novedad, onClose, onSuccess }: Moda
       }, 1500)
     } catch (error) {
       console.error('Error:', error)
-      toast({
-        title: 'Error',
-        description: 'No se pudo enviar la novedad',
-        variant: 'destructive',
-      })
+      toast.error('No se pudo enviar la novedad')
     } finally {
       setLoading(false)
     }
