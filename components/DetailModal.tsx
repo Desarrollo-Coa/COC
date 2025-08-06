@@ -276,7 +276,7 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
           // CON FOTO DE CUMPLIDO: Foto de cumplido como background, perfil abajo
           <>
             <div 
-              className="text-white rounded-t-lg flex flex-col items-center p-6 relative overflow-hidden"
+              className="text-white rounded-t-lg flex flex-col items-center p-6 relative overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
               style={{
                 backgroundImage: `url(${cumplidoPhoto})`,
                 backgroundSize: 'cover',
@@ -290,6 +290,8 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
                 justifyContent: 'center',
                 alignItems: 'center'
               }}
+              onClick={() => window.open(cumplidoPhoto, '_blank')}
+              title="Hacer clic para ver la imagen completa"
             >
               {/* La foto de cumplido queda libre de texto */}
             </div>
