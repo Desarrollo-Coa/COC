@@ -20,7 +20,13 @@ export default function RootLayout({ children }: { children: any }) {
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.className} bg-gray-100`} suppressHydrationWarning>
         {children}
-        <Toaster richColors position="top-right" />
+        <Toaster 
+          richColors 
+          position="top-right" 
+          duration={3000}
+          closeButton={true}
+          expand={false}
+        />
       </body>
     </html>
   );
