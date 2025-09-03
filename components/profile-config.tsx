@@ -52,6 +52,28 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
     second: "2-digit",
     hour12: false
   }))
+  const [currentDate, setCurrentDate] = useState(new Date().toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "long", 
+    year: "numeric"
+  }))
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // Lógica para determinar la fecha según la hora de Colombia
+    // Si es antes de las 06:00, usar el día anterior
+    const now = new Date()
+    const colombiaTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Bogota"}))
+    const hour = colombiaTime.getHours()
+    
+    if (hour < 6) {
+      // Si es antes de las 06:00, usar el día anterior
+      const yesterday = new Date(colombiaTime)
+      yesterday.setDate(yesterday.getDate() - 1)
+      return yesterday.toISOString().split('T')[0]
+    } else {
+      // Si es después de las 06:00, usar el día actual
+      return colombiaTime.toISOString().split('T')[0]
+    }
+  }) // Fecha seleccionada para turnos
   const [stats, setStats] = useState({ dias_activo: 0 })
   const [turnos, setTurnos] = useState<any[]>([])
   const [loadingTurnos, setLoadingTurnos] = useState(true)
@@ -65,14 +87,20 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
   const [dialogOpen, setDialogOpen] = useState(false)
   const [dialogMessage, setDialogMessage] = useState('')
 
-  // Actualizar hora cada segundo
+  // Actualizar hora y fecha cada segundo
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString("es-ES", { 
+      const now = new Date()
+      setCurrentTime(now.toLocaleTimeString("es-ES", { 
         hour: "2-digit", 
         minute: "2-digit",
         second: "2-digit",
         hour12: false
+      }))
+      setCurrentDate(now.toLocaleDateString("es-ES", {
+        day: "numeric",
+        month: "long", 
+        year: "numeric"
       }))
     }, 1000)
     return () => clearInterval(interval)
@@ -122,9 +150,8 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
     const fetchTurnos = async () => {
       try {
         const negocioHash = window.location.pathname.split('/')[3];
-        const fecha = new Date().toISOString().split('T')[0];
         
-        const response = await fetch(`/api/accesos/turnos?fecha=${fecha}&negocioHash=${negocioHash}&idPuesto=${puestoData?.id_puesto}`, {
+        const response = await fetch(`/api/accesos/turnos?fecha=${selectedDate}&negocioHash=${negocioHash}&idPuesto=${puestoData?.id_puesto}`, {
           credentials: 'include', // Asegurar que se envíen las cookies
           headers: {
             'X-Negocio-Hash': negocioHash
@@ -143,6 +170,10 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
             setSelectedShift(miTurno.id_tipo_turno);
             // Obtener el id_cumplido para este turno
             obtenerCumplidoId(miTurno.id_tipo_turno);
+          } else {
+            // Si no hay turno asignado para esta fecha, limpiar selección
+            setSelectedShift(null);
+            setSelectedCumplidoId(null);
           }
         } else {
           const error = await response.json();
@@ -156,7 +187,7 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
     };
 
     fetchTurnos();
-  }, [userData.id, puestoData?.id_puesto])
+  }, [userData.id, puestoData?.id_puesto, selectedDate])
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -255,10 +286,10 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
     if (!turnoToConfirm) return;
 
     console.log('confirmShiftSelection iniciado con:', turnoToConfirm);
-    console.log('Datos a enviar:', { id_puesto: puestoData?.id_puesto, fecha: new Date().toISOString().split('T')[0], id_tipo_turno: turnoToConfirm.id_tipo_turno, id_colaborador: userData.id });
+    console.log('Datos a enviar:', { id_puesto: puestoData?.id_puesto, fecha: selectedDate, id_tipo_turno: turnoToConfirm.id_tipo_turno, id_colaborador: userData.id });
 
     try {
-      const fecha = new Date().toISOString().split('T')[0];
+      const fecha = selectedDate;
       const negocioHash = window.location.pathname.split('/')[3];
       
       // Primero, quitar cualquier turno existente del usuario
@@ -325,7 +356,7 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
   const removeShift = async (idTipoTurno: number) => {
     try {
       console.log('Removiendo turno:', idTipoTurno);
-      const fecha = new Date().toISOString().split('T')[0];
+      const fecha = selectedDate;
       const negocioHash = window.location.pathname.split('/')[3];
       
       const response = await fetch('/api/accesos/asignaciones', {
@@ -415,7 +446,7 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
 
   const obtenerCumplidoId = async (idTipoTurno: number) => {
     try {
-      const fecha = new Date().toISOString().split('T')[0];
+      const fecha = selectedDate;
       
       if (!puestoData?.id_puesto) {
         console.error('Puesto no disponible');
@@ -443,6 +474,55 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
   const getCurrentShiftRecommendation = () => {
     const hour = new Date().getHours()
     return hour >= 6 && hour < 18 ? "diurno" : "nocturno"
+  }
+
+  const handleDateChange = (dateString: string) => {
+    setSelectedDate(dateString)
+    setLoadingTurnos(true)
+  }
+
+  const getDateOptions = () => {
+    // Usar la misma lógica para determinar las fechas según la hora de Colombia
+    const now = new Date()
+    const colombiaTime = new Date(now.toLocaleString("en-US", {timeZone: "America/Bogota"}))
+    const hour = colombiaTime.getHours()
+    
+    let currentWorkDay: Date
+    let previousWorkDay: Date
+    
+    if (hour < 6) {
+      // Si es antes de las 06:00, el día de trabajo actual es el día anterior
+      currentWorkDay = new Date(colombiaTime)
+      currentWorkDay.setDate(currentWorkDay.getDate() - 1)
+      
+      previousWorkDay = new Date(currentWorkDay)
+      previousWorkDay.setDate(previousWorkDay.getDate() - 1)
+    } else {
+      // Si es después de las 06:00, el día de trabajo actual es el día actual
+      currentWorkDay = new Date(colombiaTime)
+      
+      previousWorkDay = new Date(currentWorkDay)
+      previousWorkDay.setDate(previousWorkDay.getDate() - 1)
+    }
+    
+    return [
+      {
+        value: currentWorkDay.toISOString().split('T')[0],
+        label: `Hoy - ${currentWorkDay.toLocaleDateString("es-ES", { 
+          day: "numeric", 
+          month: "long", 
+          year: "numeric" 
+        })}`
+      },
+      {
+        value: previousWorkDay.toISOString().split('T')[0],
+        label: `Ayer - ${previousWorkDay.toLocaleDateString("es-ES", { 
+          day: "numeric", 
+          month: "long", 
+          year: "numeric" 
+        })}`
+      }
+    ]
   }
 
   if (showReports) {
@@ -514,6 +594,7 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
             </h2>
             <div className="text-xs text-gray-600">
               <div>HORA: {currentTime}</div>
+              <div>FECHA: {currentDate}</div>
               <div>{stats.dias_activo} dias / {new Date().toLocaleDateString('es-ES', { month: 'long' }).toUpperCase()}</div>
             </div>
           </div>
@@ -524,6 +605,27 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
             <MessageSquare className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Selector de Fecha */}
+        <Card className="mb-4 border-0 shadow-sm">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-gray-700">Ver turnos de:</span>
+            </div>
+            <select 
+              value={selectedDate}
+              onChange={(e) => handleDateChange(e.target.value)}
+              className="w-full p-2 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {getDateOptions().map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </CardContent>
+        </Card>
 
         {/* Shift Selection Compacto */}
         <Card className="mb-4 border-0 shadow-sm">
