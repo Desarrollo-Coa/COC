@@ -79,7 +79,7 @@ export async function addWatermarkToImage(
       
       // Detectar orientación para ajustar posición automáticamente
       const isLandscape = canvas.width > canvas.height;
-      const finalPosition = isLandscape ? 'northwest' : (config.position || 'southwest');
+      const finalPosition = isLandscape ? 'southwest' : 'northwest' as WatermarkOptions['position'];
       
       switch (finalPosition) {
         case 'southwest':
