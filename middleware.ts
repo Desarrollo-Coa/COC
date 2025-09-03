@@ -46,10 +46,10 @@ export async function middleware(request: NextRequest) {
     normalizedPath.startsWith('/public/') ||
     normalizedPath.startsWith('/img/') ||
     normalizedPath.startsWith('/api/webhooks/') ||
-    normalizedPath.startsWith('/api/watermark') ||
+
     normalizedPath === '/favicon.ico'
   ) {
-    console.log('[MIDDLEWARE] Archivo estático o API watermark, acceso permitido');
+    console.log('[MIDDLEWARE] Archivo estático, acceso permitido');
     return NextResponse.next();
   }
 
@@ -160,8 +160,8 @@ export const config = {
      * - public folder and its contents
      * - img folder and its contents
      * - api/webhooks (webhook endpoints)
-     * - api/watermark (watermark API endpoint)
+
      */
-    '/((?!_next/static|_next/image|favicon.ico|public/|img/|api/webhooks/|api/watermark/).*)',
+    '/((?!_next/static|_next/image|favicon.ico|public/|img/|api/webhooks/).*)',
   ],
 }; 

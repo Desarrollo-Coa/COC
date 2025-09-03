@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import Webcam from 'react-webcam'
 import { useImageOptimizer } from '@/lib/imageOptimizer'
+import { addWatermarkWithCurrentConfig } from '@/utils/watermarkUtils'
 
 interface SubirFotoCumplidoProps {
   idCumplido: number
@@ -133,62 +134,31 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
       });
       setOptimizedImage(optimizedFile);
 
-      // Función para agregar marca de agua usando la API route interna
-      const addWatermarkViaAPI = async (imageFile: File): Promise<{ dataUrl: string; file: File }> => {
+      // Función para agregar marca de agua localmente (sin dependencia externa)
+      const addWatermarkLocally = async (imageFile: File): Promise<{ dataUrl: string; file: File }> => {
         try {
-          console.log('📤 [MOBILE] Enviando imagen a watermark API:', {
+          console.log('🎨 [MOBILE] Agregando marca de agua localmente:', {
             size: imageFile.size,
             type: imageFile.type,
             name: imageFile.name
           });
           
-          const formData = new FormData();
-          formData.append('image', imageFile);
-          // Agregar fecha y hora para el watermark
-          formData.append('timestamp', currentTime);
-          formData.append('fecha', new Date().toLocaleDateString('es-ES', {
+          const fecha = new Date().toLocaleDateString('es-ES', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric'
-          }));
-          // Agregar el texto del watermark
-          formData.append('text', 'FORTOX');
-          formData.append('color', 'white');
-          formData.append('fontSize', '16');
-          formData.append('position', 'southwest');
-          formData.append('shadowColor', 'black');
-          formData.append('shadowOpacity', '0.8');
-
-          // Usar la API route interna (sin problemas de Mixed Content)
-          const response = await fetch('/api/watermark', {
-            method: 'POST',
-            body: formData
-          });
-
-          console.log('📥 [MOBILE] Respuesta watermark API:', response.status, response.statusText);
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ [MOBILE] Error watermark API:', errorText);
-            throw new Error(`Error del servidor: ${response.status} - ${errorText}`);
-          }
-
-          // Convertir la respuesta a blob
-          const watermarkedBlob = await response.blob();
-          console.log('✅ [MOBILE] Imagen con watermark recibida:', {
-            size: watermarkedBlob.size,
-            type: watermarkedBlob.type
           });
           
-          const watermarkedFile = new File([watermarkedBlob], 'webcam-photo-watermarked.jpg', { type: 'image/jpeg' });
+          const result = await addWatermarkWithCurrentConfig(imageFile, currentTime, fecha);
           
-          // Crear data URL para preview
-          const dataUrl = URL.createObjectURL(watermarkedBlob);
-          console.log('🖼️ [MOBILE] Data URL creada:', dataUrl.substring(0, 50) + '...');
-
-          return { dataUrl, file: watermarkedFile };
+          console.log('✅ [MOBILE] Marca de agua agregada localmente:', {
+            size: result.file.size,
+            type: result.file.type
+          });
+          
+          return result;
         } catch (error) {
-          console.error('❌ [MOBILE] Error agregando marca de agua via API:', error);
+          console.error('❌ [MOBILE] Error agregando marca de agua localmente:', error);
           throw error;
         }
       };
@@ -227,7 +197,7 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
 
       // Intentar agregar marca de agua con fallback
       try {
-        const { dataUrl, file } = await addWatermarkViaAPI(optimizedFile);
+        const { dataUrl, file } = await addWatermarkLocally(optimizedFile);
         console.log('🎯 [MOBILE] Estableciendo vista previa con marca de agua');
         setPreviewUrl(dataUrl);
         setWatermarkedImage(file);
