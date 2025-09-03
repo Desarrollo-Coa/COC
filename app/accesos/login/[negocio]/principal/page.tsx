@@ -48,8 +48,8 @@ export default function PrincipalPage({ params }: PageProps) {
 
         // Obtener datos del usuario (ahora incluye puesto)
         const userResponse = await fetch('/api/accesos/auth/me', {
+          credentials: 'include', // Asegurar que se envíen las cookies
           headers: {
-            'Authorization': `Bearer ${token}`,
             'X-Negocio-Hash': negocioHash
           }
         });

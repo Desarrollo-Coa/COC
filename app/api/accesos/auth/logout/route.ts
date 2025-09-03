@@ -6,14 +6,29 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     const negocioHash = request.headers.get('x-negocio-hash');
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Obtener token del header o de cookies
+    let token = null;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    } else {
+      // Fallback: buscar token en cookies de vigilante
+      const vigilanteTokenCookie = request.cookies.get('vigilante_token')?.value;
+      if (vigilanteTokenCookie) {
+        try {
+          const sessionData = JSON.parse(vigilanteTokenCookie);
+          token = sessionData.token;
+        } catch (error) {
+          console.error('Error parsing vigilante token:', error);
+        }
+      }
+    }
+
+    if (!token) {
       return NextResponse.json(
         { error: 'Token de autorización requerido' },
         { status: 401 }
       );
     }
-
-    const token = authHeader.substring(7);
 
     try {
       // Verificar el token JWT

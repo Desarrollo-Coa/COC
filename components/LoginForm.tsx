@@ -75,8 +75,8 @@ export default function LoginForm({ negocioHash, business }: LoginFormProps) {
         
         if (token) {
           const response = await fetch('/api/accesos/auth/me', {
+            credentials: 'include', // Asegurar que se envíen las cookies
             headers: {
-              'Authorization': `Bearer ${token}`,
               'X-Negocio-Hash': negocioHash
             }
           });

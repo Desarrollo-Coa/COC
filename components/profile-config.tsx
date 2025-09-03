@@ -82,44 +82,31 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-        let token = null;
-        if (tokenCookie) {
-          try {
-            const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-            token = sessionData.token;
-          } catch (error) {
-            console.error('Error parsing session data:', error);
+        // Obtener estadísticas
+        const response = await fetch('/api/accesos/stats', {
+          credentials: 'include', // Asegurar que se envíen las cookies
+          headers: {
+            'X-Negocio-Hash': window.location.pathname.split('/')[3] // Obtener el hash del negocio de la URL
           }
-        }
+        });
         
-        if (token) {
-          // Obtener estadísticas
-          const response = await fetch('/api/accesos/stats', {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'X-Negocio-Hash': window.location.pathname.split('/')[3] // Obtener el hash del negocio de la URL
-            }
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            setStats(data);
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        }
+
+        // Obtener información del usuario incluyendo foto
+        const userResponse = await fetch('/api/accesos/auth/me', {
+          credentials: 'include', // Asegurar que se envíen las cookies
+          headers: {
+            'X-Negocio-Hash': window.location.pathname.split('/')[3]
           }
+        });
 
-          // Obtener información del usuario incluyendo foto
-          const userResponse = await fetch('/api/accesos/auth/me', {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'X-Negocio-Hash': window.location.pathname.split('/')[3]
-            }
-          });
-
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            if (userData.colaborador && userData.colaborador.foto_url) {
-              setProfileImage(userData.colaborador.foto_url);
-            }
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          if (userData.colaborador && userData.colaborador.foto_url) {
+            setProfileImage(userData.colaborador.foto_url);
           }
         }
       } catch (error) {
@@ -136,20 +123,10 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
       try {
         const negocioHash = window.location.pathname.split('/')[3];
         const fecha = new Date().toISOString().split('T')[0];
-        const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-        let token = null;
-        if (tokenCookie) {
-          try {
-            const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-            token = sessionData.token;
-          } catch (error) {
-            console.error('Error parsing session data:', error);
-          }
-        }
         
         const response = await fetch(`/api/accesos/turnos?fecha=${fecha}&negocioHash=${negocioHash}&idPuesto=${puestoData?.id_puesto}`, {
+          credentials: 'include', // Asegurar que se envíen las cookies
           headers: {
-            'Authorization': `Bearer ${token}`,
             'X-Negocio-Hash': negocioHash
           }
         });
@@ -194,28 +171,10 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
       const formData = new FormData()
       formData.append('file', file)
 
-      // Obtener token
-      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-      let token = null;
-      if (tokenCookie) {
-        try {
-          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-          token = sessionData.token;
-        } catch (error) {
-          console.error('Error parsing session data:', error);
-        }
-      }
-      
-      if (!token) {
-        throw new Error('No se encontró el token de autenticación')
-      }
-
       // Subir y actualizar foto en una sola operación
       const response = await fetch('/api/accesos/profile/photo', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        credentials: 'include', // Asegurar que se envíen las cookies
         body: formData
       })
 
@@ -239,34 +198,22 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
       setUploadingPhoto(false)
       
       // Recargar la foto actual desde el servidor
-      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-      let token = null;
-      if (tokenCookie) {
-        try {
-          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-          token = sessionData.token;
-        } catch (error) {
-          console.error('Error parsing session data:', error);
-        }
-      }
-      if (token) {
-        try {
-          const userResponse = await fetch('/api/accesos/auth/me', {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'X-Negocio-Hash': window.location.pathname.split('/')[3]
-            }
-          });
-
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            if (userData.colaborador && userData.colaborador.foto_url) {
-              setProfileImage(userData.colaborador.foto_url);
-            }
+      try {
+        const userResponse = await fetch('/api/accesos/auth/me', {
+          credentials: 'include', // Asegurar que se envíen las cookies
+          headers: {
+            'X-Negocio-Hash': window.location.pathname.split('/')[3]
           }
-        } catch (reloadError) {
-          console.error('Error recargando foto:', reloadError);
+        });
+
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          if (userData.colaborador && userData.colaborador.foto_url) {
+            setProfileImage(userData.colaborador.foto_url);
+          }
         }
+      } catch (reloadError) {
+        console.error('Error recargando foto:', reloadError);
       }
     }
   }
@@ -312,20 +259,7 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
 
     try {
       const fecha = new Date().toISOString().split('T')[0];
-      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-      let token = null;
-      if (tokenCookie) {
-        try {
-          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-          token = sessionData.token;
-        } catch (error) {
-          console.error('Error parsing session data:', error);
-        }
-      }
       const negocioHash = window.location.pathname.split('/')[3];
-      
-      console.log('Token encontrado:', !!token);
-      console.log('Negocio hash:', negocioHash);
       
       // Primero, quitar cualquier turno existente del usuario
       if (selectedShift && selectedShift !== turnoToConfirm.id_tipo_turno) {
@@ -335,9 +269,9 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
       
       const response = await fetch('/api/accesos/asignaciones', {
         method: 'POST',
+        credentials: 'include', // Asegurar que se envíen las cookies
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
           'X-Negocio-Hash': negocioHash
         },
         body: JSON.stringify({
@@ -357,8 +291,8 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
         setSelectedCumplidoId(responseData.id_cumplido);
         // Recargar turnos para actualizar estado
         const turnosResponse = await fetch(`/api/accesos/turnos?fecha=${fecha}&negocioHash=${negocioHash}&idPuesto=${puestoData?.id_puesto}`, {
+          credentials: 'include', // Asegurar que se envíen las cookies
           headers: {
-            'Authorization': `Bearer ${token}`,
             'X-Negocio-Hash': negocioHash
           }
         });
@@ -392,23 +326,13 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
     try {
       console.log('Removiendo turno:', idTipoTurno);
       const fecha = new Date().toISOString().split('T')[0];
-      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-      let token = null;
-      if (tokenCookie) {
-        try {
-          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-          token = sessionData.token;
-        } catch (error) {
-          console.error('Error parsing session data:', error);
-        }
-      }
       const negocioHash = window.location.pathname.split('/')[3];
       
       const response = await fetch('/api/accesos/asignaciones', {
         method: 'POST',
+        credentials: 'include', // Asegurar que se envíen las cookies
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
           'X-Negocio-Hash': negocioHash
         },
         body: JSON.stringify({
@@ -428,8 +352,8 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
         setSelectedCumplidoId(null);
         // Recargar turnos para actualizar estado
         const turnosResponse = await fetch(`/api/accesos/turnos?fecha=${fecha}&negocioHash=${negocioHash}&idPuesto=${puestoData?.id_puesto}`, {
+          credentials: 'include', // Asegurar que se envíen las cookies
           headers: {
-            'Authorization': `Bearer ${token}`,
             'X-Negocio-Hash': negocioHash
           }
         });
@@ -492,27 +416,15 @@ export default function ProfileConfig({ userData, negocioData, puestoData, onLog
   const obtenerCumplidoId = async (idTipoTurno: number) => {
     try {
       const fecha = new Date().toISOString().split('T')[0];
-      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-      let token = null;
-      if (tokenCookie) {
-        try {
-          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-          token = sessionData.token;
-        } catch (error) {
-          console.error('Error parsing session data:', error);
-        }
-      }
       
-      if (!token || !puestoData?.id_puesto) {
-        console.error('Token o puesto no disponible');
+      if (!puestoData?.id_puesto) {
+        console.error('Puesto no disponible');
         return;
       }
 
       // Buscar el cumplido existente para este usuario, puesto, fecha y turno
       const response = await fetch(`/api/cumplidos/buscar-cumplido?fecha=${fecha}&id_puesto=${puestoData.id_puesto}&id_tipo_turno=${idTipoTurno}&id_colaborador=${userData.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include', // Asegurar que se envíen las cookies
       });
 
       if (response.ok) {

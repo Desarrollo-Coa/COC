@@ -56,8 +56,8 @@ export default function VigilanteLoginLayout({
         
         if (token) {
           const response = await fetch('/api/accesos/auth/me', {
+            credentials: 'include', // Asegurar que se envíen las cookies
             headers: {
-              'Authorization': `Bearer ${token}`,
               'X-Negocio-Hash': negocio
             }
           });
@@ -90,8 +90,8 @@ export default function VigilanteLoginLayout({
       if (token) {
         await fetch('/api/accesos/auth/logout', {
           method: 'POST',
+          credentials: 'include', // Asegurar que se envíen las cookies
           headers: {
-            'Authorization': `Bearer ${token}`,
             'X-Negocio-Hash': negocio
           }
         });
