@@ -38,6 +38,7 @@ interface Novedad {
   evento_critico: boolean
   ha_sido_enviada?: boolean
   nombre_negocio: string
+  nombre_unidad_negocio: string
   nombre_puesto: string
 }
 
@@ -400,7 +401,7 @@ export default function HistorialNovedades() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{novedad.nombre_tipo_reporte}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{novedad.nombre_tipo_evento}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{novedad.nombre_negocio}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{novedad.nombre_unidad_negocio}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{novedad.nombre_negocio}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -488,6 +489,9 @@ export default function HistorialNovedades() {
                 {selectedNovedad.nombre_tipo_evento}
               </span>
               <span className="px-3 py-1 rounded-full bg-yellow-100 text-yellow-700 text-xs font-medium">
+                {selectedNovedad.nombre_unidad_negocio}
+              </span>
+              <span className="px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-medium">
                 {selectedNovedad.nombre_negocio}
               </span>
             </div>
