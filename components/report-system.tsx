@@ -91,69 +91,54 @@ export default function ReportSystem({ user, shift, onBack, idCumplido: propIdCu
         if (propIdCumplido) {
           setIdCumplido(propIdCumplido);
           
-          // Obtener token
-          const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-          let token = null;
-          if (tokenCookie) {
-            try {
-              const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-              token = sessionData.token;
-            } catch (error) {
-              console.error('Error parsing session data:', error);
-            }
-          }
+ 
+          // Cargar mensajes reales usando el ID del cumplido
+          const mensajesResponse = await fetch(`/api/comunicacion/mensajes?idCumplido=${propIdCumplido}`, {
+            credentials: 'include' // Asegurar que se envíen las cookies
+          });
 
-          if (token) {
-            // Cargar mensajes reales usando el ID del cumplido
-            const mensajesResponse = await fetch(`/api/comunicacion/mensajes?idCumplido=${propIdCumplido}`, {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
+          if (mensajesResponse.ok) {
+            const mensajesData = await mensajesResponse.json();
+            
+            // Convertir mensajes de la base de datos al formato del componente
+            const mensajesConvertidos: ChatMessage[] = mensajesData.mensajes.map((msg: any) => ({
+              id: msg.id.toString(),
+              type: "user",
+              content: msg.contenido,
+              timestamp: new Date(msg.fecha_creacion),
+              isAudio: msg.tipo_mensaje === 'audio',
+              audioUrl: msg.audio_url,
+              duration: msg.duracion ? formatDuration(msg.duracion) : undefined,
+              messageType: "reporte"
+            }));
+
+            // Agregar mensaje inicial del sistema
+            const today = new Date();
+            const formattedDate = today.toLocaleDateString('es-ES', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
             });
+            
+            const getTurnoDisplayName = (shift: string) => {
+              switch (shift) {
+                case "diurno": return "Diurno";
+                case "nocturno": return "Nocturno";
+                case "turno_b": return "Turno B";
+                default: return "Sin turno";
+              }
+            };
 
-            if (mensajesResponse.ok) {
-              const mensajesData = await mensajesResponse.json();
-              
-              // Convertir mensajes de la base de datos al formato del componente
-              const mensajesConvertidos: ChatMessage[] = mensajesData.mensajes.map((msg: any) => ({
-                id: msg.id.toString(),
-                type: "user",
-                content: msg.contenido,
-                timestamp: new Date(msg.fecha_creacion),
-                isAudio: msg.tipo_mensaje === 'audio',
-                audioUrl: msg.audio_url,
-                duration: msg.duracion ? formatDuration(msg.duracion) : undefined,
-                messageType: "reporte"
-              }));
+            const initialMessage: ChatMessage = {
+              id: "system-1",
+              type: "system",
+              content: `${formattedDate} - ${getTurnoDisplayName(shift)}`,
+              timestamp: new Date(),
+              messageType: "comunicacion"
+            };
 
-              // Agregar mensaje inicial del sistema
-              const today = new Date();
-              const formattedDate = today.toLocaleDateString('es-ES', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              });
-              
-              const getTurnoDisplayName = (shift: string) => {
-                switch (shift) {
-                  case "diurno": return "Diurno";
-                  case "nocturno": return "Nocturno";
-                  case "turno_b": return "Turno B";
-                  default: return "Sin turno";
-                }
-              };
-
-              const initialMessage: ChatMessage = {
-                id: "system-1",
-                type: "system",
-                content: `${formattedDate} - ${getTurnoDisplayName(shift)}`,
-                timestamp: new Date(),
-                messageType: "comunicacion"
-              };
-
-              setMessages([initialMessage, ...mensajesConvertidos]);
-            }
+            setMessages([initialMessage, ...mensajesConvertidos]);
           }
         } else {
           console.error('No se proporcionó ID de cumplido');
@@ -240,21 +225,7 @@ export default function ReportSystem({ user, shift, onBack, idCumplido: propIdCu
     try {
       setSending(true);
 
-      // Obtener token
-      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-      let token = null;
-      if (tokenCookie) {
-        try {
-          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-          token = sessionData.token;
-        } catch (error) {
-          console.error('Error parsing session data:', error);
-        }
-      }
-
-      if (!token) {
-        throw new Error('No se encontró el token de autenticación');
-      }
+      // No necesitamos obtener el token manualmente, las APIs lo manejan desde cookies
 
       // Obtener ubicación
       let latitud = null;
@@ -284,9 +255,7 @@ export default function ReportSystem({ user, shift, onBack, idCumplido: propIdCu
       // Enviar al servidor
       const response = await fetch('/api/comunicacion/mensajes', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        credentials: 'include', // Asegurar que se envíen las cookies
         body: formData
       });
 
@@ -326,12 +295,12 @@ export default function ReportSystem({ user, shift, onBack, idCumplido: propIdCu
       currentAudio.currentTime = 0
     }
 
-      const audio = new Audio(audioUrl)
+    const audio = new Audio(audioUrl)
     audio.onended = () => setIsPlaying(false)
     audio.onplay = () => setIsPlaying(true)
     audio.onpause = () => setIsPlaying(false)
     
-      audio.play()
+    audio.play()
     setCurrentAudio(audio)
   }
 
@@ -348,21 +317,7 @@ export default function ReportSystem({ user, shift, onBack, idCumplido: propIdCu
     try {
       setSending(true);
 
-      // Obtener token
-      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-      let token = null;
-      if (tokenCookie) {
-        try {
-          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-          token = sessionData.token;
-        } catch (error) {
-          console.error('Error parsing session data:', error);
-        }
-      }
-
-      if (!token) {
-        throw new Error('No se encontró el token de autenticación');
-      }
+      // No necesitamos obtener el token manualmente, las APIs lo manejan desde cookies
 
       // Obtener ubicación
       let latitud = null;
@@ -391,9 +346,7 @@ export default function ReportSystem({ user, shift, onBack, idCumplido: propIdCu
       // Enviar al servidor
       const response = await fetch('/api/comunicacion/mensajes', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        credentials: 'include', // Asegurar que se envíen las cookies
         body: formData
       });
 
@@ -405,12 +358,12 @@ export default function ReportSystem({ user, shift, onBack, idCumplido: propIdCu
       const data = await response.json();
       
       // Agregar mensaje a la lista local
-    const userMessage: ChatMessage = {
+      const userMessage: ChatMessage = {
         id: data.mensajeId.toString(),
-      type: "user",
-      content: inputMessage,
-      timestamp: new Date(),
-      messageType: "reporte"
+        type: "user",
+        content: inputMessage,
+        timestamp: new Date(),
+        messageType: "reporte"
       };
       
       setMessages(prev => [...prev, userMessage]);
@@ -547,7 +500,7 @@ export default function ReportSystem({ user, shift, onBack, idCumplido: propIdCu
             </div>
 
               {/* Mensajes de esa fecha */}
-        <div className="space-y-4">
+              <div className="space-y-4">
                 {group.messages.map((message) => (
                   <div
                     key={message.id}
@@ -589,7 +542,7 @@ export default function ReportSystem({ user, shift, onBack, idCumplido: propIdCu
                             </div>
                           )}
                           <p className="text-sm text-white">{message.content}</p>
-                    </div>
+                        </div>
                       )}
                       <p className="text-xs mt-2 text-zinc-400">
                         {formatTime(message.timestamp)}
@@ -597,8 +550,8 @@ export default function ReportSystem({ user, shift, onBack, idCumplido: propIdCu
                     </div>
                   </div>
                 ))}
-                  </div>
-                </div>
+              </div>
+            </div>
           ))}
 
           <div ref={messagesEndRef} />
@@ -619,7 +572,7 @@ export default function ReportSystem({ user, shift, onBack, idCumplido: propIdCu
           </div>
         )}
 
-                {/* Input Area */}
+        {/* Input Area */}
         <div className="p-4 bg-zinc-900 border-t border-zinc-800">
           {!idCumplido ? (
             <div className="text-center py-4">

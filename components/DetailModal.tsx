@@ -78,21 +78,9 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
     try {
       setLoadingChat(true);
       
-      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-      let token = null;
-      if (tokenCookie) {
-        try {
-          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-          token = sessionData.token;
-        } catch (error) {
-          console.error('Error parsing session data:', error);
-        }
-      }
-
+      // No enviar token en header, dejar que el middleware lo maneje desde cookies
       const response = await fetch(`/api/comunicacion/mensajes?idCumplido=${idCumplido}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include' // Asegurar que se envíen las cookies
       });
 
       if (response.ok) {
@@ -148,23 +136,9 @@ export function DetailModal({ isOpen, onClose, colaboradorId, fecha, puestoId, t
     try {
       console.log('🔍 Iniciando búsqueda de foto para cumplido:', idCumplido);
       
-      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-      let token = null;
-      if (tokenCookie) {
-        try {
-          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-          token = sessionData.token;
-        } catch (error) {
-          console.error('Error parsing session data:', error);
-        }
-      }
-
-      console.log('🔑 Token obtenido:', !!token);
-
+      // No enviar token en header, dejar que el middleware lo maneje desde cookies
       const response = await fetch(`/api/cumplidos/archivos/${idCumplido}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include' // Asegurar que se envíen las cookies
       });
 
       console.log('📡 Response status:', response.status);

@@ -9,26 +9,38 @@ export async function GET(
   { params }: { params: Promise<{ idCumplido: string }> }
 ) {
   try {
-    // Obtener token del header Authorization
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Obtener token de las cookies (principal o vigilante)
+    let token = request.cookies.get('token')?.value;
+    
+    // Si no hay token principal, intentar con token de vigilante
+    if (!token) {
+      const vigilanteTokenCookie = request.cookies.get('vigilante_token')?.value;
+      if (vigilanteTokenCookie) {
+        try {
+          const sessionData = JSON.parse(vigilanteTokenCookie);
+          token = sessionData.token;
+        } catch (error) {
+          console.error('Error parsing vigilante token:', error);
+        }
+      }
+    }
+    
+    if (!token) {
       return NextResponse.json(
         { error: 'Token de autorización requerido' },
         { status: 401 }
       );
     }
 
-    const token = authHeader.substring(7);
-
     // Verificar el token JWT
     try {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
       const { payload } = await jwtVerify(token, secret);
 
-      // Verificar que es un token de vigilante
-      if (payload.tipo !== 'vigilante') {
+      // Verificar que el token es válido (cualquier tipo de token autenticado)
+      if (!payload) {
         return NextResponse.json(
-          { error: 'Token inválido para vigilantes' },
+          { error: 'Token inválido' },
           { status: 401 }
         );
       }
@@ -103,26 +115,38 @@ export async function DELETE(
   { params }: { params: Promise<{ idCumplido: string }> }
 ) {
   try {
-    // Obtener token del header Authorization
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Obtener token de las cookies (principal o vigilante)
+    let token = request.cookies.get('token')?.value;
+    
+    // Si no hay token principal, intentar con token de vigilante
+    if (!token) {
+      const vigilanteTokenCookie = request.cookies.get('vigilante_token')?.value;
+      if (vigilanteTokenCookie) {
+        try {
+          const sessionData = JSON.parse(vigilanteTokenCookie);
+          token = sessionData.token;
+        } catch (error) {
+          console.error('Error parsing vigilante token:', error);
+        }
+      }
+    }
+    
+    if (!token) {
       return NextResponse.json(
         { error: 'Token de autorización requerido' },
         { status: 401 }
       );
     }
 
-    const token = authHeader.substring(7);
-
     // Verificar el token JWT
     try {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
       const { payload } = await jwtVerify(token, secret);
 
-      // Verificar que es un token de vigilante
-      if (payload.tipo !== 'vigilante') {
+      // Verificar que el token es válido (cualquier tipo de token autenticado)
+      if (!payload) {
         return NextResponse.json(
-          { error: 'Token inválido para vigilantes' },
+          { error: 'Token inválido' },
           { status: 401 }
         );
       }

@@ -43,21 +43,9 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
   // Función para cargar foto existente
   const fetchExistingPhoto = async () => {
     try {
-      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-      let token = null;
-      if (tokenCookie) {
-        try {
-          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-          token = sessionData.token;
-        } catch (error) {
-          console.error('Error parsing session data:', error);
-        }
-      }
-
+      // No enviar token en header, dejar que el middleware lo maneje desde cookies
       const response = await fetch(`/api/cumplidos/archivos/${idCumplido}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include' // Asegurar que se envíen las cookies
       });
 
       if (response.ok) {
@@ -234,22 +222,10 @@ export default function SubirFotoCumplido({ idCumplido, onSuccess, isActive = fa
         formData.append('longitud', coords.lng.toString());
       }
 
-      const tokenCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('vigilante_token='));
-      let token = null;
-      if (tokenCookie) {
-        try {
-          const sessionData = JSON.parse(tokenCookie.split('=')[1]);
-          token = sessionData.token;
-        } catch (error) {
-          console.error('Error parsing session data:', error);
-        }
-      }
-
+      // No enviar token en header, dejar que el middleware lo maneje desde cookies
       const apiResponse = await fetch('/api/cumplidos/archivos', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        credentials: 'include', // Asegurar que se envíen las cookies
         body: formData
       });
 

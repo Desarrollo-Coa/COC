@@ -60,8 +60,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Verificar token de autenticación
-  const token = getTokenFromRequest(request);
+  // Verificar token de autenticación (principal o vigilante)
+  let token = getTokenFromRequest(request);
+  
+  // Si no hay token principal, intentar con token de vigilante
+  if (!token) {
+    const vigilanteTokenCookie = request.cookies.get('vigilante_token')?.value;
+    if (vigilanteTokenCookie) {
+      try {
+        const sessionData = JSON.parse(vigilanteTokenCookie);
+        token = sessionData.token;
+      } catch (error) {
+        console.error('Error parsing vigilante token:', error);
+      }
+    }
+  }
+  
   if (!token) {
     console.log('[MIDDLEWARE] No hay token, redirigiendo a login');
     
